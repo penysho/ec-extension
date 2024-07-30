@@ -1,0 +1,7 @@
+FROM rust:latest
+
+WORKDIR /app
+
+EXPOSE 8001
+
+RUN apt-get update && apt-get install -y libssl-dev
