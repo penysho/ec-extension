@@ -8,11 +8,11 @@ WORKDIR /code
 # This step avoids needing to spend time on every build downloading the index
 # which can take a long time within the docker context. Docker will cache it.
 RUN USER=root cargo init
-COPY deploy-demo/Cargo.toml Cargo.toml
+COPY backend/Cargo.toml Cargo.toml
 RUN cargo fetch
 
 # copy app files
-COPY deploy-demo/src src
+COPY backend/src src
 
 # compile app
 RUN cargo build --release
@@ -24,7 +24,7 @@ FROM debian:bullseye-slim
 WORKDIR /app
 
 # copy server binary from build stage
-COPY --from=builder /code/target/release/deploy-demo deploy-demo
+COPY --from=builder /code/target/release/backend backend
 
 # set user to non-root unless root is required for your app
 USER 1001
@@ -33,4 +33,4 @@ USER 1001
 EXPOSE 8001
 
 # run server
-CMD [ "/app/deploy-demo" ]
+CMD [ "/app/backend" ]

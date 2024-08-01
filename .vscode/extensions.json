@@ -2,7 +2,7 @@
   "recommendations": [
     // Rust
     "rust-lang.rust-analyzer",
-    "serayuzgur.crates",
+    "fill-labs.dependi",
     // Python
     "ms-python.python",
     "ms-python.vscode-pylance",
