@@ -10,3 +10,5 @@ services:
     ports:
       - "8011:8011"
     tty: true
+    env_file:
+      - "./backend/.env.local.compose"
