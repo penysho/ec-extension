@@ -3,6 +3,7 @@ use actix_web::{web, App, HttpResponse, HttpServer};
 use env_logger::Env;
 use std::env;
 
+mod entity;
 mod infrastructure;
 mod interface;
 

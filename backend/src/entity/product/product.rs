@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Product {
     id: String,
     name: String,

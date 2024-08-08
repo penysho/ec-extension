@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use super::exception::GenericResponseError;
 
-#[derive(Serialize, Deserialize)]
-pub struct GetProductsResponce {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetProductsResponse {
     pub id: String,
     pub name: String,
     pub price: u32,
@@ -44,4 +44,4 @@ impl ResponseError for GetPostsResponseError {
     }
 }
 
-pub type GetProductsResponceResult = Result<Json<GetProductsResponce>, GetPostsResponseError>;
+pub type GetProductsResponseResult = Result<Json<GetProductsResponse>, GetPostsResponseError>;

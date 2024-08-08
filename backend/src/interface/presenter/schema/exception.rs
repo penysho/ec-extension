@@ -2,7 +2,6 @@ use actix_web::{
     http::{header::ContentType, StatusCode},
     HttpResponse,
 };
-use derive_more::{Display, Error};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -13,10 +12,6 @@ pub struct ErrorResponse {
 }
 
 pub trait GenericResponseError: std::fmt::Display {
-    fn status_code(&self) -> StatusCode {
-        StatusCode::INTERNAL_SERVER_ERROR
-    }
-
     fn error_response(&self) -> HttpResponse {
         let status_code = self.status_code();
         let error_response = ErrorResponse {
@@ -30,5 +25,9 @@ pub trait GenericResponseError: std::fmt::Display {
         HttpResponse::build(status_code)
             .insert_header(ContentType::json())
             .json(error_response)
+    }
+
+    fn status_code(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
     }
 }
