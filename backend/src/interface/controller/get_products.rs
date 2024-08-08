@@ -13,7 +13,7 @@ impl Controller {
             100,
             "This is a dummy product.".to_string(),
         );
-        let result = Ok(dummy_product);
+        let result = Ok(Some(dummy_product));
 
         let presenter = ProductPresenterImpl::new();
         presenter.present_get_products(result).await

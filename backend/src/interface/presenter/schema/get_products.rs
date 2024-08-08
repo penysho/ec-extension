@@ -5,21 +5,20 @@ use serde::{Deserialize, Serialize};
 use super::exception::GenericResponseError;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct GetProductsResponse {
+pub struct Product {
     pub id: String,
     pub name: String,
     pub price: u32,
     pub description: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetProductsResponse {
+    pub products: Vec<Product>,
+}
+
 #[derive(Debug, Display, Error)]
 pub enum GetPostsResponseError {
-    #[display(fmt = "Validation error: {}", field)]
-    ValidationFailure { field: String },
-
-    #[display(fmt = "Products not found: {}", field)]
-    ProductNotFound { field: String },
-
     #[display(fmt = "Service unavailable. Give it some time and try again.")]
     ServiceUnavailable,
 }
@@ -27,8 +26,6 @@ pub enum GetPostsResponseError {
 impl GenericResponseError for GetPostsResponseError {
     fn status_code(&self) -> StatusCode {
         match *self {
-            GetPostsResponseError::ValidationFailure { .. } => StatusCode::BAD_REQUEST,
-            GetPostsResponseError::ProductNotFound { .. } => StatusCode::NOT_FOUND,
             GetPostsResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
