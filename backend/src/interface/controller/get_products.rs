@@ -6,9 +6,10 @@ use actix_web::Responder;
 
 impl Controller {
     pub async fn get_products(&self) -> impl Responder {
-        let result = self.product_interactor.get_products().await;
+        let interactor = self.interact_provider.provide_product_interactor().await;
+        let products = interactor.get_products().await;
 
         let presenter = ProductPresenterImpl::new();
-        presenter.present_get_products(result).await
+        presenter.present_get_products(products).await
     }
 }

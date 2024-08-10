@@ -1,13 +1,13 @@
-use crate::usecase::product_interactor_interface::ProductInteractorInterface;
+use super::interact_provider_interface::InteractProvider;
 
 pub struct Controller {
-    pub product_interactor: Box<dyn ProductInteractorInterface>,
+    pub interact_provider: Box<dyn InteractProvider>,
 }
 
 impl Controller {
-    pub fn new(product_interactor: Box<dyn ProductInteractorInterface>) -> Self {
+    pub fn new(interact_provider: Box<dyn InteractProvider>) -> Self {
         Controller {
-            product_interactor: product_interactor,
+            interact_provider: interact_provider,
         }
     }
 }

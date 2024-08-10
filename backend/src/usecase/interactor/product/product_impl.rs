@@ -2,26 +2,27 @@ use async_trait::async_trait;
 
 use crate::{
     entity::{error::error::DomainError, product::product::Product},
-    usecase::product_interactor_interface::ProductInteractorInterface,
+    usecase::{
+        interactor::product_interactor_interface::ProductInteractorInterface,
+        repository::product_repository_interface::ProductRepository,
+    },
 };
 
-pub struct ProductInteractorImpl;
+pub struct ProductInteractorImpl {
+    product_repository: Box<dyn ProductRepository>,
+}
 
 impl ProductInteractorImpl {
-    pub fn new() -> Self {
-        Self
+    pub fn new(product_repository: Box<dyn ProductRepository>) -> Self {
+        Self {
+            product_repository: product_repository,
+        }
     }
 }
 
 #[async_trait]
 impl ProductInteractorInterface for ProductInteractorImpl {
     async fn get_products(&self) -> Result<Vec<Product>, DomainError> {
-        let dummy_product = Product::new(
-            "1".to_string(),
-            "Product 1".to_string(),
-            100,
-            "This is a dummy product.".to_string(),
-        );
-        Ok(vec![dummy_product])
+        self.product_repository.get_products().await
     }
 }

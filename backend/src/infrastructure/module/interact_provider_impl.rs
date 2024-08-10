@@ -1,11 +1,27 @@
+use async_trait::async_trait;
+
+use crate::{
+    infrastructure::shopify::repository::product::product_impl::ProductRepositoryImpl,
+    interface::controller::interact_provider_interface::InteractProvider,
+    usecase::interactor::{
+        product::product_impl::ProductInteractorImpl,
+        product_interactor_interface::ProductInteractorInterface,
+    },
+};
+
 pub struct InteractProviderImpl;
 
 impl InteractProviderImpl {
     pub fn new() -> Self {
         Self
     }
+}
 
-    pub fn provide_product_interactor() {
-        println!("provide_product_interactor");
+#[async_trait]
+impl InteractProvider for InteractProviderImpl {
+    async fn provide_product_interactor(&self) -> Box<dyn ProductInteractorInterface> {
+        Box::new(ProductInteractorImpl::new(Box::new(
+            ProductRepositoryImpl::new(),
+        )))
     }
 }

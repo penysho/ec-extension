@@ -1,10 +1,10 @@
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use env_logger::Env;
+use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
 use std::env;
 use std::sync::Arc;
-use usecase::interactor::product::product_impl::ProductInteractorImpl;
 
 mod entity;
 mod infrastructure;
@@ -26,7 +26,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or(log_level));
 
     let controller = web::Data::new(Arc::new(Controller::new(Box::new(
-        ProductInteractorImpl::new(),
+        InteractProviderImpl::new(),
     ))));
 
     HttpServer::new(move || {
