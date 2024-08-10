@@ -5,7 +5,8 @@ use crate::{
     interface::presenter::{
         product_presenter_interface::ProductPresenter,
         schema::product::{
-            GetPostsResponseError, GetProductsResponse, GetProductsResponseResult, ProductSchema,
+            GetProductResponse, GetProductResponseError, GetProductsResponse,
+            GetProductsResponseError, ProductSchema,
         },
     },
 };
@@ -16,29 +17,34 @@ impl ProductPresenterImpl {
         ProductPresenterImpl
     }
 }
-impl ProductPresenter<Json<GetProductsResponse>, GetPostsResponseError> for ProductPresenterImpl {
+impl ProductPresenter for ProductPresenterImpl {
+    type GetProductResponse = Json<GetProductResponse>;
+    type GetProductResponseError = GetProductResponseError;
+    type GetProductsResponse = Json<GetProductsResponse>;
+    type GetProductsResponseError = GetProductsResponseError;
+
     async fn present_get_product(
         &self,
         result: Result<Option<Product>, DomainError>,
-    ) -> GetProductsResponseResult {
+    ) -> Result<Self::GetProductResponse, Self::GetProductResponseError> {
         match result {
-            Ok(Some(product)) => Ok(web::Json(GetProductsResponse {
-                products: vec![ProductSchema {
+            Ok(Some(product)) => Ok(web::Json(GetProductResponse {
+                product: ProductSchema {
                     id: product.get_id().to_string(),
                     name: product.get_name().to_string(),
                     price: product.get_price(),
                     description: product.get_description().to_string(),
-                }],
+                },
             })),
-            Ok(None) => Ok(web::Json(GetProductsResponse { products: vec![] })),
-            Err(_) => Err(GetPostsResponseError::ServiceUnavailable),
+            Ok(None) => Err(GetProductResponseError::ProductNotFound),
+            Err(_) => Err(GetProductResponseError::ServiceUnavailable),
         }
     }
 
     async fn present_get_products(
         &self,
         result: Result<Vec<Product>, DomainError>,
-    ) -> GetProductsResponseResult {
+    ) -> Result<Self::GetProductsResponse, Self::GetProductsResponseError> {
         match result {
             Ok(products) => {
                 let product_schemas: Vec<ProductSchema> = products
@@ -55,7 +61,7 @@ impl ProductPresenter<Json<GetProductsResponse>, GetPostsResponseError> for Prod
                     products: product_schemas,
                 }))
             }
-            Err(_) => Err(GetPostsResponseError::ServiceUnavailable),
+            Err(_) => Err(GetProductsResponseError::ServiceUnavailable),
         }
     }
 }
