@@ -6,8 +6,9 @@ use std::env;
 mod entity;
 mod infrastructure;
 mod interface;
+mod usecase;
 
-use crate::infrastructure::router::actix::router;
+use crate::infrastructure::router::actix_router;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -25,7 +26,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(Logger::default())
             // .wrap(Logger::default().exclude("/health"))
-            .configure(router::configure_routes)
+            .configure(actix_router::configure_routes)
             .route(
                 "/health",
                 web::get().to(|| async { HttpResponse::Ok().body("ok") }),
