@@ -1,7 +1,10 @@
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use env_logger::Env;
+use interface::controller::controller::Controller;
 use std::env;
+use std::sync::Arc;
+use usecase::interactor::product::product_impl::ProductInteractorImpl;
 
 mod entity;
 mod infrastructure;
@@ -12,7 +15,7 @@ use crate::infrastructure::router::actix_router;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
+    let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "debug".to_string());
     match log_level.as_str() {
         "error" | "warn" | "info" | "debug" | "trace" | "off" => (),
         _ => {
@@ -22,10 +25,15 @@ async fn main() -> std::io::Result<()> {
     };
     env_logger::init_from_env(Env::default().default_filter_or(log_level));
 
+    let controller = web::Data::new(Arc::new(Controller::new(Box::new(
+        ProductInteractorImpl::new(),
+    ))));
+
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
             // .wrap(Logger::default().exclude("/health"))
+            .app_data(controller.clone())
             .configure(actix_router::configure_routes)
             .route(
                 "/health",

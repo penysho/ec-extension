@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use crate::{
     entity::{error::error::DomainError, product::product::Product},
     usecase::product_interactor_interface::ProductInteractorInterface,
@@ -11,6 +13,7 @@ impl ProductInteractorImpl {
     }
 }
 
+#[async_trait]
 impl ProductInteractorInterface for ProductInteractorImpl {
     async fn get_products(&self) -> Result<Vec<Product>, DomainError> {
         let dummy_product = Product::new(
