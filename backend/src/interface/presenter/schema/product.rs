@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::exception::GenericResponseError;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Product {
+pub struct ProductSchema {
     pub id: String,
     pub name: String,
     pub price: u32,
@@ -14,7 +14,7 @@ pub struct Product {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetProductsResponse {
-    pub products: Vec<Product>,
+    pub products: Vec<ProductSchema>,
 }
 
 #[derive(Debug, Display, Error)]
