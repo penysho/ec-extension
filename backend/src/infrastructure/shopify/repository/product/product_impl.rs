@@ -16,6 +16,7 @@ use crate::{
     usecase::repository::product_repository_interface::ProductRepository,
 };
 
+/// Repository for products for Shopify.
 pub struct ProductRepositoryImpl {
     client: ShopifyClient,
 }
@@ -28,6 +29,7 @@ impl ProductRepositoryImpl {
 
 #[async_trait]
 impl ProductRepository for ProductRepositoryImpl {
+    /// Retrieve multiple products.
     async fn get_products(&self) -> Result<Vec<Product>, DomainError> {
         let query = json!({
         "query": "query { products(first: 10, reverse: true) { edges { node { id title handl priceRangeV2 { maxVariantPrice { amount } } description(truncateAt: 500) resourcePublicationOnCurrentPublication { publication { name id } publishDate isPublished } } } } }"

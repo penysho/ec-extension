@@ -12,6 +12,7 @@ use crate::{
     },
 };
 
+/// A client that interacts with GraphQL for Shopify.
 pub struct ShopifyClient {
     client: Client,
     config: ShopifyConfig,
@@ -27,6 +28,7 @@ impl ShopifyClient {
         }
     }
 
+    /// Execute a GraphQL query request for Shopify.
     pub async fn query<T>(&self, query: &T) -> Result<Response, DomainError>
     where
         T: Serialize + ?Sized,
@@ -44,6 +46,7 @@ impl ShopifyClient {
         Ok(response)
     }
 
+    /// Generate headers to be used in GraphQL requests for Shopify.
     fn build_headers(&self) -> HeaderMap {
         let mut headers = HeaderMap::new();
         headers.insert(

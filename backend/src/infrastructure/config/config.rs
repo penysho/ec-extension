@@ -3,6 +3,7 @@ use std::env;
 
 use crate::infrastructure::error::InfrastructureError;
 
+/// AppConfig manages application settings.
 #[derive(Getters, Clone)]
 pub struct AppConfig {
     log_level: String,
@@ -29,6 +30,7 @@ impl AppConfig {
     }
 }
 
+/// ShopifyConfig manages Shopify settings.
 #[derive(Getters, Clone)]
 pub struct ShopifyConfig {
     store_url: String,

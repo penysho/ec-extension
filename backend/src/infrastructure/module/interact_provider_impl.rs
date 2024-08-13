@@ -14,6 +14,7 @@ use crate::{
     },
 };
 
+/// Factory providing Interactor.
 pub struct InteractProviderImpl {
     shopify_config: ShopifyConfig,
 }
@@ -26,6 +27,7 @@ impl InteractProviderImpl {
 
 #[async_trait]
 impl InteractProvider for InteractProviderImpl {
+    /// Provide Interactor for products.
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractorInterface> {
         Box::new(ProductInteractorImpl::new(Box::new(
             ProductRepositoryImpl::new(ShopifyClient::new(self.shopify_config.clone())),

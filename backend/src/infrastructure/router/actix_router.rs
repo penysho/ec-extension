@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::interface::controller::controller::Controller;
 use actix_web::web;
 
+/// Define actix routers.
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/ec-extension")

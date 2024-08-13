@@ -1,5 +1,6 @@
 use derive_getters::Getters;
 
+/// Entity of Products.
 #[derive(Debug, Getters)]
 pub struct Product {
     id: String,

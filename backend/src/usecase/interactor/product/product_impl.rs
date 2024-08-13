@@ -8,6 +8,7 @@ use crate::{
     },
 };
 
+/// Product Interactor.
 pub struct ProductInteractorImpl {
     product_repository: Box<dyn ProductRepository>,
 }
@@ -22,6 +23,7 @@ impl ProductInteractorImpl {
 
 #[async_trait]
 impl ProductInteractorInterface for ProductInteractorImpl {
+    /// Obtain a list of products
     async fn get_products(&self) -> Result<Vec<Product>, DomainError> {
         self.product_repository.get_products().await
     }

@@ -11,6 +11,7 @@ use crate::{
 use actix_web::Responder;
 
 impl Controller {
+    /// Obtain detailed product information.
     pub async fn get_product(&self) -> impl Responder {
         let dummy_product = Product::new(
             "1".to_string(),

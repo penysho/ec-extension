@@ -1,5 +1,6 @@
 use crate::entity::{error::error::DomainError, product::product::Product};
 
+/// Interface to generate response schema for products.
 pub trait ProductPresenter {
     type GetProductResponse;
     type GetProductResponseError;

@@ -11,6 +11,7 @@ use crate::{
     },
 };
 
+/// Generate a response schema for the product
 pub struct ProductPresenterImpl;
 impl ProductPresenterImpl {
     pub fn new() -> Self {
@@ -20,6 +21,7 @@ impl ProductPresenterImpl {
 impl ProductPresenter for ProductPresenterImpl {
     type GetProductResponse = Json<GetProductResponse>;
     type GetProductResponseError = GetProductResponseError;
+    /// Generate a response with detailed product information.
     async fn present_get_product(
         &self,
         result: Result<Option<Product>, DomainError>,
@@ -40,6 +42,7 @@ impl ProductPresenter for ProductPresenterImpl {
 
     type GetProductsResponse = Json<GetProductsResponse>;
     type GetProductsResponseError = GetProductsResponseError;
+    /// Generate a response for the product list.
     async fn present_get_products(
         &self,
         result: Result<Vec<Product>, DomainError>,
