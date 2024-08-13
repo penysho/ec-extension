@@ -1,7 +1,10 @@
 use async_trait::async_trait;
 
 use crate::{
-    infrastructure::shopify::repository::product::product_impl::ProductRepositoryImpl,
+    infrastructure::{
+        config::config::ShopifyConfig,
+        shopify::repository::product::product_impl::ProductRepositoryImpl,
+    },
     interface::controller::interact_provider_interface::InteractProvider,
     usecase::interactor::{
         product::product_impl::ProductInteractorImpl,
@@ -9,11 +12,13 @@ use crate::{
     },
 };
 
-pub struct InteractProviderImpl;
+pub struct InteractProviderImpl {
+    shopify_config: ShopifyConfig,
+}
 
 impl InteractProviderImpl {
-    pub fn new() -> Self {
-        Self
+    pub fn new(shopify_config: ShopifyConfig) -> Self {
+        Self { shopify_config }
     }
 }
 
@@ -21,7 +26,7 @@ impl InteractProviderImpl {
 impl InteractProvider for InteractProviderImpl {
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractorInterface> {
         Box::new(ProductInteractorImpl::new(Box::new(
-            ProductRepositoryImpl::new(),
+            ProductRepositoryImpl::new(self.shopify_config.clone()),
         )))
     }
 }
