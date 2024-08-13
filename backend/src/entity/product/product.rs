@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use derive_getters::Getters;
+
+#[derive(Debug, Getters)]
 pub struct Product {
     id: String,
     name: String,
@@ -14,21 +16,5 @@ impl Product {
             price,
             description,
         }
-    }
-
-    pub fn get_id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn get_name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn get_price(&self) -> u32 {
-        self.price
-    }
-
-    pub fn get_description(&self) -> &str {
-        &self.description
     }
 }

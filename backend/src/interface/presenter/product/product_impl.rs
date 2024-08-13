@@ -20,9 +20,6 @@ impl ProductPresenterImpl {
 impl ProductPresenter for ProductPresenterImpl {
     type GetProductResponse = Json<GetProductResponse>;
     type GetProductResponseError = GetProductResponseError;
-    type GetProductsResponse = Json<GetProductsResponse>;
-    type GetProductsResponseError = GetProductsResponseError;
-
     async fn present_get_product(
         &self,
         result: Result<Option<Product>, DomainError>,
@@ -30,10 +27,10 @@ impl ProductPresenter for ProductPresenterImpl {
         match result {
             Ok(Some(product)) => Ok(web::Json(GetProductResponse {
                 product: ProductSchema {
-                    id: product.get_id().to_string(),
-                    name: product.get_name().to_string(),
-                    price: product.get_price(),
-                    description: product.get_description().to_string(),
+                    id: product.id().to_string(),
+                    name: product.name().to_string(),
+                    price: *product.price(),
+                    description: product.description().to_string(),
                 },
             })),
             Ok(None) => Err(GetProductResponseError::ProductNotFound),
@@ -41,6 +38,8 @@ impl ProductPresenter for ProductPresenterImpl {
         }
     }
 
+    type GetProductsResponse = Json<GetProductsResponse>;
+    type GetProductsResponseError = GetProductsResponseError;
     async fn present_get_products(
         &self,
         result: Result<Vec<Product>, DomainError>,
@@ -50,10 +49,10 @@ impl ProductPresenter for ProductPresenterImpl {
                 let product_schemas: Vec<ProductSchema> = products
                     .into_iter()
                     .map(|product| ProductSchema {
-                        id: product.get_id().to_string(),
-                        name: product.get_name().to_string(),
-                        price: product.get_price(),
-                        description: product.get_description().to_string(),
+                        id: product.id().to_string(),
+                        name: product.name().to_string(),
+                        price: *product.price(),
+                        description: product.description().to_string(),
                     })
                     .collect();
 

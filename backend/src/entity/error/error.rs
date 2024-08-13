@@ -1,18 +1,7 @@
 use derive_more::{Display, Error};
 
 #[derive(Debug, Display, Error)]
-pub struct DomainError {
-    message: String,
+pub enum DomainError {
+    #[display(fmt = "System error.")]
+    SystemError,
 }
-
-impl DomainError {
-    pub fn new(message: String) -> Self {
-        Self { message }
-    }
-
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-}
-
-
