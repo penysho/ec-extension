@@ -3,7 +3,7 @@ use std::env;
 
 use crate::infrastructure::error::InfrastructureError;
 
-#[derive(Getters)]
+#[derive(Getters, Clone)]
 pub struct AppConfig {
     log_level: String,
 }

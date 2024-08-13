@@ -3,7 +3,9 @@ use async_trait::async_trait;
 use crate::{
     infrastructure::{
         config::config::ShopifyConfig,
-        shopify::repository::product::product_impl::ProductRepositoryImpl,
+        shopify::repository::{
+            client::ShopifyClient, product::product_impl::ProductRepositoryImpl,
+        },
     },
     interface::controller::interact_provider_interface::InteractProvider,
     usecase::interactor::{
@@ -26,7 +28,7 @@ impl InteractProviderImpl {
 impl InteractProvider for InteractProviderImpl {
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractorInterface> {
         Box::new(ProductInteractorImpl::new(Box::new(
-            ProductRepositoryImpl::new(self.shopify_config.clone()),
+            ProductRepositoryImpl::new(ShopifyClient::new(self.shopify_config.clone())),
         )))
     }
 }
