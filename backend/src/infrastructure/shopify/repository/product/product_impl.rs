@@ -30,7 +30,7 @@ impl ProductRepositoryImpl {
 impl ProductRepository for ProductRepositoryImpl {
     async fn get_products(&self) -> Result<Vec<Product>, DomainError> {
         let query = json!({
-        "query": "query { products(first: 10, reverse: true) { edges { node { id title handle priceRangeV2 { maxVariantPrice { amount } } description(truncateAt: 500) resourcePublicationOnCurrentPublication { publication { name id } publishDate isPublished } } } } }"
+        "query": "query { products(first: 10, reverse: true) { edges { node { id title handl priceRangeV2 { maxVariantPrice { amount } } description(truncateAt: 500) resourcePublicationOnCurrentPublication { publication { name id } publishDate isPublished } } } } }"
         });
 
         let response = self.client.query(&query).await?;
@@ -38,11 +38,11 @@ impl ProductRepository for ProductRepositoryImpl {
             .json::<GraphQLResponse<ProductsData>>()
             .await
             .map_err(|e| {
-                println!("Error parsing GraphQL response: {}", e);
+                log::error!("Failed to parse GraphQL response. Error= {:?}", e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
         if let Some(errors) = graphql_response.errors {
-            println!("GraphQL Errors: {:?}", errors);
+            log::error!("Error returned in GraphQL response. Response= {:?}", errors);
             return Err(InfrastructureErrorMapper::to_domain(
                 InfrastructureError::GraphQLResponseError,
             ));

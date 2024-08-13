@@ -16,13 +16,15 @@ pub struct Edges<T> {
     pub edges: Vec<Node<T>>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct GraphQLError {
-    pub message: String,
-    pub extensions: Option<GraphQLErrorExtensions>,
+    message: String,
+    extensions: Option<GraphQLErrorExtensions>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct GraphQLErrorExtensions {
-    pub code: Option<String>,
+    code: Option<String>,
 }
