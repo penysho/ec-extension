@@ -28,12 +28,7 @@ impl ProductPresenter for ProductPresenterImpl {
     ) -> Result<Self::GetProductResponse, Self::GetProductResponseError> {
         match result {
             Ok(Some(product)) => Ok(web::Json(GetProductResponse {
-                product: ProductSchema {
-                    id: product.id().to_string(),
-                    name: product.name().to_string(),
-                    price: *product.price(),
-                    description: product.description().to_string(),
-                },
+                product: ProductSchema::from(product),
             })),
             Ok(None) => Err(GetProductResponseError::ProductNotFound),
             Err(_) => Err(GetProductResponseError::ServiceUnavailable),
@@ -51,12 +46,7 @@ impl ProductPresenter for ProductPresenterImpl {
             Ok(products) => {
                 let product_schemas: Vec<ProductSchema> = products
                     .into_iter()
-                    .map(|product| ProductSchema {
-                        id: product.id().to_string(),
-                        name: product.name().to_string(),
-                        price: *product.price(),
-                        description: product.description().to_string(),
-                    })
+                    .map(|product| ProductSchema::from(product))
                     .collect();
 
                 Ok(web::Json(GetProductsResponse {

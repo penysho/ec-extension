@@ -28,17 +28,6 @@ impl From<ProductNode> for ProductSchema {
     }
 }
 
-impl From<Product> for ProductSchema {
-    fn from(domain: Product) -> Self {
-        ProductSchema {
-            id: domain.id().to_string(),
-            title: domain.name().to_string(),
-            price: *(domain.price()) as f64,
-            description: domain.description().to_string(),
-        }
-    }
-}
-
 impl ProductSchema {
     pub fn to_domain(self) -> Product {
         Product::new(self.id, self.title, self.price as u32, self.description)

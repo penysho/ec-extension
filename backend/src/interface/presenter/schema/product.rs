@@ -2,6 +2,8 @@ use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
+use crate::entity::product::product::Product;
+
 use super::exception::GenericResponseError;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -10,6 +12,17 @@ pub struct ProductSchema {
     pub name: String,
     pub price: u32,
     pub description: String,
+}
+
+impl From<Product> for ProductSchema {
+    fn from(domain: Product) -> Self {
+        ProductSchema {
+            id: domain.id().to_string(),
+            name: domain.name().to_string(),
+            price: *(domain.price()),
+            description: domain.description().to_string(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
