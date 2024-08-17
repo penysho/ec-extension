@@ -1,5 +1,5 @@
 use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpResponse, HttpServer};
+use actix_web::{web, App, HttpServer};
 use env_logger::Env;
 use infrastructure::config::config::{AppConfig, ShopifyConfig};
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
@@ -31,10 +31,6 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default().exclude("/health"))
             .app_data(controller.clone())
             .configure(actix_router::configure_routes)
-            .route(
-                "/health",
-                web::get().to(|| async { HttpResponse::Ok().body("ok") }),
-            )
     })
     .bind("0.0.0.0:8011")?
     .run()
