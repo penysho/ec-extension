@@ -1,7 +1,7 @@
 use derive_getters::Getters;
 use std::env;
 
-use crate::infrastructure::error::InfrastructureError;
+use crate::entity::error::error::DomainError;
 
 /// AppConfig manages application settings.
 #[derive(Getters, Clone)]
@@ -12,7 +12,7 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn new() -> Result<Self, InfrastructureError> {
+    pub fn new() -> Result<Self, DomainError> {
         let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "debug".to_string());
         if !matches!(
             log_level.as_str(),
@@ -23,7 +23,7 @@ impl AppConfig {
                     Set one of ERROR, WARN, INFO, DEBUG, TRACE, or OFF. LOG_LEVEL= {}",
                 log_level
             );
-            return Err(InfrastructureError::InitConfigError);
+            return Err(DomainError::InitConfigError);
         }
 
         let port = env::var("APP_PORT").unwrap_or_else(|_| "8011".to_string());
@@ -45,14 +45,14 @@ pub struct ShopifyConfig {
 }
 
 impl ShopifyConfig {
-    pub fn new() -> Result<Self, InfrastructureError> {
+    pub fn new() -> Result<Self, DomainError> {
         let store_url = env::var("STORE_URL").map_err(|_| {
             eprintln!("STORE_URL is not set as an environment variable");
-            InfrastructureError::InitConfigError
+            DomainError::InitConfigError
         })?;
         let access_token = env::var("ACCESS_TOKEN").map_err(|_| {
             eprintln!("ACCESS_TOKEN is not set as an environment variable");
-            InfrastructureError::InitConfigError
+            DomainError::InitConfigError
         })?;
         Ok(ShopifyConfig {
             store_url: store_url,

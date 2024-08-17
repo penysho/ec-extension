@@ -45,19 +45,16 @@ impl ProductRepository for ProductRepositoryImpl {
             })?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response= {:?}", errors);
-            return Err(InfrastructureErrorMapper::to_domain(
-                InfrastructureError::GraphQLResponseError,
-            ));
+            return Err(DomainError::QueryError);
         }
 
-        let product_schema: ProductSchema = ProductSchema::from(
-            graphql_response
-                .data
-                .ok_or(DomainError::SystemError)?
-                .product,
-        );
+        let product_schema: Option<ProductSchema> = graphql_response
+            .data
+            .ok_or(DomainError::QueryError)?
+            .product
+            .map(ProductSchema::from);
 
-        Ok(Some(product_schema.to_domain()))
+        Ok(product_schema.map(|schema| schema.to_domain()))
     }
 
     /// Retrieve multiple products.
@@ -76,14 +73,12 @@ impl ProductRepository for ProductRepositoryImpl {
             })?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response= {:?}", errors);
-            return Err(InfrastructureErrorMapper::to_domain(
-                InfrastructureError::GraphQLResponseError,
-            ));
+            return Err(DomainError::QueryError);
         }
 
         let products: Vec<ProductSchema> = graphql_response
             .data
-            .ok_or(DomainError::SystemError)?
+            .ok_or(DomainError::QueryError)?
             .products
             .edges
             .into_iter()

@@ -72,5 +72,5 @@ pub struct ProductsData {
 
 #[derive(Debug, Deserialize)]
 pub struct ProductData {
-    pub product: ProductNode,
+    pub product: Option<ProductNode>,
 }
