@@ -1,4 +1,5 @@
 use actix_web::web::{self, Json};
+use async_trait::async_trait;
 
 use crate::{
     entity::{error::error::DomainError, product::product::Product},
@@ -18,6 +19,8 @@ impl ProductPresenterImpl {
         ProductPresenterImpl
     }
 }
+
+#[async_trait]
 impl ProductPresenter for ProductPresenterImpl {
     type GetProductResponse = Json<GetProductResponse>;
     type GetProductResponseError = GetProductResponseError;

@@ -1,6 +1,9 @@
+use async_trait::async_trait;
+
 use crate::entity::{error::error::DomainError, product::product::Product};
 
 /// Interface to generate response schema for products.
+#[async_trait]
 pub trait ProductPresenter {
     type GetProductResponse;
     type GetProductResponseError;
