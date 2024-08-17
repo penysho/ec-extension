@@ -6,6 +6,8 @@ use crate::infrastructure::error::InfrastructureError;
 /// AppConfig manages application settings.
 #[derive(Getters, Clone)]
 pub struct AppConfig {
+    address: String,
+    port: String,
     log_level: String,
 }
 
@@ -24,7 +26,12 @@ impl AppConfig {
             return Err(InfrastructureError::InitConfigError);
         }
 
+        let port = env::var("APP_PORT").unwrap_or_else(|_| "8011".to_string());
+        let address = env::var("APP_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string());
+
         Ok(AppConfig {
+            address: address,
+            port: port,
             log_level: log_level,
         })
     }

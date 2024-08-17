@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(controller.clone())
             .configure(actix_router::configure_routes)
     })
-    .bind("0.0.0.0:8011")?
+    .bind(format!("{}:{}", app_config.address(), app_config.port()))?
     .run()
     .await
 }
