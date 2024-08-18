@@ -1,9 +1,11 @@
-use actix_web::{http::StatusCode, test, App};
-use backend::infrastructure::router::actix_router;
+use actix_http::StatusCode;
+use actix_web::test;
+
+use crate::common;
 
 #[actix_web::test]
 async fn test_health_success() {
-    let app = test::init_service(App::new().configure(actix_router::configure_routes)).await;
+    let app = common::setup().await;
     let request = test::TestRequest::get().uri("/health").to_request();
     let response = test::call_service(&app, request).await;
     assert_eq!(response.status(), StatusCode::OK);
