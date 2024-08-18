@@ -2,16 +2,17 @@ use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
-use crate::entity::product::product::Product;
-
-use super::exception::GenericResponseError;
+use crate::{
+    entity::product::product::Product,
+    interface::presenter::common::exception::GenericResponseError,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProductSchema {
-    pub id: String,
-    pub name: String,
-    pub price: u32,
-    pub description: String,
+    pub(super) id: String,
+    pub(super) name: String,
+    pub(super) price: u32,
+    pub(super) description: String,
 }
 
 impl From<Product> for ProductSchema {
@@ -27,7 +28,7 @@ impl From<Product> for ProductSchema {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetProductResponse {
-    pub product: ProductSchema,
+    pub(super) product: ProductSchema,
 }
 
 #[derive(Debug, Display, Error)]

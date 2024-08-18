@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use crate::{
     entity::{error::error::DomainError, product::product::Product},
     interface::presenter::{
-        product_presenter_interface::ProductPresenter,
-        schema::product::{
+        product::schema::{
             GetProductResponse, GetProductResponseError, GetProductsResponse,
             GetProductsResponseError, ProductSchema,
         },
+        product_presenter_interface::ProductPresenter,
     },
 };
 

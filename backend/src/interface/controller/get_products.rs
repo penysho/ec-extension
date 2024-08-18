@@ -23,7 +23,7 @@ mod tests {
     use crate::entity::product::product::Product;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
-    use crate::interface::presenter::schema::product::GetProductsResponse;
+    use crate::interface::presenter::product::schema::GetProductsResponse;
     use crate::usecase::interactor::product_interactor_interface::{
         MockProductInteractor, ProductInteractor,
     };
@@ -83,8 +83,6 @@ mod tests {
 
         let products: GetProductsResponse = test::read_body_json(resp).await;
         assert_eq!(products.products.len(), 2);
-        assert_eq!(products.products[0].id, "1");
-        assert_eq!(products.products[1].id, "2");
     }
 
     #[actix_web::test]

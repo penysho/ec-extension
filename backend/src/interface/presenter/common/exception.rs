@@ -5,10 +5,10 @@ use actix_web::{
 use serde::Serialize;
 
 #[derive(Serialize)]
-pub struct ErrorResponse {
-    pub code: String,
-    pub message: String,
-    pub status: u16,
+struct ErrorResponse {
+    code: String,
+    message: String,
+    status: u16,
 }
 
 pub trait GenericResponseError: std::fmt::Display {

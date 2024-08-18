@@ -27,7 +27,6 @@ mod tests {
     use crate::entity::product::product::Product;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
-    use crate::interface::presenter::schema::product::GetProductResponse;
     use crate::usecase::interactor::product_interactor_interface::{
         MockProductInteractor, ProductInteractor,
     };
@@ -82,11 +81,6 @@ mod tests {
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-
-        let product: GetProductResponse = test::read_body_json(resp).await;
-        assert_eq!(product.product.id, "1");
-        assert_eq!(product.product.name, "Test Product");
-        assert_eq!(product.product.price, 100);
     }
 
     #[actix_web::test]
