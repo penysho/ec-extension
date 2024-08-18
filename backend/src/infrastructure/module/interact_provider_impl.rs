@@ -3,8 +3,8 @@ use async_trait::async_trait;
 use crate::{
     infrastructure::{
         config::config::ShopifyConfig,
-        shopify::repository::{
-            client::ShopifyClient, product::product_impl::ProductRepositoryImpl,
+        shopify::{
+            client::ShopifyClient, repository::product::product_impl::ProductRepositoryImpl,
         },
     },
     interface::controller::interact_provider_interface::InteractProvider,

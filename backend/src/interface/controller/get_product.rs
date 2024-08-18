@@ -38,7 +38,7 @@ mod tests {
     use actix_web::{http::StatusCode, test, App, Error};
     use mockall::predicate::*;
 
-    const BASE_URL: &str = "/ec-extension/products";
+    const BASE_URL: &'static str = "/ec-extension/products";
 
     async fn setup(
         interactor: MockProductInteractor,

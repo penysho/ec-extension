@@ -1,3 +1,2 @@
-pub mod client;
+pub mod common;
 pub mod product;
-pub mod schema;

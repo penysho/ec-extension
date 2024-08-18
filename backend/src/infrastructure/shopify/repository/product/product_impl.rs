@@ -5,16 +5,12 @@ use crate::{
     entity::{error::error::DomainError, product::product::Product},
     infrastructure::{
         error::{InfrastructureError, InfrastructureErrorMapper},
-        shopify::repository::{
-            client::ShopifyClient,
-            schema::{
-                common::GraphQLResponse,
-                product::{ProductData, ProductSchema, ProductsData},
-            },
-        },
+        shopify::{client::ShopifyClient, repository::common::schema::GraphQLResponse},
     },
     usecase::repository::product_repository_interface::ProductRepository,
 };
+
+use super::schema::{ProductData, ProductSchema, ProductsData};
 
 /// Repository for products for Shopify.
 pub struct ProductRepositoryImpl {
