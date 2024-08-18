@@ -3,6 +3,7 @@
     // Rust
     "rust-lang.rust-analyzer",
     "fill-labs.dependi",
+    "vadimcn.vscode-lldb",
     // Python
     "ms-python.python",
     "ms-python.vscode-pylance",
