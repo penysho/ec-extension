@@ -18,3 +18,106 @@ impl Controller {
         presenter.present_get_product(products).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use crate::entity::error::error::DomainError;
+    use crate::entity::product::product::Product;
+    use crate::infrastructure::router::actix_router;
+    use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::presenter::schema::product::GetProductResponse;
+    use crate::usecase::interactor::product_interactor_interface::{
+        MockProductInteractor, ProductInteractor,
+    };
+
+    use super::*;
+    use actix_http::Request;
+    use actix_web::dev::{Service, ServiceResponse};
+    use actix_web::web;
+    use actix_web::{http::StatusCode, test, App, Error};
+    use mockall::predicate::*;
+
+    const BASE_URL: &str = "/ec-extension/products";
+
+    async fn setup(
+        interactor: MockProductInteractor,
+    ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
+        // Configure the InteractProvider mock
+        let mut interact_provider = MockInteractProvider::new();
+        interact_provider
+            .expect_provide_product_interactor()
+            .return_once(move || Box::new(interactor) as Box<dyn ProductInteractor>);
+
+        let controller = web::Data::new(Arc::new(Controller::new(Box::new(interact_provider))));
+
+        // Create an application for testing
+        test::init_service(
+            App::new()
+                .app_data(controller)
+                .configure(actix_router::configure_routes),
+        )
+        .await
+    }
+
+    #[actix_web::test]
+    async fn test_get_product_success() {
+        let mut interactor = MockProductInteractor::new();
+        interactor
+            .expect_get_product()
+            .with(eq("1"))
+            .returning(|_| {
+                Ok(Some(Product::new(
+                    "1".to_string(),
+                    "Test Product".to_string(),
+                    100,
+                    "Description".to_string(),
+                )))
+            });
+
+        let req = test::TestRequest::get()
+            .uri(&format!("{BASE_URL}/1"))
+            .to_request();
+        let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
+
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let product: GetProductResponse = test::read_body_json(resp).await;
+        assert_eq!(product.product.id, "1");
+        assert_eq!(product.product.name, "Test Product");
+        assert_eq!(product.product.price, 100);
+    }
+
+    #[actix_web::test]
+    async fn test_get_product_not_found() {
+        let mut interactor = MockProductInteractor::new();
+        interactor
+            .expect_get_product()
+            .with(eq("999"))
+            .returning(|_| Ok(None));
+
+        let req = test::TestRequest::get()
+            .uri(&format!("{BASE_URL}/999"))
+            .to_request();
+        let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
+
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[actix_web::test]
+    async fn test_get_product_service_unavailable() {
+        let mut interactor = MockProductInteractor::new();
+        interactor
+            .expect_get_product()
+            .with(eq("1"))
+            .returning(|_| Err(DomainError::SystemError));
+
+        let req = test::TestRequest::get()
+            .uri(&format!("{BASE_URL}/1"))
+            .to_request();
+        let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
+
+        assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+}

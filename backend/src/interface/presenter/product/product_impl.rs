@@ -60,3 +60,107 @@ impl ProductPresenter for ProductPresenterImpl {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mock_product() -> Product {
+        Product::new(
+            "1".to_string(),
+            "Test Product".to_string(),
+            100,
+            "Description".to_string(),
+        )
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_product_success() {
+        let presenter = ProductPresenterImpl::new();
+        let product = mock_product();
+
+        let result = presenter
+            .present_get_product(Ok(Some(product)))
+            .await
+            .unwrap();
+
+        assert_eq!(result.product.name, "Test Product");
+        assert_eq!(result.product.price, 100);
+        assert_eq!(result.product.description, "Description");
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_product_not_found() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter.present_get_product(Ok(None)).await;
+
+        assert!(matches!(
+            result,
+            Err(GetProductResponseError::ProductNotFound)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_product_error() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter
+            .present_get_product(Err(DomainError::SystemError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(GetProductResponseError::ServiceUnavailable)
+        ));
+    }
+
+    fn mock_products() -> Vec<Product> {
+        vec![
+            Product::new(
+                "1".to_string(),
+                "Test Product 1".to_string(),
+                100,
+                "Description 1".to_string(),
+            ),
+            Product::new(
+                "2".to_string(),
+                "Test Product 2".to_string(),
+                200,
+                "Description 2".to_string(),
+            ),
+        ]
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_products_success() {
+        let presenter = ProductPresenterImpl::new();
+        let products = mock_products();
+
+        let result = presenter
+            .present_get_products(Ok(products))
+            .await
+            .unwrap()
+            .into_inner();
+
+        assert_eq!(result.products.len(), 2);
+        assert_eq!(result.products[0].name, "Test Product 1");
+        assert_eq!(result.products[1].name, "Test Product 2");
+        assert_eq!(result.products[0].price, 100);
+        assert_eq!(result.products[1].price, 200);
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_products_error() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter
+            .present_get_products(Err(DomainError::SystemError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(GetProductsResponseError::ServiceUnavailable)
+        ));
+    }
+}

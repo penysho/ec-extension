@@ -10,7 +10,7 @@ use crate::{
     interface::controller::interact_provider_interface::InteractProvider,
     usecase::interactor::{
         product::product_impl::ProductInteractorImpl,
-        product_interactor_interface::ProductInteractorInterface,
+        product_interactor_interface::ProductInteractor,
     },
 };
 
@@ -28,7 +28,7 @@ impl InteractProviderImpl {
 #[async_trait]
 impl InteractProvider for InteractProviderImpl {
     /// Provide Interactor for products.
-    async fn provide_product_interactor(&self) -> Box<dyn ProductInteractorInterface> {
+    async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor> {
         Box::new(ProductInteractorImpl::new(Box::new(
             ProductRepositoryImpl::new(ShopifyClient::new(self.shopify_config.clone())),
         )))
