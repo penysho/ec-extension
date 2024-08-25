@@ -31,6 +31,7 @@
 
 * `backend`配下に`.env`を作成する、[環境変数一覧](#環境変数一覧)を参考にすること
 * プロジェクトルートで`docker compose up`
+* `docker compose exec backend /bin/bash`でコンテナの中に入った後、`backend`配下で`cargo run`を実行
 
 ### 環境変数一覧
 
