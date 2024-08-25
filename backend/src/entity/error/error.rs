@@ -9,4 +9,6 @@ pub enum DomainError {
     QueryError,
     #[display(fmt = "Configuration cannot be initialized.")]
     InitConfigError,
+    #[display(fmt = "The source of the media before uploading to the EC is required.")]
+    MediaUploadSrcError,
 }
