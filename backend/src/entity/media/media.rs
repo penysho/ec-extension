@@ -27,7 +27,7 @@ impl Media {
     ) -> Result<Self, DomainError> {
         if let MediaStatus::InPreparation = status {
             if upload_src.is_none() {
-                return Err(DomainError::MediaUploadSrcError);
+                return Err(DomainError::ValidationError);
             }
         }
 
