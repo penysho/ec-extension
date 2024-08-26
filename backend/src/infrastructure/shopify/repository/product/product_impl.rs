@@ -50,7 +50,12 @@ impl ProductRepository for ProductRepositoryImpl {
             .product
             .map(ProductSchema::from);
 
-        Ok(product_schema.map(|schema| schema.to_domain()))
+        let product = match product_schema {
+            Some(schema) => Some(schema.to_domain()?),
+            None => None,
+        };
+
+        Ok(product)
     }
 
     /// Retrieve multiple products.
@@ -81,11 +86,11 @@ impl ProductRepository for ProductRepositoryImpl {
             .map(|node| ProductSchema::from(node.node))
             .collect();
 
-        let product_domains: Vec<Product> = products
+        let product_domains: Result<Vec<Product>, DomainError> = products
             .into_iter()
             .map(|product| product.to_domain())
             .collect();
 
-        Ok(product_domains)
+        product_domains
     }
 }
