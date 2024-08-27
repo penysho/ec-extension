@@ -28,7 +28,7 @@ impl ProductRepository for ProductRepositoryImpl {
     /// Obtain detailed product information.
     async fn get_product(&self, id: &str) -> Result<Option<Product>, DomainError> {
         let query = json!({
-        "query": format!("query {{ product(id: \"gid://shopify/Product/{id}\") {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: 500) }} }}")
+        "query": format!("query {{ product(id: \"gid://shopify/Product/{id}\") {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: 500) status category {{ id name }} }} }}")
         });
 
         let response = self.client.query(&query).await?;

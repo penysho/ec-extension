@@ -13,16 +13,6 @@ pub enum ProductStatus {
     Draft,
 }
 
-impl ProductStatus {
-    pub fn as_str(&self) -> &str {
-        match self {
-            ProductStatus::Active => "Active",
-            ProductStatus::Inactive => "Inactive",
-            ProductStatus::Draft => "Draft",
-        }
-    }
-}
-
 /// Entity of Products.
 #[derive(Debug, Getters)]
 pub struct Product {

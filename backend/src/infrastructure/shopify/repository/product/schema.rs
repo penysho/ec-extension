@@ -32,7 +32,7 @@ impl From<ProductNode> for ProductSchema {
                 .unwrap_or(0.0),
             description: node.description,
             status: node.status,
-            category_id: node.category_id.id,
+            category_id: node.category.id,
         }
     }
 }
@@ -64,7 +64,6 @@ impl ProductSchema {
 #[derive(Debug, Deserialize)]
 pub(super) struct TaxonomyCategory {
     pub(super) id: String,
-    pub(super) name: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,7 +85,7 @@ pub(super) struct ProductNode {
     pub(super) price: PriceRangeV2,
     pub(super) description: String,
     pub(super) status: String,
-    pub(super) category_id: TaxonomyCategory,
+    pub(super) category: TaxonomyCategory,
 }
 
 #[derive(Debug, Deserialize)]
