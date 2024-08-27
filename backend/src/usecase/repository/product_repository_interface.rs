@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::entity::{error::error::DomainError, product::product::Product};
+use crate::domain::{error::error::DomainError, product::product::Product};
 
 #[async_trait]
 pub trait ProductRepository: Send + Sync {

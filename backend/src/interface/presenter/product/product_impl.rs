@@ -2,7 +2,7 @@ use actix_web::web::{self, Json};
 use async_trait::async_trait;
 
 use crate::{
-    entity::{error::error::DomainError, product::product::Product},
+    domain::{error::error::DomainError, product::product::Product},
     interface::presenter::{
         product::schema::{
             GetProductResponse, GetProductResponseError, GetProductsResponse,
@@ -63,7 +63,7 @@ impl ProductPresenter for ProductPresenterImpl {
 
 #[cfg(test)]
 mod tests {
-    use crate::entity::{
+    use crate::domain::{
         media::media::{Media, MediaStatus},
         product::product::ProductStatus,
     };

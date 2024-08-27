@@ -1,6 +1,6 @@
 use derive_getters::Getters;
 
-use crate::entity::{error::error::DomainError, media::media::Media};
+use crate::domain::{error::error::DomainError, media::media::Media};
 
 use super::category::category::CategoryId;
 

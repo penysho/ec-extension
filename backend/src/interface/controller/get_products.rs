@@ -19,9 +19,9 @@ impl Controller {
 mod tests {
     use std::sync::Arc;
 
-    use crate::entity::error::error::DomainError;
-    use crate::entity::media::media::{Media, MediaStatus};
-    use crate::entity::product::product::{Product, ProductStatus};
+    use crate::domain::error::error::DomainError;
+    use crate::domain::media::media::{Media, MediaStatus};
+    use crate::domain::product::product::{Product, ProductStatus};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::presenter::product::schema::GetProductsResponse;

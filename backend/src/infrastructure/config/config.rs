@@ -1,7 +1,7 @@
 use derive_getters::Getters;
 use std::env;
 
-use crate::entity::error::error::DomainError;
+use crate::domain::error::error::DomainError;
 
 /// AppConfig manages application settings.
 #[derive(Getters, Clone)]

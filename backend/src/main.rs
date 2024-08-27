@@ -7,7 +7,7 @@ use interface::controller::controller::Controller;
 use std::io;
 use std::sync::Arc;
 
-mod entity;
+mod domain;
 mod infrastructure;
 mod interface;
 mod usecase;

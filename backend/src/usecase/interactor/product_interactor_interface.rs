@@ -1,5 +1,5 @@
-use crate::entity::error::error::DomainError;
-use crate::entity::product::product::Product;
+use crate::domain::error::error::DomainError;
+use crate::domain::product::product::Product;
 use async_trait::async_trait;
 use mockall::automock;
 

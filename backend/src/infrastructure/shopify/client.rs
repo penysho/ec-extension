@@ -5,7 +5,7 @@ use reqwest::{
 use serde::Serialize;
 
 use crate::{
-    entity::error::error::DomainError,
+    domain::error::error::DomainError,
     infrastructure::{
         config::config::ShopifyConfig,
         error::{InfrastructureError, InfrastructureErrorMapper},

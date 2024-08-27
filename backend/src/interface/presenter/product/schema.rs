@@ -3,7 +3,7 @@ use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    entity::product::product::{Product, ProductStatus},
+    domain::product::product::{Product, ProductStatus},
     interface::presenter::common::exception::GenericResponseError,
 };
 

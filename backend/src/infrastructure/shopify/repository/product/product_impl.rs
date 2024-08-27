@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serde_json::json;
 
 use crate::{
-    entity::{error::error::DomainError, product::product::Product},
+    domain::{error::error::DomainError, product::product::Product},
     infrastructure::{
         error::{InfrastructureError, InfrastructureErrorMapper},
         shopify::{client::ShopifyClient, repository::common::schema::GraphQLResponse},

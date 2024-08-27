@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use crate::{
-    entity::{
+    domain::{
         error::error::DomainError,
         media::media::Media,
         product::product::{Product, ProductStatus},

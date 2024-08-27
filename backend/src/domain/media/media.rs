@@ -1,6 +1,6 @@
 use derive_getters::Getters;
 
-use crate::entity::error::error::DomainError;
+use crate::domain::error::error::DomainError;
 
 #[derive(Debug)]
 pub enum MediaStatus {

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::{
-    entity::{error::error::DomainError, product::product::Product},
+    domain::{error::error::DomainError, product::product::Product},
     usecase::{
         interactor::product_interactor_interface::ProductInteractor,
         repository::product_repository_interface::ProductRepository,
