@@ -21,7 +21,7 @@ pub struct Product {
     price: u32,
     description: String,
     status: ProductStatus,
-    category_id: CategoryId,
+    category_id: Option<CategoryId>,
     media: Vec<Media>,
 }
 
@@ -32,7 +32,7 @@ impl Product {
         price: u32,
         description: String,
         status: ProductStatus,
-        category_id: CategoryId,
+        category_id: Option<CategoryId>,
         media: Vec<Media>,
     ) -> Result<Self, DomainError> {
         if name.trim().is_empty() {

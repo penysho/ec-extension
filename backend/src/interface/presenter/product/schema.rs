@@ -14,16 +14,6 @@ pub enum ProductStatusEnum {
     Draft,
 }
 
-impl ProductStatusEnum {
-    pub fn as_str(&self) -> &str {
-        match self {
-            ProductStatusEnum::Active => "Active",
-            ProductStatusEnum::Inactive => "Inactive",
-            ProductStatusEnum::Draft => "Draft",
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProductSchema {
     pub(super) id: String,
@@ -31,7 +21,7 @@ pub struct ProductSchema {
     pub(super) price: u32,
     pub(super) description: String,
     pub(super) status: ProductStatusEnum,
-    pub(super) category_id: String,
+    pub(super) category_id: Option<String>,
     pub(super) media: Vec<MediaSchema>,
 }
 
@@ -52,7 +42,7 @@ impl From<Product> for ProductSchema {
                 ProductStatus::Inactive => ProductStatusEnum::Inactive,
                 ProductStatus::Draft => ProductStatusEnum::Draft,
             },
-            category_id: domain.category_id().to_string(),
+            category_id: domain.category_id().to_owned(),
             media: domain
                 .media()
                 .iter()

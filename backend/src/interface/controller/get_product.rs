@@ -75,7 +75,7 @@ mod tests {
                         100,
                         "Description".to_string(),
                         ProductStatus::Active,
-                        "1".to_string(),
+                        Some("1".to_string()),
                         vec![Media::new(
                             "1".to_string(),
                             "Test Media".to_string(),

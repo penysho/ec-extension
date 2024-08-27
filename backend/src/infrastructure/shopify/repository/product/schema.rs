@@ -16,7 +16,7 @@ pub(super) struct ProductSchema {
     pub(super) price: f64,
     pub(super) description: String,
     pub(super) status: String,
-    pub(super) category_id: String,
+    pub(super) category_id: Option<String>,
 }
 
 impl From<ProductNode> for ProductSchema {
@@ -32,7 +32,7 @@ impl From<ProductNode> for ProductSchema {
                 .unwrap_or(0.0),
             description: node.description,
             status: node.status,
-            category_id: node.category.id,
+            category_id: node.category.map(|c| c.id),
         }
     }
 }
@@ -85,7 +85,7 @@ pub(super) struct ProductNode {
     pub(super) price: PriceRangeV2,
     pub(super) description: String,
     pub(super) status: String,
-    pub(super) category: TaxonomyCategory,
+    pub(super) category: Option<TaxonomyCategory>,
 }
 
 #[derive(Debug, Deserialize)]
