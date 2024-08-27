@@ -2,6 +2,8 @@ use derive_getters::Getters;
 
 use crate::entity::{error::error::DomainError, media::media::Media};
 
+use super::category::category::CategoryId;
+
 pub type Id = String;
 
 #[derive(Debug)]
@@ -11,13 +13,14 @@ pub enum ProductStatus {
     Draft,
 }
 
-#[derive(Debug)]
-pub enum ProductCategory {
-    Tops,
-    Bottoms,
-    Shoes,
-    Accessories,
-    Other,
+impl ProductStatus {
+    pub fn as_str(&self) -> &str {
+        match self {
+            ProductStatus::Active => "Active",
+            ProductStatus::Inactive => "Inactive",
+            ProductStatus::Draft => "Draft",
+        }
+    }
 }
 
 /// Entity of Products.
@@ -28,7 +31,7 @@ pub struct Product {
     price: u32,
     description: String,
     status: ProductStatus,
-    category: ProductCategory,
+    category_id: CategoryId,
     media: Vec<Media>,
 }
 
@@ -39,7 +42,7 @@ impl Product {
         price: u32,
         description: String,
         status: ProductStatus,
-        category: ProductCategory,
+        category_id: CategoryId,
         media: Vec<Media>,
     ) -> Result<Self, DomainError> {
         if name.trim().is_empty() {
@@ -52,7 +55,7 @@ impl Product {
             price,
             description,
             status,
-            category,
+            category_id,
             media,
         })
     }

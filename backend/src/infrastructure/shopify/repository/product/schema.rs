@@ -4,7 +4,7 @@ use crate::{
     entity::{
         error::error::DomainError,
         media::media::Media,
-        product::product::{Product, ProductCategory, ProductStatus},
+        product::product::{Product, ProductStatus},
     },
     infrastructure::shopify::repository::common::schema::Edges,
 };
@@ -16,7 +16,7 @@ pub(super) struct ProductSchema {
     pub(super) price: f64,
     pub(super) description: String,
     pub(super) status: String,
-    pub(super) category: String,
+    pub(super) category_id: String,
 }
 
 impl From<ProductNode> for ProductSchema {
@@ -32,7 +32,7 @@ impl From<ProductNode> for ProductSchema {
                 .unwrap_or(0.0),
             description: node.description,
             status: node.status,
-            category: node.category.name,
+            category_id: node.category_id.id,
         }
     }
 }
@@ -45,15 +45,8 @@ impl ProductSchema {
             "DRAFT" => ProductStatus::Draft,
             _ => ProductStatus::Inactive,
         };
-        let category = match self.category.as_str() {
-            "Tops" => ProductCategory::Tops,
-            "Bottoms" => ProductCategory::Bottoms,
-            "Shoes" => ProductCategory::Shoes,
-            "Accessories" => ProductCategory::Accessories,
-            "Other" => ProductCategory::Other,
-            _ => ProductCategory::Other,
-        };
 
+        // TODO: 商品メディア情報の値を格納する
         let media: Vec<Media> = Vec::new();
 
         Product::new(
@@ -62,7 +55,7 @@ impl ProductSchema {
             self.price as u32,
             self.description,
             status,
-            category,
+            self.category_id,
             media,
         )
     }
@@ -70,6 +63,7 @@ impl ProductSchema {
 
 #[derive(Debug, Deserialize)]
 pub(super) struct TaxonomyCategory {
+    pub(super) id: String,
     pub(super) name: String,
 }
 
@@ -92,7 +86,7 @@ pub(super) struct ProductNode {
     pub(super) price: PriceRangeV2,
     pub(super) description: String,
     pub(super) status: String,
-    pub(super) category: TaxonomyCategory,
+    pub(super) category_id: TaxonomyCategory,
 }
 
 #[derive(Debug, Deserialize)]
