@@ -3,9 +3,26 @@ use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    entity::product::product::Product,
+    entity::product::product::{Product, ProductStatus},
     interface::presenter::common::exception::GenericResponseError,
 };
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ProductStatusEnum {
+    Active,
+    Inactive,
+    Draft,
+}
+
+impl ProductStatusEnum {
+    pub fn as_str(&self) -> &str {
+        match self {
+            ProductStatusEnum::Active => "Active",
+            ProductStatusEnum::Inactive => "Inactive",
+            ProductStatusEnum::Draft => "Draft",
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProductSchema {
@@ -13,6 +30,14 @@ pub struct ProductSchema {
     pub(super) name: String,
     pub(super) price: u32,
     pub(super) description: String,
+    pub(super) status: ProductStatusEnum,
+    pub(super) category_id: String,
+    pub(super) media: Vec<MediaSchema>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MediaSchema {
+    pub(super) id: String,
 }
 
 impl From<Product> for ProductSchema {
@@ -22,6 +47,19 @@ impl From<Product> for ProductSchema {
             name: domain.name().to_string(),
             price: *(domain.price()),
             description: domain.description().to_string(),
+            status: match domain.status() {
+                ProductStatus::Active => ProductStatusEnum::Active,
+                ProductStatus::Inactive => ProductStatusEnum::Inactive,
+                ProductStatus::Draft => ProductStatusEnum::Draft,
+            },
+            category_id: domain.category_id().to_string(),
+            media: domain
+                .media()
+                .iter()
+                .map(|media| MediaSchema {
+                    id: media.id().to_string(),
+                })
+                .collect(),
         }
     }
 }

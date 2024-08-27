@@ -20,7 +20,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::entity::error::error::DomainError;
-    use crate::entity::product::product::Product;
+    use crate::entity::media::media::{Media, MediaStatus};
+    use crate::entity::product::product::{Product, ProductStatus};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::presenter::product::schema::GetProductsResponse;
@@ -65,14 +66,34 @@ mod tests {
                     "1".to_string(),
                     "Test Product 1".to_string(),
                     100,
-                    "Description 1".to_string(),
-                ),
+                    "Description".to_string(),
+                    ProductStatus::Active,
+                    "1".to_string(),
+                    vec![Media::new(
+                        "1".to_string(),
+                        "Test Media 1".to_string(),
+                        MediaStatus::Active,
+                        Some("https://example.com/image.jpg".to_string()),
+                    )
+                    .unwrap()],
+                )
+                .unwrap(),
                 Product::new(
                     "2".to_string(),
                     "Test Product 2".to_string(),
                     200,
                     "Description 2".to_string(),
-                ),
+                    ProductStatus::Active,
+                    "2".to_string(),
+                    vec![Media::new(
+                        "2".to_string(),
+                        "Test Media 2".to_string(),
+                        MediaStatus::Active,
+                        Some("https://example.com/image.jpg".to_string()),
+                    )
+                    .unwrap()],
+                )
+                .unwrap(),
             ])
         });
 

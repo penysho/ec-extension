@@ -63,6 +63,11 @@ impl ProductPresenter for ProductPresenterImpl {
 
 #[cfg(test)]
 mod tests {
+    use crate::entity::{
+        media::media::{Media, MediaStatus},
+        product::product::ProductStatus,
+    };
+
     use super::*;
 
     fn mock_product() -> Product {
@@ -71,7 +76,21 @@ mod tests {
             "Test Product".to_string(),
             100,
             "Description".to_string(),
+            ProductStatus::Active,
+            "1".to_string(),
+            vec![mock_media()],
         )
+        .unwrap()
+    }
+
+    fn mock_media() -> Media {
+        Media::new(
+            "1".to_string(),
+            "Test Media".to_string(),
+            MediaStatus::Active,
+            Some("https://example.com/image.jpg".to_string()),
+        )
+        .unwrap()
     }
 
     #[actix_web::test]
@@ -122,13 +141,21 @@ mod tests {
                 "Test Product 1".to_string(),
                 100,
                 "Description 1".to_string(),
-            ),
+                ProductStatus::Active,
+                "1".to_string(),
+                vec![mock_media()],
+            )
+            .unwrap(),
             Product::new(
                 "2".to_string(),
                 "Test Product 2".to_string(),
                 200,
                 "Description 2".to_string(),
-            ),
+                ProductStatus::Active,
+                "2".to_string(),
+                vec![mock_media()],
+            )
+            .unwrap(),
         ]
     }
 
