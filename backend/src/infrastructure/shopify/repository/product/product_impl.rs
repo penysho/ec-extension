@@ -28,7 +28,7 @@ impl ProductRepository for ProductRepositoryImpl {
     /// Obtain detailed product information.
     async fn get_product(&self, id: &str) -> Result<Option<Product>, DomainError> {
         let query = json!({
-        "query": format!("query {{ product(id: \"gid://shopify/Product/{id}\") {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: 500) status category {{ id name }} }} }}")
+        "query": format!("query {{ product(id: \"gid://shopify/Product/{id}\") {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: 5000) status category {{ id name }} }} }}")
         });
 
         let response = self.client.query(&query).await?;
@@ -60,8 +60,9 @@ impl ProductRepository for ProductRepositoryImpl {
 
     /// Retrieve multiple products.
     async fn get_products(&self) -> Result<Vec<Product>, DomainError> {
+        let count = 100;
         let query = json!({
-        "query": "query { products(first: 10, reverse: true) { edges { node { id title handle priceRangeV2 { maxVariantPrice { amount } } description(truncateAt: 500) resourcePublicationOnCurrentPublication { publication { name id } publishDate isPublished } } } } }"
+        "query": format!("query {{ products(first: {count}, reverse: true) {{ edges {{ node {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: 5000) status category {{ id name }} resourcePublicationOnCurrentPublication {{ publication {{ name id }} publishDate isPublished }} }} }} }} }}")
         });
 
         let response = self.client.query(&query).await?;
