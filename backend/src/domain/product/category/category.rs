@@ -1,0 +1,1 @@
+pub type CategoryId = String;

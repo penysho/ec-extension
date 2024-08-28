@@ -23,8 +23,9 @@ impl Controller {
 mod tests {
     use std::sync::Arc;
 
-    use crate::entity::error::error::DomainError;
-    use crate::entity::product::product::Product;
+    use crate::domain::error::error::DomainError;
+    use crate::domain::media::media::{Media, MediaStatus};
+    use crate::domain::product::product::{Product, ProductStatus};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::usecase::interactor::product_interactor_interface::{
@@ -67,12 +68,24 @@ mod tests {
             .expect_get_product()
             .with(eq("1"))
             .returning(|_| {
-                Ok(Some(Product::new(
-                    "1".to_string(),
-                    "Test Product".to_string(),
-                    100,
-                    "Description".to_string(),
-                )))
+                Ok(Some(
+                    Product::new(
+                        "1".to_string(),
+                        "Test Product".to_string(),
+                        100,
+                        "Description".to_string(),
+                        ProductStatus::Active,
+                        Some("1".to_string()),
+                        vec![Media::new(
+                            "1".to_string(),
+                            "Test Media".to_string(),
+                            MediaStatus::Active,
+                            Some("https://example.com/image.jpg".to_string()),
+                        )
+                        .unwrap()],
+                    )
+                    .unwrap(),
+                ))
             });
 
         let req = test::TestRequest::get()

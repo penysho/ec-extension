@@ -1,7 +1,12 @@
 use serde::Deserialize;
 
 use crate::{
-    entity::product::product::Product, infrastructure::shopify::repository::common::schema::Edges,
+    domain::{
+        error::error::DomainError,
+        media::media::Media,
+        product::product::{Product, ProductStatus},
+    },
+    infrastructure::shopify::repository::common::schema::Edges,
 };
 
 #[derive(Debug, Deserialize)]
@@ -10,6 +15,8 @@ pub(super) struct ProductSchema {
     pub(super) title: String,
     pub(super) price: f64,
     pub(super) description: String,
+    pub(super) status: String,
+    pub(super) category_id: Option<String>,
 }
 
 impl From<ProductNode> for ProductSchema {
@@ -24,14 +31,39 @@ impl From<ProductNode> for ProductSchema {
                 .parse::<f64>()
                 .unwrap_or(0.0),
             description: node.description,
+            status: node.status,
+            category_id: node.category.map(|c| c.id),
         }
     }
 }
 
 impl ProductSchema {
-    pub(super) fn to_domain(self) -> Product {
-        Product::new(self.id, self.title, self.price as u32, self.description)
+    pub(super) fn to_domain(self) -> Result<Product, DomainError> {
+        let status = match self.status.as_str() {
+            "ACTIVE" => ProductStatus::Active,
+            "ARCHIVED" => ProductStatus::Inactive,
+            "DRAFT" => ProductStatus::Draft,
+            _ => ProductStatus::Inactive,
+        };
+
+        // TODO: 商品メディア情報の値を格納する
+        let media: Vec<Media> = Vec::new();
+
+        Product::new(
+            self.id,
+            self.title,
+            self.price as u32,
+            self.description,
+            status,
+            self.category_id,
+            media,
+        )
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct TaxonomyCategory {
+    pub(super) id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -52,6 +84,8 @@ pub(super) struct ProductNode {
     #[serde(rename = "priceRangeV2")]
     pub(super) price: PriceRangeV2,
     pub(super) description: String,
+    pub(super) status: String,
+    pub(super) category: Option<TaxonomyCategory>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,6 +1,6 @@
 use derive_more::{Display, Error};
 
-use crate::entity::error::error::DomainError;
+use crate::domain::error::error::DomainError;
 
 #[derive(Debug, Display, Error)]
 pub enum InfrastructureError {

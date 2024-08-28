@@ -9,4 +9,6 @@ pub enum DomainError {
     QueryError,
     #[display(fmt = "Configuration cannot be initialized.")]
     InitConfigError,
+    #[display(fmt = "Validation error.")]
+    ValidationError,
 }
