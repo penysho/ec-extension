@@ -28,7 +28,11 @@ impl ProductInteractor for ProductInteractorImpl {
         self.product_repository.get_product(id).await
     }
     /// Obtain a list of products.
-    async fn get_products(&self) -> Result<Vec<Product>, DomainError> {
-        self.product_repository.get_products().await
+    async fn get_products(
+        &self,
+        offset: &Option<u32>,
+        limit: &Option<u32>,
+    ) -> Result<Vec<Product>, DomainError> {
+        self.product_repository.get_products(offset, limit).await
     }
 }

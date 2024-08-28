@@ -18,6 +18,8 @@ pub struct ProductRepositoryImpl {
 }
 
 impl ProductRepositoryImpl {
+    const GET_PRODUCTS_LIMIT: u32 = 250;
+
     pub fn new(client: ShopifyClient) -> Self {
         Self { client }
     }
@@ -61,12 +63,17 @@ impl ProductRepository for ProductRepositoryImpl {
     }
 
     /// Retrieve multiple products.
-    async fn get_products(&self) -> Result<Vec<Product>, DomainError> {
-        let count = 1000;
+    async fn get_products(
+        &self,
+        offset: &Option<u32>,
+        limit: &Option<u32>,
+    ) -> Result<Vec<Product>, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
+        let offset = offset.unwrap_or(0);
+        let limit = limit.unwrap_or(Self::GET_PRODUCTS_LIMIT);
 
         let query = json!({
-        "query": format!("query {{ products(first: {count}, reverse: true) {{ edges {{ node {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} resourcePublicationOnCurrentPublication {{ publication {{ name id }} publishDate isPublished }} }} }} }} }}")
+        "query": format!("query {{ products(first: {limit}) {{ edges {{ node {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} resourcePublicationOnCurrentPublication {{ publication {{ name id }} publishDate isPublished }} }} }} }} }}")
         });
 
         let response = self.client.query(&query).await?;
