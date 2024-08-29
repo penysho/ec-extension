@@ -2,7 +2,7 @@ use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MediaStatus {
     Active,
     Inactive,
@@ -10,7 +10,7 @@ pub enum MediaStatus {
 }
 
 /// Entity of Media.
-#[derive(Debug, Getters)]
+#[derive(Debug, Getters, Clone)]
 pub struct Media {
     id: String,
     name: String,

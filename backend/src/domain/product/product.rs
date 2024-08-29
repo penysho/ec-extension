@@ -6,7 +6,7 @@ use super::category::category::CategoryId;
 
 pub type Id = String;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ProductStatus {
     Active,
     Inactive,
@@ -14,7 +14,7 @@ pub enum ProductStatus {
 }
 
 /// Entity of Products.
-#[derive(Debug, Getters)]
+#[derive(Debug, Getters, Clone)]
 pub struct Product {
     id: String,
     name: String,
