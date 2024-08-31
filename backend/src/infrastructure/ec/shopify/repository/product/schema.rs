@@ -6,7 +6,7 @@ use crate::{
         media::media::Media,
         product::product::{Product, ProductStatus},
     },
-    infrastructure::shopify::repository::common::schema::Edges,
+    infrastructure::ec::shopify::repository::common::schema::Edges,
 };
 
 #[derive(Debug, Deserialize)]

@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::{
     infrastructure::{
         config::config::ShopifyConfig,
-        shopify::{
+        ec::shopify::{
             client::ShopifyClient, repository::product::product_impl::ProductRepositoryImpl,
         },
     },

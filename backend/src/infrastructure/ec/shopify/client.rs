@@ -28,6 +28,18 @@ impl ShopifyClient {
         }
     }
 
+    /// Generate headers to be used in GraphQL requests for Shopify.
+    fn build_headers(&self) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            Self::SHOPIFY_ACCESS_TOKEN_HEADER,
+            HeaderValue::from_str(self.config.access_token()).unwrap(),
+        );
+        headers
+    }
+}
+
+impl ShopifyClient {
     /// Execute a GraphQL query request for Shopify.
     pub async fn query<T>(&self, query: &T) -> Result<Response, DomainError>
     where
@@ -44,15 +56,5 @@ impl ShopifyClient {
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
         Ok(response)
-    }
-
-    /// Generate headers to be used in GraphQL requests for Shopify.
-    fn build_headers(&self) -> HeaderMap {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            Self::SHOPIFY_ACCESS_TOKEN_HEADER,
-            HeaderValue::from_str(self.config.access_token()).unwrap(),
-        );
-        headers
     }
 }
