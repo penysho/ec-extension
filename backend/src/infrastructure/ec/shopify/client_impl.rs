@@ -1,20 +1,24 @@
+use async_trait::async_trait;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     Client, Response,
 };
 use serde::Serialize;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use crate::{
     domain::error::error::DomainError,
     infrastructure::{
         config::config::ShopifyConfig,
+        ec::ec_client_interface::ECClient,
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
 };
 
 /// A client that interacts with GraphQL for Shopify.
 pub struct ShopifyClient {
-    client: Client,
+    client: Arc<Mutex<Client>>,
     config: ShopifyConfig,
 }
 
@@ -23,7 +27,7 @@ impl ShopifyClient {
 
     pub fn new(config: ShopifyConfig) -> Self {
         Self {
-            client: Client::new(),
+            client: Arc::new(Mutex::new(Client::new())),
             config: config,
         }
     }
@@ -39,22 +43,27 @@ impl ShopifyClient {
     }
 }
 
-impl ShopifyClient {
-    /// Execute a GraphQL query request for Shopify.
-    pub async fn query<T>(&self, query: &T) -> Result<Response, DomainError>
+#[async_trait]
+impl ECClient for ShopifyClient {
+    async fn query<T>(&self, query: &T) -> Result<Response, DomainError>
     where
-        T: Serialize + ?Sized,
+        T: Serialize + ?Sized + Send + Sync + 'async_trait,
     {
-        let response = self
-            .client
+        // Lock the mutex to get the client
+        let client = self.client.lock().await;
+
+        // Create the request
+        let response = client
             .post(self.config.store_url())
             .headers(self.build_headers())
             .json(query)
             .send()
             .await
             .map_err(|e| {
+                // Convert infrastructure error to domain error
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
+
         Ok(response)
     }
 }

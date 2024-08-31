@@ -4,7 +4,7 @@ use crate::{
     infrastructure::{
         config::config::ShopifyConfig,
         ec::shopify::{
-            client::ShopifyClient, repository::product::product_impl::ProductRepositoryImpl,
+            client_impl::ShopifyClient, repository::product::product_impl::ProductRepositoryImpl,
         },
     },
     interface::controller::interact_provider_interface::InteractProvider,

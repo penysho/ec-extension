@@ -4,7 +4,10 @@ use serde_json::json;
 use crate::{
     domain::{error::error::DomainError, product::product::Product},
     infrastructure::{
-        ec::shopify::{client::ShopifyClient, repository::common::schema::GraphQLResponse},
+        ec::{
+            ec_client_interface::ECClient,
+            shopify::{client_impl::ShopifyClient, repository::common::schema::GraphQLResponse},
+        },
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
     usecase::repository::product_repository_interface::ProductRepository,
