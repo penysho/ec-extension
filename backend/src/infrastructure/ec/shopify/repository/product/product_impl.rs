@@ -4,10 +4,7 @@ use serde_json::json;
 use crate::{
     domain::{error::error::DomainError, product::product::Product},
     infrastructure::{
-        ec::{
-            ec_client_interface::ECClient,
-            shopify::{client_impl::ShopifyClient, repository::common::schema::GraphQLResponse},
-        },
+        ec::{ec_client_interface::ECClient, shopify::repository::common::schema::GraphQLResponse},
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
     usecase::repository::product_repository_interface::ProductRepository,
@@ -16,20 +13,20 @@ use crate::{
 use super::schema::{ProductData, ProductSchema, ProductsData};
 
 /// Repository for products for Shopify.
-pub struct ProductRepositoryImpl {
-    client: ShopifyClient,
+pub struct ProductRepositoryImpl<C: ECClient> {
+    client: C,
 }
 
-impl ProductRepositoryImpl {
+impl<C: ECClient> ProductRepositoryImpl<C> {
     const GET_PRODUCTS_LIMIT: u32 = 250;
 
-    pub fn new(client: ShopifyClient) -> Self {
+    pub fn new(client: C) -> Self {
         Self { client }
     }
 }
 
 #[async_trait]
-impl ProductRepository for ProductRepositoryImpl {
+impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     /// Obtain detailed product information.
     async fn get_product(&self, id: &str) -> Result<Option<Product>, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
