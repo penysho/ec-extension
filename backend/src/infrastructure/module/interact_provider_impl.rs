@@ -4,7 +4,7 @@ use crate::{
     infrastructure::{
         config::config::ShopifyConfig,
         ec::shopify::{
-            client_impl::ShopifyClient, repository::product::product_impl::ProductRepositoryImpl,
+            client_impl::ShopifyGQLClient, repository::product::product_impl::ProductRepositoryImpl,
         },
     },
     interface::controller::interact_provider_interface::InteractProvider,
@@ -30,7 +30,7 @@ impl InteractProvider for InteractProviderImpl {
     /// Provide Interactor for products.
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor> {
         Box::new(ProductInteractorImpl::new(Box::new(
-            ProductRepositoryImpl::new(ShopifyClient::new(self.shopify_config.clone())),
+            ProductRepositoryImpl::new(ShopifyGQLClient::new(self.shopify_config.clone())),
         )))
     }
 }

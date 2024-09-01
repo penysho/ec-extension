@@ -17,12 +17,12 @@ use crate::{
 };
 
 /// A client that interacts with GraphQL for Shopify.
-pub struct ShopifyClient {
+pub struct ShopifyGQLClient {
     client: Arc<Mutex<Client>>,
     config: ShopifyConfig,
 }
 
-impl ShopifyClient {
+impl ShopifyGQLClient {
     const SHOPIFY_ACCESS_TOKEN_HEADER: &'static str = "X-Shopify-Access-Token";
 
     pub fn new(config: ShopifyConfig) -> Self {
@@ -44,7 +44,7 @@ impl ShopifyClient {
 }
 
 #[async_trait]
-impl ECClient for ShopifyClient {
+impl ECClient for ShopifyGQLClient {
     async fn query<T, U>(&self, query: &T) -> Result<U, DomainError>
     where
         T: Serialize + ?Sized + Send + Sync + 'static,
@@ -53,7 +53,6 @@ impl ECClient for ShopifyClient {
         // Lock the mutex to get the client
         let client = self.client.lock().await;
 
-        // Create the request
         let response = client
             .post(self.config.store_url())
             .headers(self.build_headers())
@@ -61,7 +60,6 @@ impl ECClient for ShopifyClient {
             .send()
             .await
             .map_err(|e| {
-                // Convert infrastructure error to domain error
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
