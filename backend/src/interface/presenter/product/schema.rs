@@ -44,10 +44,10 @@ impl From<Product> for ProductSchema {
             },
             category_id: domain.category_id().to_owned(),
             media: domain
-                .media()
+                .media_ids()
                 .iter()
-                .map(|media| MediaSchema {
-                    id: media.id().to_string(),
+                .map(|media_id| MediaSchema {
+                    id: media_id.to_string(),
                 })
                 .collect(),
         }

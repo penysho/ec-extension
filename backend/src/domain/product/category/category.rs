@@ -1,1 +1,1 @@
-pub type CategoryId = String;
+pub type Id = String;

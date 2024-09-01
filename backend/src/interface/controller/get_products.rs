@@ -82,7 +82,9 @@ mod tests {
                         MediaStatus::Active,
                         Some("https://example.com/image.jpg".to_string()),
                     )
-                    .unwrap()],
+                    .unwrap()
+                    .id()
+                    .to_string()],
                 )
                 .unwrap(),
                 Product::new(
@@ -98,7 +100,9 @@ mod tests {
                         MediaStatus::Active,
                         Some("https://example.com/image.jpg".to_string()),
                     )
-                    .unwrap()],
+                    .unwrap()
+                    .id()
+                    .to_string()],
                 )
                 .unwrap(),
             ])

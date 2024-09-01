@@ -78,7 +78,7 @@ mod tests {
             "Description".to_string(),
             ProductStatus::Active,
             Some("1".to_string()),
-            vec![mock_media()],
+            vec![mock_media().id().to_string()],
         )
         .unwrap()
     }
@@ -143,7 +143,7 @@ mod tests {
                 "Description 1".to_string(),
                 ProductStatus::Active,
                 Some("1".to_string()),
-                vec![mock_media()],
+                vec![mock_media().id().to_string()],
             )
             .unwrap(),
             Product::new(
@@ -153,7 +153,7 @@ mod tests {
                 "Description 2".to_string(),
                 ProductStatus::Active,
                 Some("2".to_string()),
-                vec![mock_media()],
+                vec![mock_media().id().to_string()],
             )
             .unwrap(),
         ]

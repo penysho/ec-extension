@@ -2,6 +2,8 @@ use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
 
+pub type Id = String;
+
 #[derive(Debug, Clone)]
 pub enum MediaStatus {
     Active,
@@ -12,7 +14,7 @@ pub enum MediaStatus {
 /// Entity of Media.
 #[derive(Debug, Getters, Clone)]
 pub struct Media {
-    id: String,
+    id: Id,
     name: String,
     status: MediaStatus,
     upload_src: Option<String>,
@@ -20,7 +22,7 @@ pub struct Media {
 
 impl Media {
     pub fn new(
-        id: String,
+        id: Id,
         name: String,
         status: MediaStatus,
         upload_src: Option<String>,

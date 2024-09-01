@@ -3,7 +3,7 @@ use serde::Deserialize;
 use crate::{
     domain::{
         error::error::DomainError,
-        media::media::Media,
+        media::media::Id as MediaId,
         product::product::{Product, ProductStatus},
     },
     infrastructure::ec::shopify::repository::common::schema::Edges,
@@ -47,7 +47,7 @@ impl ProductSchema {
         };
 
         // TODO: 商品メディア情報の値を格納する
-        let media: Vec<Media> = Vec::new();
+        let media: Vec<MediaId> = Vec::new();
 
         Product::new(
             self.id,
