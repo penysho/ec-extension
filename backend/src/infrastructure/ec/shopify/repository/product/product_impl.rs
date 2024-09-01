@@ -57,21 +57,18 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     /// Retrieve multiple products.
     async fn get_products(
         &self,
-        offset: &Option<u32>,
         limit: &Option<u32>,
+        offset: &Option<u32>,
     ) -> Result<Vec<Product>, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
 
         let offset = offset.unwrap_or(0);
-        let mut limit = limit.unwrap_or(Self::GET_PRODUCTS_LIMIT);
-        if offset > limit {
-            limit = Self::GET_PRODUCTS_LIMIT;
-        }
+        let limit = limit.unwrap_or(Self::GET_PRODUCTS_LIMIT);
 
         let mut cursor = None;
         let mut all_products: Vec<Product> = Vec::new();
 
-        for _ in 0..(offset / limit).max(1) {
+        for _ in 0..(offset / Self::GET_PRODUCTS_LIMIT).max(1) {
             let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
             let after_query = cursor
                 .as_deref()
@@ -159,26 +156,30 @@ mod tests {
         }
     }
 
-    fn mock_get_products_reponse() -> GraphQLResponse<ProductsData> {
+    fn mock_get_products_reponse(count: usize) -> GraphQLResponse<ProductsData> {
+        let products: Vec<Node<ProductNode>> = (0..count)
+            .map(|i| Node {
+                node: ProductNode {
+                    id: format!("gid://shopify/Product/{}", i),
+                    title: format!("Test Product {}", i),
+                    price: PriceRangeV2 {
+                        max_variant_price: MaxVariantPrice {
+                            amount: format!("{}", 100 + i),
+                        },
+                    },
+                    description: format!("Test Description {}", i),
+                    status: "ACTIVE".to_string(),
+                    category: Some(TaxonomyCategory {
+                        id: format!("gid://shopify/Category/{}", i),
+                    }),
+                },
+            })
+            .collect();
+
         GraphQLResponse {
             data: Some(ProductsData {
                 products: Edges {
-                    edges: vec![Node {
-                        node: ProductNode {
-                            id: "gid://shopify/Product/123456".to_string(),
-                            title: "Test Product".to_string(),
-                            price: PriceRangeV2 {
-                                max_variant_price: MaxVariantPrice {
-                                    amount: "100.00".to_string(),
-                                },
-                            },
-                            description: "Test Description".to_string(),
-                            status: "ACTIVE".to_string(),
-                            category: Some(TaxonomyCategory {
-                                id: "gid://shopify/Category/123".to_string(),
-                            }),
-                        },
-                    }],
+                    edges: products,
                     page_info: PageInfo {
                         has_previous_page: false,
                         has_next_page: false,
@@ -318,23 +319,65 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_success() {
+    async fn test_get_products_no_pagination_success() {
         let mut client = MockECClient::new();
 
         client
             .expect_query::<Value, GraphQLResponse<ProductsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_get_products_reponse()));
+            .return_once(|_| Ok(mock_get_products_reponse(250))); // Self::GET_PRODUCTS_LIMIT
 
         let repo = ProductRepositoryImpl::new(client);
 
         let result = repo.get_products(&None, &None).await;
 
         assert!(result.is_ok());
-        let product = result.unwrap();
-        assert_eq!(product.len(), 1);
-        assert_eq!(product[0].id(), "gid://shopify/Product/123456");
-        assert_eq!(product[0].name(), "Test Product");
+        let products = result.unwrap();
+        assert_eq!(products.len(), 250);
+        assert_eq!(products[0].id(), "gid://shopify/Product/0");
+        assert_eq!(products[249].id(), "gid://shopify/Product/249");
+    }
+
+    #[tokio::test]
+    async fn test_get_products_pagination_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_get_products_reponse(100)));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let limit = Some(10);
+        let offset = Some(20);
+        let result = repo.get_products(&limit, &offset).await;
+
+        assert!(result.is_ok());
+        let products = result.unwrap();
+        assert_eq!(products.len(), 10);
+        assert_eq!(products[0].id(), "gid://shopify/Product/20");
+        assert_eq!(products[9].id(), "gid://shopify/Product/29");
+    }
+
+    #[tokio::test]
+    async fn test_get_products_empty_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_get_products_reponse(0)));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let limit = Some(10);
+        let offset = Some(20);
+        let result = repo.get_products(&limit, &offset).await;
+
+        assert!(result.is_ok());
+        let products = result.unwrap();
+        assert_eq!(products.len(), 0);
     }
 
     #[tokio::test]
