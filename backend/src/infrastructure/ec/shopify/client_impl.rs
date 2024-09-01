@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
-    Client, Response,
+    Client,
 };
 use serde::Serialize;
 use std::sync::Arc;
@@ -11,7 +11,7 @@ use crate::{
     domain::error::error::DomainError,
     infrastructure::{
         config::config::ShopifyConfig,
-        ec::ec_client_interface::ECClient,
+        ec::ec_client_interface::{ECClient, ECClientResponse},
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
 };
@@ -45,9 +45,10 @@ impl ShopifyClient {
 
 #[async_trait]
 impl ECClient for ShopifyClient {
-    async fn query<T>(&self, query: &T) -> Result<Response, DomainError>
+    async fn query<T, U>(&self, query: &T) -> Result<U, DomainError>
     where
-        T: Serialize + ?Sized + Send + Sync + 'async_trait,
+        T: Serialize + ?Sized + Send + Sync + 'static,
+        U: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
     {
         // Lock the mutex to get the client
         let client = self.client.lock().await;
@@ -64,6 +65,11 @@ impl ECClient for ShopifyClient {
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
-        Ok(response)
+        let graphql_response = response.json::<U>().await.map_err(|e| {
+            log::error!("Failed to parse GraphQL response. Error= {:?}", e);
+            InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
+        })?;
+
+        Ok(graphql_response)
     }
 }

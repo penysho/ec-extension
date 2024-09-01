@@ -3,9 +3,8 @@ use serde_json::json;
 
 use crate::{
     domain::{error::error::DomainError, product::product::Product},
-    infrastructure::{
-        ec::{ec_client_interface::ECClient, shopify::repository::common::schema::GraphQLResponse},
-        error::{InfrastructureError, InfrastructureErrorMapper},
+    infrastructure::ec::{
+        ec_client_interface::ECClient, shopify::repository::common::schema::GraphQLResponse,
     },
     usecase::repository::product_repository_interface::ProductRepository,
 };
@@ -35,14 +34,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         "query": format!("query {{ product(id: \"gid://shopify/Product/{id}\") {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }}")
         });
 
-        let response = self.client.query(&query).await?;
-        let graphql_response = response
-            .json::<GraphQLResponse<ProductData>>()
-            .await
-            .map_err(|e| {
-                log::error!("Failed to parse GraphQL response. Error= {:?}", e);
-                InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
-            })?;
+        let graphql_response: GraphQLResponse<ProductData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response= {:?}", errors);
             return Err(DomainError::QueryError);
@@ -89,14 +81,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 "query": format!("query {{ products({first_query}{after_query}) {{ edges {{ node {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} resourcePublicationOnCurrentPublication {{ publication {{ name id }} publishDate isPublished }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
             });
 
-            let response = self.client.query(&query).await?;
-            let graphql_response = response
-                .json::<GraphQLResponse<ProductsData>>()
-                .await
-                .map_err(|e| {
-                    log::error!("Failed to parse GraphQL response. Error= {:?}", e);
-                    InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
-                })?;
+            let graphql_response: GraphQLResponse<ProductsData> = self.client.query(&query).await?;
             if let Some(errors) = graphql_response.errors {
                 log::error!("Error returned in GraphQL response. Response= {:?}", errors);
                 return Err(DomainError::QueryError);
@@ -135,5 +120,266 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         }
 
         Ok(all_products[start..end].to_vec())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::Value;
+
+    use crate::infrastructure::ec::{
+        ec_client_interface::MockECClient,
+        shopify::repository::{
+            common::schema::{Edges, GraphQLError, Node, PageInfo},
+            product::schema::{MaxVariantPrice, PriceRangeV2, ProductNode, TaxonomyCategory},
+        },
+    };
+
+    use super::*;
+
+    fn mock_get_product_reponse() -> GraphQLResponse<ProductData> {
+        GraphQLResponse {
+            data: Some(ProductData {
+                product: Some(ProductNode {
+                    id: "gid://shopify/Product/123456".to_string(),
+                    title: "Test Product".to_string(),
+                    price: PriceRangeV2 {
+                        max_variant_price: MaxVariantPrice {
+                            amount: "100.00".to_string(),
+                        },
+                    },
+                    description: "Test Description".to_string(),
+                    status: "ACTIVE".to_string(),
+                    category: Some(TaxonomyCategory {
+                        id: "gid://shopify/Category/123".to_string(),
+                    }),
+                }),
+            }),
+            errors: None,
+        }
+    }
+
+    fn mock_get_products_reponse() -> GraphQLResponse<ProductsData> {
+        GraphQLResponse {
+            data: Some(ProductsData {
+                products: Edges {
+                    edges: vec![Node {
+                        node: ProductNode {
+                            id: "gid://shopify/Product/123456".to_string(),
+                            title: "Test Product".to_string(),
+                            price: PriceRangeV2 {
+                                max_variant_price: MaxVariantPrice {
+                                    amount: "100.00".to_string(),
+                                },
+                            },
+                            description: "Test Description".to_string(),
+                            status: "ACTIVE".to_string(),
+                            category: Some(TaxonomyCategory {
+                                id: "gid://shopify/Category/123".to_string(),
+                            }),
+                        },
+                    }],
+                    page_info: PageInfo {
+                        has_previous_page: false,
+                        has_next_page: false,
+                        start_cursor: None,
+                        end_cursor: None,
+                    },
+                },
+            }),
+            errors: None,
+        }
+    }
+
+    fn mock_with_error<T>() -> GraphQLResponse<T> {
+        GraphQLResponse {
+            data: None,
+            errors: Some(vec![GraphQLError {
+                message: "Some GraphQL error".to_string(),
+                extensions: None,
+            }]),
+        }
+    }
+
+    fn mock_with_no_data<T>() -> GraphQLResponse<T> {
+        GraphQLResponse {
+            data: None,
+            errors: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_product_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_get_product_reponse()));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_product("123456").await;
+
+        assert!(result.is_ok());
+        let product = result.unwrap();
+        assert!(product.is_some());
+        let product = product.unwrap();
+
+        assert_eq!(product.id(), "gid://shopify/Product/123456");
+        assert_eq!(product.name(), "Test Product");
+    }
+
+    #[tokio::test]
+    async fn test_get_product_with_graphql_error() {
+        let mut client = MockECClient::new();
+
+        let graphql_response_with_error = mock_with_error();
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductData>>()
+            .times(1)
+            .return_once(|_| Ok(graphql_response_with_error));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_product("123456").await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_product_with_missing_data() {
+        let mut client = MockECClient::new();
+
+        let graphql_response_with_no_data = mock_with_no_data();
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductData>>()
+            .times(1)
+            .return_once(|_| Ok(graphql_response_with_no_data));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_product("123456").await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_product_with_invalid_domain_conversion() {
+        let mut client = MockECClient::new();
+
+        // Modify the response to cause `to_domain` to fail
+        let graphql_response_invalid_conversion = GraphQLResponse {
+            data: Some(ProductData {
+                product: Some(ProductNode {
+                    id: "gid://shopify/Product/invalid".to_string(),
+                    title: "".to_string(), // Assuming this causes an error in `to_domain`
+                    price: PriceRangeV2 {
+                        max_variant_price: MaxVariantPrice {
+                            amount: "100.00".to_string(),
+                        },
+                    },
+                    description: "Test Description".to_string(),
+                    status: "INVALID_STATUS".to_string(),
+                    category: None,
+                }),
+            }),
+            errors: None,
+        };
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductData>>()
+            .times(1)
+            .return_once(|_| Ok(graphql_response_invalid_conversion));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_product("123456").await;
+
+        assert!(result.is_err());
+        // Adjust according to the specific DomainError variant expected
+        if let Err(DomainError::ValidationError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ValidationError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_products_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_get_products_reponse()));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_products(&None, &None).await;
+
+        assert!(result.is_ok());
+        let product = result.unwrap();
+        assert_eq!(product.len(), 1);
+        assert_eq!(product[0].id(), "gid://shopify/Product/123456");
+        assert_eq!(product[0].name(), "Test Product");
+    }
+
+    #[tokio::test]
+    async fn test_get_products_with_graphql_error() {
+        let mut client = MockECClient::new();
+
+        let graphql_response_with_error = mock_with_error();
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .times(1)
+            .return_once(|_| Ok(graphql_response_with_error));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_products(&None, &None).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_products_with_missing_data() {
+        let mut client = MockECClient::new();
+
+        let graphql_response_with_no_data = mock_with_no_data();
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .times(1)
+            .return_once(|_| Ok(graphql_response_with_no_data));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_products(&None, &None).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
     }
 }
