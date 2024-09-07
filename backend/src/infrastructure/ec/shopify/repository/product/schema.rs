@@ -114,6 +114,19 @@ pub(super) struct InventoryNode {
 }
 
 #[derive(Debug, Deserialize)]
+pub(super) struct ProductNode {
+    pub(super) id: String,
+
+    pub(super) category: Option<TaxonomyCategory>,
+
+    pub(super) title: String,
+    #[serde(rename = "priceRangeV2")]
+    pub(super) price: PriceRangeV2,
+    pub(super) description: String,
+    pub(super) status: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub(super) struct VariantNode {
     pub(super) id: String,
 
@@ -131,19 +144,6 @@ pub(super) struct VariantNode {
     pub(super) created_at: DateTime<Utc>,
     #[serde(rename = "updatedAt")]
     pub(super) updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(super) struct ProductNode {
-    pub(super) id: String,
-
-    pub(super) category: Option<TaxonomyCategory>,
-
-    pub(super) title: String,
-    #[serde(rename = "priceRangeV2")]
-    pub(super) price: PriceRangeV2,
-    pub(super) description: String,
-    pub(super) status: String,
 }
 
 #[derive(Debug, Deserialize)]
