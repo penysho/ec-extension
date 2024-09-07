@@ -32,7 +32,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
 
         let query = json!({
-        "query": format!("query {{ productVariant(id: \"gid://shopify/ProductVariant/{id}\") {{ id barcode inventoryQuantity sku position price inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }}")
+        "query": format!("query {{ productVariant(id: \"gid://shopify/ProductVariant/{id}\") {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }}")
         });
 
         let graphql_response: GraphQLResponse<VariantData> = self.client.query(&query).await?;
@@ -76,7 +76,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 .map_or(String::new(), |a| format!(", after: \"{}\"", a));
 
             let query = json!({
-                "query": format!("query {{ productVariants({first_query}{after_query}) {{ edges {{ node {{ id barcode inventoryQuantity sku position price inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
+                "query": format!("query {{ productVariants({first_query}{after_query}) {{ edges {{ node {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
             });
 
             let graphql_response: GraphQLResponse<VariantsData> = self.client.query(&query).await?;
@@ -123,6 +123,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
     use serde_json::Value;
 
     use crate::infrastructure::ec::{
@@ -165,6 +166,8 @@ mod tests {
                     sku: Some("TESTSKU123".to_string()),
                     position: 1,
                     price: "100.00".to_string(),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
                 }),
             }),
             errors: None,
@@ -198,6 +201,8 @@ mod tests {
                     sku: Some("TESTSKU123".to_string()),
                     position: 1,
                     price: "100.00".to_string(),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
                 },
             })
             .collect();
@@ -335,6 +340,8 @@ mod tests {
                         sku: Some("TESTSKU123".to_string()),
                         position: 1,
                         price: "100.00".to_string(),
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
                     })
                 },
             }),

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 use crate::{
@@ -24,6 +25,8 @@ pub(super) struct ProductSchema {
     pub(super) inventory_quantity: Option<i32>,
     pub(super) position: i32,
     pub(super) category_id: Option<String>,
+    pub(super) created_at: DateTime<Utc>,
+    pub(super) updated_at: DateTime<Utc>,
 }
 
 impl From<VariantNode> for ProductSchema {
@@ -45,6 +48,8 @@ impl From<VariantNode> for ProductSchema {
             inventory_quantity: node.inventory_quantity,
             sku: node.sku,
             position: node.position,
+            created_at: node.created_at,
+            updated_at: node.updated_at,
         }
     }
 }
@@ -120,6 +125,10 @@ pub(super) struct VariantNode {
     pub(super) sku: Option<String>,
     pub(super) position: i32,
     pub(super) price: String,
+    #[serde(rename = "createdAt")]
+    pub(super) created_at: DateTime<Utc>,
+    #[serde(rename = "updatedAt")]
+    pub(super) updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -145,16 +154,4 @@ pub(super) struct VariantsData {
 pub(super) struct VariantData {
     #[serde(rename = "productVariant")]
     pub(super) product_variant: Option<VariantNode>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
-pub(super) struct ProductsData {
-    pub(super) products: Edges<ProductNode>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
-pub(super) struct ProductData {
-    pub(super) product: Option<ProductNode>,
 }
