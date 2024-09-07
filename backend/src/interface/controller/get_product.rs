@@ -24,8 +24,9 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::error::error::DomainError;
-    use crate::domain::media::media::{Media, MediaStatus};
+    use crate::domain::product::barcode::barcode::Barcode;
     use crate::domain::product::product::{Product, ProductStatus};
+    use crate::domain::product::sku::sku::Sku;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::usecase::interactor::product_interactor_interface::{
@@ -70,21 +71,16 @@ mod tests {
             .returning(|_| {
                 Ok(Some(
                     Product::new(
-                        "1".to_string(),
-                        "Test Product".to_string(),
+                        "gid://shopify/Product/1".to_string(),
+                        "Test Product",
                         100,
-                        "Description".to_string(),
+                        "This is a test product description.",
                         ProductStatus::Active,
-                        Some("1".to_string()),
-                        vec![Media::new(
-                            "1".to_string(),
-                            "Test Media".to_string(),
-                            MediaStatus::Active,
-                            Some("https://example.com/image.jpg".to_string()),
-                        )
-                        .unwrap()
-                        .id()
-                        .to_string()],
+                        Some(Sku::new("TESTSKU123")),
+                        Some(Barcode::new("123456789012")),
+                        Some(50),
+                        1,
+                        Some("gid://shopify/Category/111".to_string()),
                     )
                     .unwrap(),
                 ))

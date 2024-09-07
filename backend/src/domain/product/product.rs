@@ -1,8 +1,8 @@
 use derive_getters::Getters;
 
-use crate::domain::{error::error::DomainError, media::media::Id as MediaId};
+use crate::domain::error::error::DomainError;
 
-use super::category::category::Id as CategoryId;
+use super::{barcode::barcode::Barcode, category::category::Id as CategoryId, sku::sku::Sku};
 
 pub type Id = String;
 
@@ -21,8 +21,11 @@ pub struct Product {
     price: u32,
     description: String,
     status: ProductStatus,
+    sku: Option<Sku>,
+    barcode: Option<Barcode>,
+    inventory_quantity: Option<u32>,
+    list_order: u8,
     category_id: Option<CategoryId>,
-    media_ids: Vec<MediaId>,
 }
 
 impl Product {
@@ -30,16 +33,22 @@ impl Product {
 
     pub fn new(
         id: Id,
-        name: String,
+        name: impl Into<String>,
         price: u32,
-        description: String,
+        description: impl Into<String>,
         status: ProductStatus,
+        sku: Option<Sku>,
+        barcode: Option<Barcode>,
+        inventory_quantity: Option<u32>,
+        list_order: u8,
         category_id: Option<CategoryId>,
-        media_ids: Vec<MediaId>,
     ) -> Result<Self, DomainError> {
-        if name.trim().is_empty() {
+        let name = name.into();
+        if name.is_empty() {
             return Err(DomainError::ValidationError);
         }
+
+        let description = description.into();
         if description.len() as u32 > Self::MAX_DESCRIPTION_LENGTH {
             return Err(DomainError::ValidationError);
         }
@@ -50,8 +59,11 @@ impl Product {
             price,
             description,
             status,
+            sku,
+            barcode,
+            inventory_quantity,
+            list_order,
             category_id,
-            media_ids,
         })
     }
 }

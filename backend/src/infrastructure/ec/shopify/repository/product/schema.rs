@@ -3,8 +3,11 @@ use serde::Deserialize;
 use crate::{
     domain::{
         error::error::DomainError,
-        media::media::Id as MediaId,
-        product::product::{Product, ProductStatus},
+        product::{
+            barcode::barcode::Barcode,
+            product::{Product, ProductStatus},
+            sku::sku::Sku,
+        },
     },
     infrastructure::ec::shopify::repository::common::schema::Edges,
 };
@@ -16,12 +19,11 @@ pub(super) struct ProductSchema {
     pub(super) price: f64,
     pub(super) description: String,
     pub(super) status: String,
-    pub(super) category_id: Option<String>,
-
+    pub(super) sku: Option<String>,
     pub(super) barcode: Option<String>,
     pub(super) inventory_quantity: Option<i32>,
-    pub(super) sku: Option<String>,
     pub(super) position: i32,
+    pub(super) category_id: Option<String>,
 }
 
 impl From<VariantNode> for ProductSchema {
@@ -55,9 +57,18 @@ impl ProductSchema {
             "DRAFT" => ProductStatus::Draft,
             _ => ProductStatus::Inactive,
         };
-
-        // TODO: 商品メディア情報の値を格納する
-        let media: Vec<MediaId> = Vec::new();
+        let sku = match self.sku {
+            Some(sku) => Some(Sku::new(sku)),
+            None => None,
+        };
+        let barcode = match self.barcode {
+            Some(barcode) => Some(Barcode::new(barcode)),
+            None => None,
+        };
+        let inventory_quantity = match self.inventory_quantity {
+            Some(inventory_quantity) => Some(inventory_quantity as u32),
+            None => None,
+        };
 
         Product::new(
             self.id,
@@ -65,8 +76,11 @@ impl ProductSchema {
             self.price as u32,
             self.description,
             status,
+            sku,
+            barcode,
+            inventory_quantity,
+            self.position as u8,
             self.category_id,
-            media,
         )
     }
 }

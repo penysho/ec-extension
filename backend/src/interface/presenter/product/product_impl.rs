@@ -65,20 +65,23 @@ impl ProductPresenter for ProductPresenterImpl {
 mod tests {
     use crate::domain::{
         media::media::{Media, MediaStatus},
-        product::product::ProductStatus,
+        product::{barcode::barcode::Barcode, product::ProductStatus, sku::sku::Sku},
     };
 
     use super::*;
 
     fn mock_product() -> Product {
         Product::new(
-            "1".to_string(),
-            "Test Product".to_string(),
+            "gid://shopify/Product/1".to_string(),
+            "Test Product",
             100,
-            "Description".to_string(),
+            "This is a test product description.",
             ProductStatus::Active,
-            Some("1".to_string()),
-            vec![mock_media().id().to_string()],
+            Some(Sku::new("TESTSKU123")),
+            Some(Barcode::new("123456789012")),
+            Some(50),
+            1,
+            Some("gid://shopify/Category/111".to_string()),
         )
         .unwrap()
     }
@@ -137,23 +140,29 @@ mod tests {
     fn mock_products() -> Vec<Product> {
         vec![
             Product::new(
-                "1".to_string(),
-                "Test Product 1".to_string(),
+                "gid://shopify/Product/1".to_string(),
+                "Test Product",
                 100,
-                "Description 1".to_string(),
+                "This is a test product description.",
                 ProductStatus::Active,
-                Some("1".to_string()),
-                vec![mock_media().id().to_string()],
+                Some(Sku::new("TESTSKU123")),
+                Some(Barcode::new("123456789012")),
+                Some(50),
+                1,
+                Some("gid://shopify/Category/111".to_string()),
             )
             .unwrap(),
             Product::new(
-                "2".to_string(),
-                "Test Product 2".to_string(),
-                200,
-                "Description 2".to_string(),
+                "gid://shopify/Product/2".to_string(),
+                "Test Product",
+                100,
+                "This is a test product description.",
                 ProductStatus::Active,
-                Some("2".to_string()),
-                vec![mock_media().id().to_string()],
+                Some(Sku::new("TESTSKU123")),
+                Some(Barcode::new("123456789012")),
+                Some(50),
+                1,
+                Some("gid://shopify/Category/111".to_string()),
             )
             .unwrap(),
         ]

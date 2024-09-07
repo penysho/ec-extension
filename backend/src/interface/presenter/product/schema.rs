@@ -22,7 +22,6 @@ pub struct ProductSchema {
     pub(super) description: String,
     pub(super) status: ProductStatusEnum,
     pub(super) category_id: Option<String>,
-    pub(super) media: Vec<MediaSchema>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -43,13 +42,6 @@ impl From<Product> for ProductSchema {
                 ProductStatus::Draft => ProductStatusEnum::Draft,
             },
             category_id: domain.category_id().to_owned(),
-            media: domain
-                .media_ids()
-                .iter()
-                .map(|media_id| MediaSchema {
-                    id: media_id.to_string(),
-                })
-                .collect(),
         }
     }
 }
