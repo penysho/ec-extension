@@ -4,12 +4,13 @@ use serde_json::json;
 use crate::{
     domain::{error::error::DomainError, product::product::Product},
     infrastructure::ec::{
-        ec_client_interface::ECClient, shopify::repository::common::schema::GraphQLResponse,
+        ec_client_interface::ECClient,
+        shopify::repository::{common::schema::GraphQLResponse, product::schema::VariantsData},
     },
     usecase::repository::product_repository_interface::ProductRepository,
 };
 
-use super::schema::{ProductData, ProductSchema, ProductsData};
+use super::schema::{ProductSchema, VariantData};
 
 /// Repository for products for Shopify.
 pub struct ProductRepositoryImpl<C: ECClient> {
@@ -31,10 +32,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
 
         let query = json!({
-        "query": format!("query {{ product(id: \"gid://shopify/Product/{id}\") {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }}")
+        "query": format!("query {{ productVariant(id: \"gid://shopify/ProductVariant/{id}\") {{ id barcode inventoryQuantity sku position price inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }}")
         });
 
-        let graphql_response: GraphQLResponse<ProductData> = self.client.query(&query).await?;
+        let graphql_response: GraphQLResponse<VariantData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response= {:?}", errors);
             return Err(DomainError::QueryError);
@@ -43,7 +44,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let product_schema: Option<ProductSchema> = graphql_response
             .data
             .ok_or(DomainError::QueryError)?
-            .product
+            .product_variant
             .map(ProductSchema::from);
 
         let product = match product_schema {
@@ -75,10 +76,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 .map_or(String::new(), |a| format!(", after: \"{}\"", a));
 
             let query = json!({
-                "query": format!("query {{ products({first_query}{after_query}) {{ edges {{ node {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} resourcePublicationOnCurrentPublication {{ publication {{ name id }} publishDate isPublished }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
+                "query": format!("query {{ productVariants({first_query}{after_query}) {{ edges {{ node {{ id barcode inventoryQuantity sku position price inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
             });
 
-            let graphql_response: GraphQLResponse<ProductsData> = self.client.query(&query).await?;
+            let graphql_response: GraphQLResponse<VariantsData> = self.client.query(&query).await?;
             if let Some(errors) = graphql_response.errors {
                 log::error!("Error returned in GraphQL response. Response= {:?}", errors);
                 return Err(DomainError::QueryError);
@@ -87,7 +88,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             let data = graphql_response
                 .data
                 .ok_or(DomainError::QueryError)?
-                .products;
+                .product_variants;
 
             let products: Vec<ProductSchema> = data
                 .edges
@@ -128,58 +129,83 @@ mod tests {
         ec_client_interface::MockECClient,
         shopify::repository::{
             common::schema::{Edges, GraphQLError, Node, PageInfo},
-            product::schema::{MaxVariantPrice, PriceRangeV2, ProductNode, TaxonomyCategory},
+            product::schema::{
+                InventoryNode, MaxVariantPrice, PriceRangeV2, ProductNode, TaxonomyCategory,
+                VariantNode,
+            },
         },
     };
 
     use super::*;
 
-    fn mock_get_product_reponse() -> GraphQLResponse<ProductData> {
+    fn mock_get_product_reponse() -> GraphQLResponse<VariantData> {
         GraphQLResponse {
-            data: Some(ProductData {
-                product: Some(ProductNode {
-                    id: "gid://shopify/Product/123456".to_string(),
-                    title: "Test Product".to_string(),
-                    price: PriceRangeV2 {
-                        max_variant_price: MaxVariantPrice {
-                            amount: "100.00".to_string(),
+            data: Some(VariantData {
+                product_variant: Some(VariantNode {
+                    id: "gid://shopify/ProductVariant/123456".to_string(),
+                    product: ProductNode {
+                        id: "gid://shopify/Product/654321".to_string(),
+                        category: Some(TaxonomyCategory {
+                            id: "gid://shopify/Category/111".to_string(),
+                        }),
+                        title: "Test Product".to_string(),
+                        price: PriceRangeV2 {
+                            max_variant_price: MaxVariantPrice {
+                                amount: "100.00".to_string(),
+                            },
                         },
+                        description: "Test Description".to_string(),
+                        status: "ACTIVE".to_string(),
                     },
-                    description: "Test Description".to_string(),
-                    status: "ACTIVE".to_string(),
-                    category: Some(TaxonomyCategory {
-                        id: "gid://shopify/Category/123".to_string(),
-                    }),
+                    inventory_item: InventoryNode {
+                        id: "gid://shopify/InventoryItem/789012".to_string(),
+                    },
+                    barcode: Some("123456789012".to_string()),
+                    inventory_quantity: Some(50),
+                    sku: Some("TESTSKU123".to_string()),
+                    position: 1,
+                    price: "100.00".to_string(),
                 }),
             }),
             errors: None,
         }
     }
 
-    fn mock_get_products_reponse(count: usize) -> GraphQLResponse<ProductsData> {
-        let products: Vec<Node<ProductNode>> = (0..count)
+    fn mock_get_products_reponse(count: usize) -> GraphQLResponse<VariantsData> {
+        let product_variants: Vec<Node<VariantNode>> = (0..count)
             .map(|i| Node {
-                node: ProductNode {
-                    id: format!("gid://shopify/Product/{}", i),
-                    title: format!("Test Product {}", i),
-                    price: PriceRangeV2 {
-                        max_variant_price: MaxVariantPrice {
-                            amount: format!("{}", 100 + i),
+                node: VariantNode {
+                    id: format!("gid://shopify/ProductVariant/{i}"),
+                    product: ProductNode {
+                        id: "gid://shopify/Product/654321".to_string(),
+                        category: Some(TaxonomyCategory {
+                            id: "gid://shopify/Category/111".to_string(),
+                        }),
+                        title: "Test Product".to_string(),
+                        price: PriceRangeV2 {
+                            max_variant_price: MaxVariantPrice {
+                                amount: "100.00".to_string(),
+                            },
                         },
+                        description: "Test Description".to_string(),
+                        status: "ACTIVE".to_string(),
                     },
-                    description: format!("Test Description {}", i),
-                    status: "ACTIVE".to_string(),
-                    category: Some(TaxonomyCategory {
-                        id: format!("gid://shopify/Category/{}", i),
-                    }),
+                    inventory_item: InventoryNode {
+                        id: "gid://shopify/InventoryItem/789012".to_string(),
+                    },
+                    barcode: Some("123456789012".to_string()),
+                    inventory_quantity: Some(50),
+                    sku: Some("TESTSKU123".to_string()),
+                    position: 1,
+                    price: "100.00".to_string(),
                 },
             })
             .collect();
 
         GraphQLResponse {
-            data: Some(ProductsData {
-                products: Edges {
-                    edges: products,
+            data: Some(VariantsData {
+                product_variants: Edges {
+                    edges: product_variants,
                     page_info: PageInfo {
                         has_previous_page: false,
                         has_next_page: false,
@@ -214,7 +240,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductData>>()
+            .expect_query::<Value, GraphQLResponse<VariantData>>()
             .times(1)
             .return_once(|_| Ok(mock_get_product_reponse()));
 
@@ -227,7 +253,7 @@ mod tests {
         assert!(product.is_some());
         let product = product.unwrap();
 
-        assert_eq!(product.id(), "gid://shopify/Product/123456");
+        assert_eq!(product.id(), "gid://shopify/ProductVariant/123456");
         assert_eq!(product.name(), "Test Product");
     }
 
@@ -238,7 +264,7 @@ mod tests {
         let graphql_response_with_error = mock_with_error();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductData>>()
+            .expect_query::<Value, GraphQLResponse<VariantData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_error));
 
@@ -261,7 +287,7 @@ mod tests {
         let graphql_response_with_no_data = mock_with_no_data();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductData>>()
+            .expect_query::<Value, GraphQLResponse<VariantData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_no_data));
 
@@ -283,25 +309,40 @@ mod tests {
 
         // Modify the response to cause `to_domain` to fail
         let graphql_response_invalid_conversion = GraphQLResponse {
-            data: Some(ProductData {
-                product: Some(ProductNode {
-                    id: "gid://shopify/Product/invalid".to_string(),
-                    title: "".to_string(), // Assuming this causes an error in `to_domain`
-                    price: PriceRangeV2 {
-                        max_variant_price: MaxVariantPrice {
-                            amount: "100.00".to_string(),
+            data: Some(VariantData {
+                product_variant: {
+                    Some(VariantNode {
+                        id: "gid://shopify/ProductVariant/123456".to_string(),
+                        product: ProductNode {
+                            id: "gid://shopify/Product/654321".to_string(),
+                            category: Some(TaxonomyCategory {
+                                id: "gid://shopify/Category/111".to_string(),
+                            }),
+                            title: "".to_string(), // Causes conversion errors to domain
+                            price: PriceRangeV2 {
+                                max_variant_price: MaxVariantPrice {
+                                    amount: "100.00".to_string(),
+                                },
+                            },
+                            description: "Test Description".to_string(),
+                            status: "ACTIVE".to_string(),
                         },
-                    },
-                    description: "Test Description".to_string(),
-                    status: "INVALID_STATUS".to_string(),
-                    category: None,
-                }),
+                        inventory_item: InventoryNode {
+                            id: "gid://shopify/InventoryItem/789012".to_string(),
+                        },
+                        barcode: Some("123456789012".to_string()),
+                        inventory_quantity: Some(50),
+                        sku: Some("TESTSKU123".to_string()),
+                        position: 1,
+                        price: "100.00".to_string(),
+                    })
+                },
             }),
             errors: None,
         };
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductData>>()
+            .expect_query::<Value, GraphQLResponse<VariantData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_invalid_conversion));
 
@@ -323,7 +364,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| Ok(mock_get_products_reponse(250))); // Self::GET_PRODUCTS_LIMIT
 
@@ -334,8 +375,8 @@ mod tests {
         assert!(result.is_ok());
         let products = result.unwrap();
         assert_eq!(products.len(), 250);
-        assert_eq!(products[0].id(), "gid://shopify/Product/0");
-        assert_eq!(products[249].id(), "gid://shopify/Product/249");
+        assert_eq!(products[0].id(), "gid://shopify/ProductVariant/0");
+        assert_eq!(products[249].id(), "gid://shopify/ProductVariant/249");
     }
 
     #[tokio::test]
@@ -343,7 +384,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| Ok(mock_get_products_reponse(100)));
 
@@ -356,8 +397,8 @@ mod tests {
         assert!(result.is_ok());
         let products = result.unwrap();
         assert_eq!(products.len(), 10);
-        assert_eq!(products[0].id(), "gid://shopify/Product/20");
-        assert_eq!(products[9].id(), "gid://shopify/Product/29");
+        assert_eq!(products[0].id(), "gid://shopify/ProductVariant/20");
+        assert_eq!(products[9].id(), "gid://shopify/ProductVariant/29");
     }
 
     #[tokio::test]
@@ -365,7 +406,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| Ok(mock_get_products_reponse(0)));
 
@@ -387,7 +428,7 @@ mod tests {
         let graphql_response_with_error = mock_with_error();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_error));
 
@@ -410,7 +451,7 @@ mod tests {
         let graphql_response_with_no_data = mock_with_no_data();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_no_data));
 
