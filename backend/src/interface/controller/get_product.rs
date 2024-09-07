@@ -72,12 +72,12 @@ mod tests {
                 Ok(Some(
                     Product::new(
                         "gid://shopify/Product/1".to_string(),
-                        "Test Product",
+                        "Test Product 1",
                         100,
                         "This is a test product description.",
                         ProductStatus::Active,
-                        Some(Sku::new("TESTSKU123")),
-                        Some(Barcode::new("123456789012")),
+                        Some(Sku::new("TESTSKU123").unwrap()),
+                        Some(Barcode::new("123456789012").unwrap()),
                         Some(50),
                         1,
                         Some("gid://shopify/Category/111".to_string()),

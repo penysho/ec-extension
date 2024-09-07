@@ -58,11 +58,11 @@ impl ProductSchema {
             _ => ProductStatus::Inactive,
         };
         let sku = match self.sku {
-            Some(sku) => Some(Sku::new(sku)),
+            Some(sku) => Some(Sku::new(sku)?),
             None => None,
         };
         let barcode = match self.barcode {
-            Some(barcode) => Some(Barcode::new(barcode)),
+            Some(barcode) => Some(Barcode::new(barcode)?),
             None => None,
         };
         let inventory_quantity = match self.inventory_quantity {

@@ -70,20 +70,35 @@ mod tests {
 
     use super::*;
 
-    fn mock_product() -> Product {
-        Product::new(
-            "gid://shopify/Product/1".to_string(),
-            "Test Product",
-            100,
-            "This is a test product description.",
-            ProductStatus::Active,
-            Some(Sku::new("TESTSKU123")),
-            Some(Barcode::new("123456789012")),
-            Some(50),
-            1,
-            Some("gid://shopify/Category/111".to_string()),
-        )
-        .unwrap()
+    fn mock_products() -> Vec<Product> {
+        vec![
+            Product::new(
+                "gid://shopify/Product/1".to_string(),
+                "Test Product 1",
+                100,
+                "This is a test product description.",
+                ProductStatus::Active,
+                Some(Sku::new("TESTSKU123").unwrap()),
+                Some(Barcode::new("123456789012").unwrap()),
+                Some(50),
+                1,
+                Some("gid://shopify/Category/111".to_string()),
+            )
+            .unwrap(),
+            Product::new(
+                "gid://shopify/Product/2".to_string(),
+                "Test Product 2",
+                200,
+                "This is a test product description.",
+                ProductStatus::Active,
+                Some(Sku::new("TESTSKU123").unwrap()),
+                Some(Barcode::new("123456789012").unwrap()),
+                Some(50),
+                1,
+                Some("gid://shopify/Category/111".to_string()),
+            )
+            .unwrap(),
+        ]
     }
 
     fn mock_media() -> Media {
@@ -99,16 +114,19 @@ mod tests {
     #[actix_web::test]
     async fn test_present_get_product_success() {
         let presenter = ProductPresenterImpl::new();
-        let product = mock_product();
+        let product = mock_products()[0].clone();
 
         let result = presenter
             .present_get_product(Ok(Some(product)))
             .await
             .unwrap();
 
-        assert_eq!(result.product.name, "Test Product");
+        assert_eq!(result.product.name, "Test Product 1");
         assert_eq!(result.product.price, 100);
-        assert_eq!(result.product.description, "Description");
+        assert_eq!(
+            result.product.description,
+            "This is a test product description."
+        );
     }
 
     #[actix_web::test]
@@ -135,37 +153,6 @@ mod tests {
             result,
             Err(GetProductResponseError::ServiceUnavailable)
         ));
-    }
-
-    fn mock_products() -> Vec<Product> {
-        vec![
-            Product::new(
-                "gid://shopify/Product/1".to_string(),
-                "Test Product",
-                100,
-                "This is a test product description.",
-                ProductStatus::Active,
-                Some(Sku::new("TESTSKU123")),
-                Some(Barcode::new("123456789012")),
-                Some(50),
-                1,
-                Some("gid://shopify/Category/111".to_string()),
-            )
-            .unwrap(),
-            Product::new(
-                "gid://shopify/Product/2".to_string(),
-                "Test Product",
-                100,
-                "This is a test product description.",
-                ProductStatus::Active,
-                Some(Sku::new("TESTSKU123")),
-                Some(Barcode::new("123456789012")),
-                Some(50),
-                1,
-                Some("gid://shopify/Category/111".to_string()),
-            )
-            .unwrap(),
-        ]
     }
 
     #[actix_web::test]
