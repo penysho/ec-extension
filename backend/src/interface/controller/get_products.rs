@@ -42,6 +42,7 @@ mod tests {
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::web;
     use actix_web::{http::StatusCode, test, App, Error};
+    use chrono::Utc;
 
     const BASE_URL: &'static str = "/ec-extension/products";
 
@@ -80,6 +81,8 @@ mod tests {
                     Some(Barcode::new("123456789012").unwrap()),
                     Some(50),
                     1,
+                    Utc::now(),
+                    Utc::now(),
                     Some("gid://shopify/Category/111".to_string()),
                 )
                 .unwrap(),
@@ -93,6 +96,8 @@ mod tests {
                     Some(Barcode::new("123456789012").unwrap()),
                     Some(50),
                     1,
+                    Utc::now(),
+                    Utc::now(),
                     Some("gid://shopify/Category/111".to_string()),
                 )
                 .unwrap(),

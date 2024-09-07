@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
@@ -25,6 +26,8 @@ pub struct Product {
     barcode: Option<Barcode>,
     inventory_quantity: Option<u32>,
     list_order: u8,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
     category_id: Option<CategoryId>,
 }
 
@@ -41,6 +44,8 @@ impl Product {
         barcode: Option<Barcode>,
         inventory_quantity: Option<u32>,
         list_order: u8,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
         category_id: Option<CategoryId>,
     ) -> Result<Self, DomainError> {
         let name = name.into();
@@ -63,6 +68,8 @@ impl Product {
             barcode,
             inventory_quantity,
             list_order,
+            created_at,
+            updated_at,
             category_id,
         })
     }

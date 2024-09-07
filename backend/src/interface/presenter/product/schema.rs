@@ -1,4 +1,5 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use chrono::{DateTime, Utc};
 use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +22,8 @@ pub struct ProductSchema {
     pub(super) price: u32,
     pub(super) description: String,
     pub(super) status: ProductStatusEnum,
+    pub(super) created_at: DateTime<Utc>,
+    pub(super) updated_at: DateTime<Utc>,
     pub(super) category_id: Option<String>,
 }
 
@@ -41,6 +44,8 @@ impl From<Product> for ProductSchema {
                 ProductStatus::Inactive => ProductStatusEnum::Inactive,
                 ProductStatus::Draft => ProductStatusEnum::Draft,
             },
+            created_at: domain.created_at().to_owned(),
+            updated_at: domain.updated_at().to_owned(),
             category_id: domain.category_id().to_owned(),
         }
     }

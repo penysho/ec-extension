@@ -24,9 +24,9 @@ pub(super) struct ProductSchema {
     pub(super) barcode: Option<String>,
     pub(super) inventory_quantity: Option<i32>,
     pub(super) position: i32,
-    pub(super) category_id: Option<String>,
     pub(super) created_at: DateTime<Utc>,
     pub(super) updated_at: DateTime<Utc>,
+    pub(super) category_id: Option<String>,
 }
 
 impl From<VariantNode> for ProductSchema {
@@ -85,6 +85,8 @@ impl ProductSchema {
             barcode,
             inventory_quantity,
             self.position as u8,
+            self.created_at,
+            self.updated_at,
             self.category_id,
         )
     }

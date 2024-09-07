@@ -63,6 +63,8 @@ impl ProductPresenter for ProductPresenterImpl {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
+
     use crate::domain::{
         media::media::{Media, MediaStatus},
         product::{barcode::barcode::Barcode, product::ProductStatus, sku::sku::Sku},
@@ -82,6 +84,8 @@ mod tests {
                 Some(Barcode::new("123456789012").unwrap()),
                 Some(50),
                 1,
+                Utc::now(),
+                Utc::now(),
                 Some("gid://shopify/Category/111".to_string()),
             )
             .unwrap(),
@@ -95,6 +99,8 @@ mod tests {
                 Some(Barcode::new("123456789012").unwrap()),
                 Some(50),
                 1,
+                Utc::now(),
+                Utc::now(),
                 Some("gid://shopify/Category/111".to_string()),
             )
             .unwrap(),
