@@ -5,12 +5,15 @@ use crate::{
     domain::{error::error::DomainError, product::product::Product},
     infrastructure::ec::{
         ec_client_interface::ECClient,
-        shopify::repository::{common::schema::GraphQLResponse, product::schema::VariantsData},
+        shopify::repository::{
+            common::schema::GraphQLResponse,
+            product::schema::{ProductsData, VariantsData},
+        },
     },
     usecase::repository::product_repository_interface::ProductRepository,
 };
 
-use super::schema::{ProductSchema, VariantData};
+use super::schema::VariantSchema;
 
 /// Repository for products for Shopify.
 pub struct ProductRepositoryImpl<C: ECClient> {
@@ -28,31 +31,36 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     /// Obtain detailed product information.
-    async fn get_product(&self, id: &str) -> Result<Option<Product>, DomainError> {
+    async fn get_product(&self, id: &str) -> Result<Product, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
+        let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
 
         let query = json!({
-        "query": format!("query {{ productVariant(product_id: \"gid://shopify/ProductVariant/{id}\") {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }}")
+        "query": format!("query {{ productVariants({first_query}, query: \"product_id:'{id}'\") {{ edges {{ node {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
         });
 
-        let graphql_response: GraphQLResponse<VariantData> = self.client.query(&query).await?;
+        let graphql_response: GraphQLResponse<VariantsData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response= {:?}", errors);
+            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
             return Err(DomainError::QueryError);
         }
 
-        let product_schema: Option<ProductSchema> = graphql_response
+        let products: Vec<VariantSchema> = graphql_response
             .data
             .ok_or(DomainError::QueryError)?
-            .product_variant
-            .map(ProductSchema::from);
+            .product_variants
+            .edges
+            .into_iter()
+            .map(|node| VariantSchema::from(node.node))
+            .collect();
 
-        let product = match product_schema {
-            Some(schema) => Some(schema.to_domain()?),
-            None => None,
-        };
+        let domains = VariantSchema::to_domains(products)?;
 
-        Ok(product)
+        if domains.is_empty() {
+            log::error!("No product found for id: {}", id);
+            return Err(DomainError::NotFound);
+        }
+        Ok(domains.into_iter().next().unwrap())
     }
 
     /// Retrieve multiple products.
@@ -73,43 +81,70 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
             let after_query = cursor
                 .as_deref()
-                .map_or(String::new(), |a| format!(", after: \"{}\"", a));
+                .map_or(String::new(), |a| format!("after: \"{}\"", a));
 
-            let query = json!({
-                "query": format!("query {{ productVariants({first_query}{after_query}) {{ edges {{ node {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
+            let products_query = json!({
+                "query": format!("query {{ products({first_query}, {after_query}) {{ edges {{ node {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
             });
 
-            let graphql_response: GraphQLResponse<VariantsData> = self.client.query(&query).await?;
-            if let Some(errors) = graphql_response.errors {
-                log::error!("Error returned in GraphQL response. Response= {:?}", errors);
+            let products_response: GraphQLResponse<ProductsData> =
+                self.client.query(&products_query).await?;
+            if let Some(errors) = products_response.errors {
+                log::error!(
+                    "Error returned in Products response. Response: {:?}",
+                    errors
+                );
                 return Err(DomainError::QueryError);
             }
 
-            let data = graphql_response
+            let products_data = products_response
                 .data
                 .ok_or(DomainError::QueryError)?
-                .product_variants;
+                .products;
 
-            let products: Vec<ProductSchema> = data
+            let product_ids = products_data
                 .edges
                 .into_iter()
-                .map(|node| ProductSchema::from(node.node))
+                .map(|node| node.node.id.replace("gid://shopify/Product/", ""))
+                .collect::<Vec<String>>()
+                .join(",");
+
+            let variants_query = json!({
+                "query": format!("query {{ productVariants({first_query}, query: \"product_ids:'{product_ids}'\") {{ edges {{ node {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
+            });
+
+            log::debug!("variants_query: {:?}", variants_query);
+
+            let variants_response: GraphQLResponse<VariantsData> =
+                self.client.query(&variants_query).await?;
+            if let Some(errors) = variants_response.errors {
+                log::error!(
+                    "Error returned in Variants response. Response: {:?}",
+                    errors
+                );
+                return Err(DomainError::QueryError);
+            }
+
+            let variants: Vec<VariantSchema> = variants_response
+                .data
+                .ok_or(DomainError::QueryError)?
+                .product_variants
+                .edges
+                .into_iter()
+                .map(|node| VariantSchema::from(node.node))
                 .collect();
 
-            let product_domains: Result<Vec<Product>, DomainError> = products
-                .into_iter()
-                .map(|product| product.to_domain())
-                .collect();
+            let product_domains = VariantSchema::to_domains(variants);
 
             all_products.extend(product_domains?);
 
-            cursor = data.page_info.end_cursor;
-            if data.page_info.has_next_page {
+            cursor = products_data.page_info.end_cursor;
+            if products_data.page_info.has_next_page {
                 break;
             }
         }
 
-        log::info!("all_products.len() = {}", all_products.len());
+        log::info!("all_products.len(): {}", all_products.len());
 
         let start = (offset).min(all_products.len() as u32) as usize;
         let end = (offset + limit).min(all_products.len() as u32) as usize;
@@ -139,13 +174,13 @@ mod tests {
 
     use super::*;
 
-    fn mock_get_product_reponse() -> GraphQLResponse<VariantData> {
-        GraphQLResponse {
-            data: Some(VariantData {
-                product_variant: Some(VariantNode {
-                    id: "gid://shopify/ProductVariant/123456".to_string(),
+    fn mock_get_product_response(count: usize) -> GraphQLResponse<VariantsData> {
+        let product_variants: Vec<Node<VariantNode>> = (0..count)
+            .map(|i| Node {
+                node: VariantNode {
+                    id: format!("gid://shopify/ProductVariant/{i}"),
                     product: ProductNode {
-                        id: "gid://shopify/Product/654321".to_string(),
+                        id: "gid://shopify/Product/123456".to_string(),
                         category: Some(TaxonomyCategory {
                             id: "gid://shopify/Category/111".to_string(),
                         }),
@@ -168,19 +203,33 @@ mod tests {
                     price: "100.00".to_string(),
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
-                }),
+                },
+            })
+            .collect();
+
+        GraphQLResponse {
+            data: Some(VariantsData {
+                product_variants: Edges {
+                    edges: product_variants,
+                    page_info: PageInfo {
+                        has_previous_page: false,
+                        has_next_page: false,
+                        start_cursor: None,
+                        end_cursor: None,
+                    },
+                },
             }),
             errors: None,
         }
     }
 
-    fn mock_get_products_reponse(count: usize) -> GraphQLResponse<VariantsData> {
+    fn mock_get_products_response(count: usize) -> GraphQLResponse<VariantsData> {
         let product_variants: Vec<Node<VariantNode>> = (0..count)
             .map(|i| Node {
                 node: VariantNode {
                     id: format!("gid://shopify/ProductVariant/{i}"),
                     product: ProductNode {
-                        id: "gid://shopify/Product/654321".to_string(),
+                        id: "gid://shopify/Product/123456".to_string(),
                         category: Some(TaxonomyCategory {
                             id: "gid://shopify/Category/111".to_string(),
                         }),
@@ -245,9 +294,9 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantData>>()
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_get_product_reponse()));
+            .return_once(|_| Ok(mock_get_product_response(10)));
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -255,10 +304,8 @@ mod tests {
 
         assert!(result.is_ok());
         let product = result.unwrap();
-        assert!(product.is_some());
-        let product = product.unwrap();
 
-        assert_eq!(product.id(), "gid://shopify/ProductVariant/123456");
+        assert_eq!(product.id(), "gid://shopify/Product/123456");
         assert_eq!(product.name(), "Test Product");
     }
 
@@ -269,7 +316,7 @@ mod tests {
         let graphql_response_with_error = mock_with_error();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantData>>()
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_error));
 
@@ -292,7 +339,7 @@ mod tests {
         let graphql_response_with_no_data = mock_with_no_data();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantData>>()
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_no_data));
 
@@ -309,71 +356,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_with_invalid_domain_conversion() {
-        let mut client = MockECClient::new();
-
-        // Modify the response to cause `to_domain` to fail
-        let graphql_response_invalid_conversion = GraphQLResponse {
-            data: Some(VariantData {
-                product_variant: {
-                    Some(VariantNode {
-                        id: "gid://shopify/ProductVariant/123456".to_string(),
-                        product: ProductNode {
-                            id: "gid://shopify/Product/654321".to_string(),
-                            category: Some(TaxonomyCategory {
-                                id: "gid://shopify/Category/111".to_string(),
-                            }),
-                            title: "".to_string(), // Causes conversion errors to domain
-                            price: PriceRangeV2 {
-                                max_variant_price: MaxVariantPrice {
-                                    amount: "100.00".to_string(),
-                                },
-                            },
-                            description: "Test Description".to_string(),
-                            status: "ACTIVE".to_string(),
-                        },
-                        inventory_item: InventoryNode {
-                            id: "gid://shopify/InventoryItem/789012".to_string(),
-                        },
-                        barcode: Some("123456789012".to_string()),
-                        inventory_quantity: Some(50),
-                        sku: Some("TESTSKU123".to_string()),
-                        position: 1,
-                        price: "100.00".to_string(),
-                        created_at: Utc::now(),
-                        updated_at: Utc::now(),
-                    })
-                },
-            }),
-            errors: None,
-        };
-
-        client
-            .expect_query::<Value, GraphQLResponse<VariantData>>()
-            .times(1)
-            .return_once(|_| Ok(graphql_response_invalid_conversion));
-
-        let repo = ProductRepositoryImpl::new(client);
-
-        let result = repo.get_product("123456").await;
-
-        assert!(result.is_err());
-        // Adjust according to the specific DomainError variant expected
-        if let Err(DomainError::ValidationError) = result {
-            // Test passed
-        } else {
-            panic!("Expected DomainError::ValidationError, but got something else");
-        }
-    }
-
-    #[tokio::test]
     async fn test_get_products_no_pagination_success() {
         let mut client = MockECClient::new();
 
         client
             .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_get_products_reponse(250))); // Self::GET_PRODUCTS_LIMIT
+            .return_once(|_| Ok(mock_get_products_response(250))); // Self::GET_PRODUCTS_LIMIT
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -393,7 +382,7 @@ mod tests {
         client
             .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_get_products_reponse(100)));
+            .return_once(|_| Ok(mock_get_products_response(100)));
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -415,7 +404,7 @@ mod tests {
         client
             .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_get_products_reponse(0)));
+            .return_once(|_| Ok(mock_get_products_response(0)));
 
         let repo = ProductRepositoryImpl::new(client);
 

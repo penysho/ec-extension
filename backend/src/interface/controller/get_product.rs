@@ -71,28 +71,26 @@ mod tests {
             .expect_get_product()
             .with(eq("1"))
             .returning(|_| {
-                Ok(Some(
-                    Product::new(
-                        "gid://shopify/Product/1".to_string(),
-                        "Test Product 1",
-                        "This is a test product description.",
-                        ProductStatus::Active,
-                        vec![Variant::new(
-                            "gid://shopify/ProductVariant/1".to_string(),
-                            Some("Test Variant 1"),
-                            100,
-                            Some(Sku::new("TESTSKU123").unwrap()),
-                            Some(Barcode::new("123456789012").unwrap()),
-                            Some(50),
-                            1,
-                            Utc::now(),
-                            Utc::now(),
-                        )
-                        .unwrap()],
-                        Some("gid://shopify/Category/111".to_string()),
+                Ok(Product::new(
+                    "gid://shopify/Product/1".to_string(),
+                    "Test Product 1",
+                    "This is a test product description.",
+                    ProductStatus::Active,
+                    vec![Variant::new(
+                        "gid://shopify/ProductVariant/1".to_string(),
+                        Some("Test Variant 1"),
+                        100,
+                        Some(Sku::new("TESTSKU123").unwrap()),
+                        Some(Barcode::new("123456789012").unwrap()),
+                        Some(50),
+                        1,
+                        Utc::now(),
+                        Utc::now(),
                     )
-                    .unwrap(),
-                ))
+                    .unwrap()],
+                    Some("gid://shopify/Category/111".to_string()),
+                )
+                .unwrap())
             });
 
         let req = test::TestRequest::get()
@@ -109,7 +107,7 @@ mod tests {
         interactor
             .expect_get_product()
             .with(eq("999"))
-            .returning(|_| Ok(None));
+            .returning(|_| Err(DomainError::NotFound));
 
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}/999"))

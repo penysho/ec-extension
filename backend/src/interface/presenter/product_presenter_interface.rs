@@ -9,7 +9,7 @@ pub trait ProductPresenter {
     type GetProductResponseError;
     async fn present_get_product(
         &self,
-        result: Result<Option<Product>, DomainError>,
+        result: Result<Product, DomainError>,
     ) -> Result<Self::GetProductResponse, Self::GetProductResponseError>;
 
     type GetProductsResponse;

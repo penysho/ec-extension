@@ -54,4 +54,9 @@ impl Product {
             category_id,
         })
     }
+
+    pub fn add_variant(&mut self, variant: Variant) -> Result<(), DomainError> {
+        self.variants.push(variant);
+        Ok(())
+    }
 }

@@ -27,13 +27,13 @@ impl ProductPresenter for ProductPresenterImpl {
     /// Generate a response with detailed product information.
     async fn present_get_product(
         &self,
-        result: Result<Option<Product>, DomainError>,
+        result: Result<Product, DomainError>,
     ) -> Result<Self::GetProductResponse, Self::GetProductResponseError> {
         match result {
-            Ok(Some(product)) => Ok(web::Json(GetProductResponse {
+            Ok(product) => Ok(web::Json(GetProductResponse {
                 product: ProductSchema::from(product),
             })),
-            Ok(None) => Err(GetProductResponseError::ProductNotFound),
+            Err(DomainError::NotFound) => Err(GetProductResponseError::ProductNotFound),
             Err(_) => Err(GetProductResponseError::ServiceUnavailable),
         }
     }
@@ -142,10 +142,7 @@ mod tests {
         let presenter = ProductPresenterImpl::new();
         let product = mock_products()[0].clone();
 
-        let result = presenter
-            .present_get_product(Ok(Some(product)))
-            .await
-            .unwrap();
+        let result = presenter.present_get_product(Ok(product)).await.unwrap();
 
         assert_eq!(result.product.name, "Test Product 1");
         assert_eq!(result.product.price, 100);
@@ -159,7 +156,9 @@ mod tests {
     async fn test_present_get_product_not_found() {
         let presenter = ProductPresenterImpl::new();
 
-        let result = presenter.present_get_product(Ok(None)).await;
+        let result = presenter
+            .present_get_product(Err(DomainError::NotFound))
+            .await;
 
         assert!(matches!(
             result,

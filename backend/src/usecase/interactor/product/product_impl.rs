@@ -36,7 +36,7 @@ impl ProductInteractorImpl {
 #[async_trait]
 impl ProductInteractor for ProductInteractorImpl {
     /// Obtain detailed product information.
-    async fn get_product(&self, id: &str) -> Result<Option<Product>, DomainError> {
+    async fn get_product(&self, id: &str) -> Result<Product, DomainError> {
         self.product_repository.get_product(id).await
     }
     /// Obtain a list of products.
