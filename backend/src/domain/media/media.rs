@@ -1,6 +1,9 @@
+use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
+
+use super::src::src::Src;
 
 pub type Id = String;
 
@@ -15,29 +18,46 @@ pub enum MediaStatus {
 #[derive(Debug, Getters, Clone)]
 pub struct Media {
     id: Id,
-    name: String,
+    name: Option<String>,
     status: MediaStatus,
-    upload_src: Option<String>,
+    alt: Option<String>,
+    uploaded_src: Option<Src>,
+    published_src: Option<Src>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl Media {
     pub fn new(
         id: Id,
-        name: String,
+        name: Option<impl Into<String>>,
         status: MediaStatus,
-        upload_src: Option<String>,
+        alt: Option<impl Into<String>>,
+        uploaded_src: Option<Src>,
+        published_src: Option<Src>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
     ) -> Result<Self, DomainError> {
         if let MediaStatus::InPreparation = status {
-            if upload_src.is_none() {
+            if uploaded_src.is_none() {
+                return Err(DomainError::ValidationError);
+            }
+        }
+        if let MediaStatus::Active = status {
+            if published_src.is_none() {
                 return Err(DomainError::ValidationError);
             }
         }
 
         Ok(Media {
             id,
-            name,
+            name: name.map(|n| n.into()),
             status,
-            upload_src,
+            alt: alt.map(|a| a.into()),
+            uploaded_src,
+            published_src,
+            created_at,
+            updated_at,
         })
     }
 }

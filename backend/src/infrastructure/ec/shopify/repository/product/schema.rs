@@ -147,13 +147,13 @@ pub(super) struct VariantNode {
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct VariantsData {
-    #[serde(rename = "productVariants")]
-    pub(super) product_variants: Edges<VariantNode>,
-}
-
-#[derive(Debug, Deserialize)]
 pub(super) struct VariantData {
     #[serde(rename = "productVariant")]
     pub(super) product_variant: Option<VariantNode>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct VariantsData {
+    #[serde(rename = "productVariants")]
+    pub(super) product_variants: Edges<VariantNode>,
 }

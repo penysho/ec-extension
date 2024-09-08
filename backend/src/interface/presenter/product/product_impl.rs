@@ -66,7 +66,10 @@ mod tests {
     use chrono::Utc;
 
     use crate::domain::{
-        media::media::{Media, MediaStatus},
+        media::{
+            media::{Media, MediaStatus},
+            src::src::Src,
+        },
         product::{barcode::barcode::Barcode, product::ProductStatus, sku::sku::Sku},
     };
 
@@ -110,9 +113,13 @@ mod tests {
     fn mock_media() -> Media {
         Media::new(
             "1".to_string(),
-            "Test Media".to_string(),
+            Some("Test Media"),
             MediaStatus::Active,
-            Some("https://example.com/image.jpg".to_string()),
+            Some("gid://shopify/Product/1"),
+            Some(Src::new("https://example.com/uploaded.jpg").unwrap()),
+            Some(Src::new("https://example.com/published.jpg").unwrap()),
+            Utc::now(),
+            Utc::now(),
         )
         .unwrap()
     }
