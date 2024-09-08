@@ -5,9 +5,8 @@ use crate::{
     domain::{
         error::error::DomainError,
         product::{
-            barcode::barcode::Barcode,
             product::{Product, ProductStatus},
-            sku::sku::Sku,
+            variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
         },
     },
     infrastructure::ec::shopify::repository::common::schema::Edges,
@@ -17,33 +16,30 @@ use crate::{
 pub(super) struct ProductSchema {
     pub(super) id: String,
     pub(super) title: String,
-    pub(super) price: f64,
     pub(super) description: String,
     pub(super) status: String,
+    pub(super) category_id: Option<String>,
+
+    pub(super) variant_id: String,
+    pub(super) price: f32,
     pub(super) sku: Option<String>,
     pub(super) barcode: Option<String>,
     pub(super) inventory_quantity: Option<i32>,
     pub(super) position: i32,
     pub(super) created_at: DateTime<Utc>,
     pub(super) updated_at: DateTime<Utc>,
-    pub(super) category_id: Option<String>,
 }
 
 impl From<VariantNode> for ProductSchema {
     fn from(node: VariantNode) -> Self {
         ProductSchema {
-            id: node.id,
+            id: node.product.id,
             title: node.product.title,
-            price: node
-                .product
-                .price
-                .max_variant_price
-                .amount
-                .parse::<f64>()
-                .unwrap_or(0.0),
             description: node.product.description,
             status: node.product.status,
             category_id: node.product.category.map(|c| c.id),
+            variant_id: node.id,
+            price: node.price.parse::<f32>().unwrap_or(0.0),
             barcode: node.barcode,
             inventory_quantity: node.inventory_quantity,
             sku: node.sku,
@@ -74,19 +70,26 @@ impl ProductSchema {
             Some(inventory_quantity) => Some(inventory_quantity as u32),
             None => None,
         };
+        let title = self.title;
 
-        Product::new(
-            self.id,
-            self.title,
+        let variants = vec![Variant::new(
+            self.variant_id,
+            Some(&title),
             self.price as u32,
-            self.description,
-            status,
             sku,
             barcode,
             inventory_quantity,
             self.position as u8,
             self.created_at,
             self.updated_at,
+        )?];
+
+        Product::new(
+            self.id,
+            title,
+            self.description,
+            status,
+            variants,
             self.category_id,
         )
     }

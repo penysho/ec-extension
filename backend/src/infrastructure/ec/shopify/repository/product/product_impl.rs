@@ -32,7 +32,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
 
         let query = json!({
-        "query": format!("query {{ productVariant(id: \"gid://shopify/ProductVariant/{id}\") {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }}")
+        "query": format!("query {{ productVariant(product_id: \"gid://shopify/ProductVariant/{id}\") {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }}")
         });
 
         let graphql_response: GraphQLResponse<VariantData> = self.client.query(&query).await?;

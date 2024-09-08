@@ -24,9 +24,10 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::error::error::DomainError;
-    use crate::domain::product::barcode::barcode::Barcode;
     use crate::domain::product::product::{Product, ProductStatus};
-    use crate::domain::product::sku::sku::Sku;
+    use crate::domain::product::variant::barcode::barcode::Barcode;
+    use crate::domain::product::variant::sku::sku::Sku;
+    use crate::domain::product::variant::variant::Variant;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::usecase::interactor::product_interactor_interface::{
@@ -74,15 +75,20 @@ mod tests {
                     Product::new(
                         "gid://shopify/Product/1".to_string(),
                         "Test Product 1",
-                        100,
                         "This is a test product description.",
                         ProductStatus::Active,
-                        Some(Sku::new("TESTSKU123").unwrap()),
-                        Some(Barcode::new("123456789012").unwrap()),
-                        Some(50),
-                        1,
-                        Utc::now(),
-                        Utc::now(),
+                        vec![Variant::new(
+                            "gid://shopify/ProductVariant/1".to_string(),
+                            Some("Test Variant 1"),
+                            100,
+                            Some(Sku::new("TESTSKU123").unwrap()),
+                            Some(Barcode::new("123456789012").unwrap()),
+                            Some(50),
+                            1,
+                            Utc::now(),
+                            Utc::now(),
+                        )
+                        .unwrap()],
                         Some("gid://shopify/Category/111".to_string()),
                     )
                     .unwrap(),

@@ -34,9 +34,14 @@ impl InteractProviderImpl {
 impl InteractProvider for InteractProviderImpl {
     /// Provide Interactor for products.
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor> {
-        Box::new(ProductInteractorImpl::new(Box::new(
-            ProductRepositoryImpl::new(ShopifyGQLClient::new(self.shopify_config.clone())),
-        )))
+        Box::new(ProductInteractorImpl::new(
+            Box::new(ProductRepositoryImpl::new(ShopifyGQLClient::new(
+                self.shopify_config.clone(),
+            ))),
+            Box::new(MediaRepositoryImpl::new(ShopifyGQLClient::new(
+                self.shopify_config.clone(),
+            ))),
+        ))
     }
 
     /// Provide Interactor for media.

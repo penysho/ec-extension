@@ -1,22 +1,34 @@
 use async_trait::async_trait;
 
 use crate::{
-    domain::{error::error::DomainError, product::product::Product},
+    domain::{
+        error::error::DomainError,
+        media::media::Media,
+        product::product::{Id, Product},
+    },
     usecase::{
         interactor::product_interactor_interface::ProductInteractor,
-        repository::product_repository_interface::ProductRepository,
+        repository::{
+            media_repository_interface::MediaRepository,
+            product_repository_interface::ProductRepository,
+        },
     },
 };
 
 /// Product Interactor.
 pub struct ProductInteractorImpl {
     product_repository: Box<dyn ProductRepository>,
+    media_repository: Box<dyn MediaRepository>,
 }
 
 impl ProductInteractorImpl {
-    pub fn new(product_repository: Box<dyn ProductRepository>) -> Self {
+    pub fn new(
+        product_repository: Box<dyn ProductRepository>,
+        media_repository: Box<dyn MediaRepository>,
+    ) -> Self {
         Self {
             product_repository: product_repository,
+            media_repository: media_repository,
         }
     }
 }
@@ -33,6 +45,9 @@ impl ProductInteractor for ProductInteractorImpl {
         limit: &Option<u32>,
         offset: &Option<u32>,
     ) -> Result<Vec<Product>, DomainError> {
-        self.product_repository.get_products(limit, offset).await
+        let products = self.product_repository.get_products(limit, offset).await;
+        // let product_ids: Vec<Id> = products?.iter().map(|p| p.id().clone()).collect();
+
+        products
     }
 }

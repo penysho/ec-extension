@@ -37,15 +37,15 @@ impl From<Product> for ProductSchema {
         ProductSchema {
             id: domain.id().to_string(),
             name: domain.name().to_string(),
-            price: *(domain.price()),
+            price: *(domain.variants()[0].price()),
             description: domain.description().to_string(),
             status: match domain.status() {
                 ProductStatus::Active => ProductStatusEnum::Active,
                 ProductStatus::Inactive => ProductStatusEnum::Inactive,
                 ProductStatus::Draft => ProductStatusEnum::Draft,
             },
-            created_at: domain.created_at().to_owned(),
-            updated_at: domain.updated_at().to_owned(),
+            created_at: domain.variants()[0].created_at().to_owned(),
+            updated_at: domain.variants()[0].updated_at().to_owned(),
             category_id: domain.category_id().to_owned(),
         }
     }

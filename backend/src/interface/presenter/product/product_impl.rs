@@ -70,7 +70,10 @@ mod tests {
             media::{Media, MediaStatus},
             src::src::Src,
         },
-        product::{barcode::barcode::Barcode, product::ProductStatus, sku::sku::Sku},
+        product::{
+            product::ProductStatus,
+            variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
+        },
     };
 
     use super::*;
@@ -80,30 +83,40 @@ mod tests {
             Product::new(
                 "gid://shopify/Product/1".to_string(),
                 "Test Product 1",
-                100,
                 "This is a test product description.",
                 ProductStatus::Active,
-                Some(Sku::new("TESTSKU123").unwrap()),
-                Some(Barcode::new("123456789012").unwrap()),
-                Some(50),
-                1,
-                Utc::now(),
-                Utc::now(),
+                vec![Variant::new(
+                    "gid://shopify/ProductVariant/1".to_string(),
+                    Some("Test Variant 1"),
+                    100,
+                    Some(Sku::new("TESTSKU123").unwrap()),
+                    Some(Barcode::new("123456789012").unwrap()),
+                    Some(50),
+                    1,
+                    Utc::now(),
+                    Utc::now(),
+                )
+                .unwrap()],
                 Some("gid://shopify/Category/111".to_string()),
             )
             .unwrap(),
             Product::new(
                 "gid://shopify/Product/2".to_string(),
                 "Test Product 2",
-                200,
                 "This is a test product description.",
                 ProductStatus::Active,
-                Some(Sku::new("TESTSKU123").unwrap()),
-                Some(Barcode::new("123456789012").unwrap()),
-                Some(50),
-                1,
-                Utc::now(),
-                Utc::now(),
+                vec![Variant::new(
+                    "gid://shopify/ProductVariant/2".to_string(),
+                    Some("Test Variant 2"),
+                    100,
+                    Some(Sku::new("TESTSKU123").unwrap()),
+                    Some(Barcode::new("123456789012").unwrap()),
+                    Some(50),
+                    1,
+                    Utc::now(),
+                    Utc::now(),
+                )
+                .unwrap()],
                 Some("gid://shopify/Category/111".to_string()),
             )
             .unwrap(),

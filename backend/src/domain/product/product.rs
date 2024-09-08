@@ -1,9 +1,8 @@
-use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
 
-use super::{barcode::barcode::Barcode, category::category::Id as CategoryId, sku::sku::Sku};
+use super::{category::category::Id as CategoryId, variant::variant::Variant};
 
 pub type Id = String;
 
@@ -19,15 +18,9 @@ pub enum ProductStatus {
 pub struct Product {
     id: Id,
     name: String,
-    price: u32,
     description: String,
     status: ProductStatus,
-    sku: Option<Sku>,
-    barcode: Option<Barcode>,
-    inventory_quantity: Option<u32>,
-    list_order: u8,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    variants: Vec<Variant>,
     category_id: Option<CategoryId>,
 }
 
@@ -37,15 +30,9 @@ impl Product {
     pub fn new(
         id: Id,
         name: impl Into<String>,
-        price: u32,
         description: impl Into<String>,
         status: ProductStatus,
-        sku: Option<Sku>,
-        barcode: Option<Barcode>,
-        inventory_quantity: Option<u32>,
-        list_order: u8,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
+        variants: Vec<Variant>,
         category_id: Option<CategoryId>,
     ) -> Result<Self, DomainError> {
         let name = name.into();
@@ -61,15 +48,9 @@ impl Product {
         Ok(Product {
             id,
             name,
-            price,
             description,
             status,
-            sku,
-            barcode,
-            inventory_quantity,
-            list_order,
-            created_at,
-            updated_at,
+            variants,
             category_id,
         })
     }
