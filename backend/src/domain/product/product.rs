@@ -6,7 +6,7 @@ use super::{category::category::Id as CategoryId, variant::variant::Variant};
 
 pub type Id = String;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ProductStatus {
     Active,
     Inactive,
@@ -55,6 +55,7 @@ impl Product {
         })
     }
 
+    // Add variant to products with the same part number
     pub fn add_variant(&mut self, variant: Variant) -> Result<(), DomainError> {
         self.variants.push(variant);
         Ok(())

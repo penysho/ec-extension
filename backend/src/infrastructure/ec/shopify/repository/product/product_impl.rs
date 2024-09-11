@@ -102,6 +102,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 .ok_or(DomainError::QueryError)?
                 .products;
 
+            if products_data.edges.is_empty() {
+                break;
+            }
+
             let product_ids = products_data
                 .edges
                 .into_iter()
@@ -161,26 +165,29 @@ mod tests {
     use chrono::Utc;
     use serde_json::Value;
 
-    use crate::infrastructure::ec::{
-        ec_client_interface::MockECClient,
-        shopify::repository::{
-            common::schema::{Edges, GraphQLError, Node, PageInfo},
-            product::schema::{
-                InventoryNode, MaxVariantPrice, PriceRangeV2, ProductNode, TaxonomyCategory,
-                VariantNode,
+    use crate::{
+        domain::product::product::ProductStatus,
+        infrastructure::ec::{
+            ec_client_interface::MockECClient,
+            shopify::repository::{
+                common::schema::{Edges, GraphQLError, Node, PageInfo},
+                product::schema::{
+                    InventoryNode, MaxVariantPrice, PriceRangeV2, ProductNode, TaxonomyCategory,
+                    VariantNode,
+                },
             },
         },
     };
 
     use super::*;
 
-    fn mock_get_product_response(count: usize) -> GraphQLResponse<VariantsData> {
+    fn mock_variants_response(count: usize) -> GraphQLResponse<VariantsData> {
         let product_variants: Vec<Node<VariantNode>> = (0..count)
             .map(|i| Node {
                 node: VariantNode {
                     id: format!("gid://shopify/ProductVariant/{i}"),
                     product: ProductNode {
-                        id: "gid://shopify/Product/123456".to_string(),
+                        id: format!("gid://shopify/Product/{i}"),
                         category: Some(TaxonomyCategory {
                             id: "gid://shopify/Category/111".to_string(),
                         }),
@@ -223,43 +230,30 @@ mod tests {
         }
     }
 
-    fn mock_get_products_response(count: usize) -> GraphQLResponse<VariantsData> {
-        let product_variants: Vec<Node<VariantNode>> = (0..count)
-            .map(|i| Node {
-                node: VariantNode {
-                    id: format!("gid://shopify/ProductVariant/{i}"),
-                    product: ProductNode {
-                        id: "gid://shopify/Product/123456".to_string(),
-                        category: Some(TaxonomyCategory {
-                            id: "gid://shopify/Category/111".to_string(),
-                        }),
-                        title: "Test Product".to_string(),
-                        price: PriceRangeV2 {
-                            max_variant_price: MaxVariantPrice {
-                                amount: "100.00".to_string(),
-                            },
+    fn mock_products_response(count: usize) -> GraphQLResponse<ProductsData> {
+        let products: Vec<Node<ProductNode>> = (0..count)
+            .map(|i: usize| Node {
+                node: ProductNode {
+                    id: format!("gid://shopify/Product/{i}"),
+                    category: Some(TaxonomyCategory {
+                        id: "gid://shopify/Category/111".to_string(),
+                    }),
+                    title: "Test Product".to_string(),
+                    price: PriceRangeV2 {
+                        max_variant_price: MaxVariantPrice {
+                            amount: "100.00".to_string(),
                         },
-                        description: "Test Description".to_string(),
-                        status: "ACTIVE".to_string(),
                     },
-                    inventory_item: InventoryNode {
-                        id: "gid://shopify/InventoryItem/789012".to_string(),
-                    },
-                    barcode: Some("123456789012".to_string()),
-                    inventory_quantity: Some(50),
-                    sku: Some("TESTSKU123".to_string()),
-                    position: 1,
-                    price: "100.00".to_string(),
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
+                    description: "Test Description".to_string(),
+                    status: "ACTIVE".to_string(),
                 },
             })
             .collect();
 
         GraphQLResponse {
-            data: Some(VariantsData {
-                product_variants: Edges {
-                    edges: product_variants,
+            data: Some(ProductsData {
+                products: Edges {
+                    edges: products,
                     page_info: PageInfo {
                         has_previous_page: false,
                         has_next_page: false,
@@ -296,7 +290,7 @@ mod tests {
         client
             .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_get_product_response(10)));
+            .return_once(|_| Ok(mock_variants_response(10)));
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -307,6 +301,38 @@ mod tests {
 
         assert_eq!(product.id(), "gid://shopify/Product/123456");
         assert_eq!(product.name(), "Test Product");
+    }
+
+    #[tokio::test]
+    async fn test_get_product_with_invalid_domain_conversion() {
+        let mut client = MockECClient::new();
+
+        let mut invalid_variant = mock_variants_response(1);
+        invalid_variant
+            .data
+            .as_mut()
+            .unwrap()
+            .product_variants
+            .edges[0]
+            .node
+            .product
+            .title = "".to_string();
+
+        client
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .times(1)
+            .return_once(|_| Ok(invalid_variant));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_product("123456").await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::ValidationError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ValidationError, but got something else");
+        }
     }
 
     #[tokio::test]
@@ -360,9 +386,13 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_products_response(250))); // Self::GET_PRODUCTS_LIMIT
+        client
             .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_get_products_response(250))); // Self::GET_PRODUCTS_LIMIT
+            .return_once(|_| Ok(mock_variants_response(250)));
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -371,8 +401,10 @@ mod tests {
         assert!(result.is_ok());
         let products = result.unwrap();
         assert_eq!(products.len(), 250);
-        assert_eq!(products[0].id(), "gid://shopify/ProductVariant/0");
-        assert_eq!(products[249].id(), "gid://shopify/ProductVariant/249");
+        assert_eq!(products[0].id(), "gid://shopify/Product/0");
+        assert_eq!(*(products[0].status()), ProductStatus::Active);
+        assert_eq!(products[249].id(), "gid://shopify/Product/249");
+        assert_eq!(*(products[0].status()), ProductStatus::Active);
     }
 
     #[tokio::test]
@@ -380,9 +412,13 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_products_response(250)));
+        client
             .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_get_products_response(100)));
+            .return_once(|_| Ok(mock_variants_response(250)));
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -393,8 +429,8 @@ mod tests {
         assert!(result.is_ok());
         let products = result.unwrap();
         assert_eq!(products.len(), 10);
-        assert_eq!(products[0].id(), "gid://shopify/ProductVariant/20");
-        assert_eq!(products[9].id(), "gid://shopify/ProductVariant/29");
+        assert_eq!(products[0].id(), "gid://shopify/Product/20");
+        assert_eq!(products[9].id(), "gid://shopify/Product/29");
     }
 
     #[tokio::test]
@@ -402,9 +438,9 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_get_products_response(0)));
+            .return_once(|_| Ok(mock_products_response(0)));
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -424,7 +460,7 @@ mod tests {
         let graphql_response_with_error = mock_with_error();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_error));
 
@@ -447,7 +483,7 @@ mod tests {
         let graphql_response_with_no_data = mock_with_no_data();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_no_data));
 

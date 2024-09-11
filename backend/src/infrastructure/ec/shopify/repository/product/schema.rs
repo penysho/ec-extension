@@ -112,6 +112,7 @@ impl VariantSchema {
         }
 
         let mut product_domain_map: HashMap<String, Product> = HashMap::new();
+        let mut products_in_order: Vec<Product> = Vec::new();
 
         for variant_schema in variant_schemas {
             let sku = variant_schema.sku.map(Sku::new).transpose()?;
@@ -156,12 +157,13 @@ impl VariantSchema {
                         category_id,
                     )?;
 
-                    product_domain_map.insert(product_id, product_domain);
+                    product_domain_map.insert(product_id.clone(), product_domain.clone());
+                    products_in_order.push(product_domain);
                 }
             };
         }
 
-        Ok(product_domain_map.into_values().collect())
+        Ok(products_in_order)
     }
 }
 
