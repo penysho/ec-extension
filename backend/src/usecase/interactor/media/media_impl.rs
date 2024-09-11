@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::{
-    domain::error::error::DomainError,
+    domain::{error::error::DomainError, product::product::Id as ProductId},
     usecase::{
         interactor::media_interactor_interface::MediaInteractor,
         repository::media_repository_interface::MediaRepository,
@@ -26,7 +26,7 @@ impl MediaInteractor for MediaInteractorImpl {
     /// Obtain a list of media by product id.
     async fn get_media_by_product_id(
         &self,
-        product_id: crate::domain::product::product::Id,
+        product_id: &ProductId,
     ) -> Result<Vec<crate::domain::media::media::Media>, DomainError> {
         self.media_repository
             .get_media_by_product_id(product_id)

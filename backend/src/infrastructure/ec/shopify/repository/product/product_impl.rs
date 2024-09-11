@@ -298,7 +298,6 @@ mod tests {
 
         assert!(result.is_ok());
         let product = result.unwrap();
-
         assert_eq!(product.id(), "gid://shopify/Product/123456");
         assert_eq!(product.name(), "Test Product");
     }
