@@ -28,18 +28,21 @@ impl Product {
     pub const MAX_DESCRIPTION_LENGTH: u32 = 10000;
 
     pub fn new(
-        id: Id,
+        id: impl Into<String>,
         name: impl Into<String>,
         description: impl Into<String>,
         status: ProductStatus,
         variants: Vec<Variant>,
         category_id: Option<CategoryId>,
     ) -> Result<Self, DomainError> {
+        let id = id.into();
+        if id.is_empty() {
+            return Err(DomainError::ValidationError);
+        }
         let name = name.into();
         if name.is_empty() {
             return Err(DomainError::ValidationError);
         }
-
         let description = description.into();
         if description.len() as u32 > Self::MAX_DESCRIPTION_LENGTH {
             return Err(DomainError::ValidationError);

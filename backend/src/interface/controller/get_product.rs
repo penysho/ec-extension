@@ -69,7 +69,7 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_product()
-            .with(eq("1"))
+            .with(eq("1".to_string()))
             .returning(|_| {
                 Ok(Product::new(
                     "gid://shopify/Product/1".to_string(),
@@ -106,7 +106,7 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_product()
-            .with(eq("999"))
+            .with(eq("999".to_string()))
             .returning(|_| Err(DomainError::NotFound));
 
         let req = test::TestRequest::get()
@@ -122,7 +122,7 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_product()
-            .with(eq("1"))
+            .with(eq("1".to_string()))
             .returning(|_| Err(DomainError::SystemError));
 
         let req = test::TestRequest::get()

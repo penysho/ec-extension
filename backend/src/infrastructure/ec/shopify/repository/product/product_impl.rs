@@ -2,7 +2,10 @@ use async_trait::async_trait;
 use serde_json::json;
 
 use crate::{
-    domain::{error::error::DomainError, product::product::Product},
+    domain::{
+        error::error::DomainError,
+        product::product::{Id as ProductId, Product},
+    },
     infrastructure::ec::{
         ec_client_interface::ECClient,
         shopify::repository::{
@@ -31,7 +34,7 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     /// Obtain detailed product information.
-    async fn get_product(&self, id: &str) -> Result<Product, DomainError> {
+    async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
         let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
 
@@ -166,6 +169,7 @@ mod tests {
     use serde_json::Value;
 
     use crate::{
+        domain::error::error::DomainError,
         domain::product::product::ProductStatus,
         infrastructure::ec::{
             ec_client_interface::MockECClient,
@@ -294,7 +298,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product("123456").await;
+        let result = repo.get_product(&("123456".to_string())).await;
 
         assert!(result.is_ok());
         let product = result.unwrap();
@@ -324,7 +328,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product("123456").await;
+        let result = repo.get_product(&("123456".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ValidationError) = result {
@@ -347,7 +351,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product("123456").await;
+        let result = repo.get_product(&("123456".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -370,7 +374,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product("123456").await;
+        let result = repo.get_product(&("123456".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {

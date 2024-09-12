@@ -3,8 +3,7 @@ use async_trait::async_trait;
 use crate::{
     domain::{
         error::error::DomainError,
-        media::media::Media,
-        product::product::{Id, Product},
+        product::product::{Id as ProductId, Product},
     },
     usecase::{
         interactor::product_interactor_interface::ProductInteractor,
@@ -36,7 +35,7 @@ impl ProductInteractorImpl {
 #[async_trait]
 impl ProductInteractor for ProductInteractorImpl {
     /// Obtain detailed product information.
-    async fn get_product(&self, id: &str) -> Result<Product, DomainError> {
+    async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
         self.product_repository.get_product(id).await
     }
     /// Obtain a list of products.

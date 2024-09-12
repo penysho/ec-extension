@@ -29,7 +29,7 @@ pub struct Media {
 
 impl Media {
     pub fn new(
-        id: Id,
+        id: impl Into<String>,
         name: Option<impl Into<String>>,
         status: MediaStatus,
         alt: Option<impl Into<String>>,
@@ -38,6 +38,10 @@ impl Media {
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
     ) -> Result<Self, DomainError> {
+        let id = id.into();
+        if id.is_empty() {
+            return Err(DomainError::ValidationError);
+        }
         if let MediaStatus::InPreparation = status {
             if uploaded_src.is_none() {
                 return Err(DomainError::ValidationError);
