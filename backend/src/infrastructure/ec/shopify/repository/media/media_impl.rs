@@ -19,6 +19,8 @@ pub struct MediaRepositoryImpl<C: ECClient> {
 }
 
 impl<C: ECClient> MediaRepositoryImpl<C> {
+    const GET_MEDIA_LIMIT: u32 = 250;
+
     pub fn new(client: C) -> Self {
         Self { client }
     }
@@ -28,8 +30,10 @@ impl<C: ECClient> MediaRepositoryImpl<C> {
 impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
     /// Retrieve multiple media.
     async fn get_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
+        let first_query = format!("first: {}", Self::GET_MEDIA_LIMIT);
+
         let query = json!({
-            "query": format!("query {{ node(product_id: \"gid://shopify/Product/{id}\") {{ edges {{ node {{ id fileStatus alt preview {{ image {{ url }} }} createdAt updatedAt }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
+            "query": format!("query {{ files({first_query}, query: \"product_id:'{id}'\") {{ edges {{ node {{ id fileStatus alt preview {{ image {{ url }} }} createdAt updatedAt }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
         });
 
         let graphql_response: GraphQLResponse<MediaData> = self.client.query(&query).await?;

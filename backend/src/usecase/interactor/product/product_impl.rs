@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use crate::{
     domain::{
         error::error::DomainError,
+        media::media::Media,
         product::product::{Id as ProductId, Product},
     },
     usecase::{
@@ -35,8 +36,16 @@ impl ProductInteractorImpl {
 #[async_trait]
 impl ProductInteractor for ProductInteractorImpl {
     /// Obtain detailed product information.
-    async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
-        self.product_repository.get_product(id).await
+    async fn get_product_with_media(
+        &self,
+        id: &ProductId,
+    ) -> (
+        Result<Product, DomainError>,
+        Result<Vec<Media>, DomainError>,
+    ) {
+        let product = self.product_repository.get_product(id).await;
+        let media = self.media_repository.get_media_by_product_id(id).await;
+        (product, media)
     }
     /// Obtain a list of products.
     async fn get_products(

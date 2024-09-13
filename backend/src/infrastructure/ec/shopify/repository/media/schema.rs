@@ -39,8 +39,8 @@ impl MediaSchema {
     pub(super) fn to_domain(self) -> Result<Media, DomainError> {
         let status = match self.status.as_str() {
             "UPLOADED" => MediaStatus::Active,
+            "READY" => MediaStatus::Active,
             "FAILED" => MediaStatus::Inactive,
-            "READY" => MediaStatus::InPreparation,
             "PROCESSING" => MediaStatus::InPreparation,
             _ => MediaStatus::Inactive,
         };

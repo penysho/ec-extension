@@ -11,11 +11,11 @@ impl Controller {
     pub async fn get_product(&self, path: Path<(String,)>) -> impl Responder {
         let id = &path.into_inner().0;
 
-        let interactor = self.interact_provider.provide_product_interactor().await;
-        let products = interactor.get_product(id).await;
+        let product_interactor = self.interact_provider.provide_product_interactor().await;
+        let (product, media) = product_interactor.get_product_with_media(id).await;
 
         let presenter = ProductPresenterImpl::new();
-        presenter.present_get_product(products).await
+        presenter.present_get_product(product, media).await
     }
 }
 
@@ -24,6 +24,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::error::error::DomainError;
+    use crate::domain::media::media::{Media, MediaStatus};
+    use crate::domain::media::src::src::Src;
     use crate::domain::product::product::{Product, ProductStatus};
     use crate::domain::product::variant::barcode::barcode::Barcode;
     use crate::domain::product::variant::sku::sku::Sku;
@@ -68,29 +70,42 @@ mod tests {
     async fn test_get_product_success() {
         let mut interactor = MockProductInteractor::new();
         interactor
-            .expect_get_product()
+            .expect_get_product_with_media()
             .with(eq("1".to_string()))
             .returning(|_| {
-                Ok(Product::new(
-                    "gid://shopify/Product/1".to_string(),
-                    "Test Product 1",
-                    "This is a test product description.",
-                    ProductStatus::Active,
-                    vec![Variant::new(
-                        "gid://shopify/ProductVariant/1".to_string(),
-                        Some("Test Variant 1"),
-                        100,
-                        Some(Sku::new("TESTSKU123").unwrap()),
-                        Some(Barcode::new("123456789012").unwrap()),
-                        Some(50),
-                        1,
+                (
+                    Ok(Product::new(
+                        "gid://shopify/Product/1".to_string(),
+                        "Test Product 1",
+                        "This is a test product description.",
+                        ProductStatus::Active,
+                        vec![Variant::new(
+                            "gid://shopify/ProductVariant/1".to_string(),
+                            Some("Test Variant 1"),
+                            100,
+                            Some(Sku::new("TESTSKU123").unwrap()),
+                            Some(Barcode::new("123456789012").unwrap()),
+                            Some(50),
+                            1,
+                            Utc::now(),
+                            Utc::now(),
+                        )
+                        .unwrap()],
+                        Some("gid://shopify/Category/111".to_string()),
+                    )
+                    .unwrap()),
+                    Ok(vec![Media::new(
+                        format!("gid://shopify/ProductMedia/1"),
+                        Some(format!("Test Media 1")),
+                        MediaStatus::Active,
+                        Some(format!("gid://shopify/Product/1")),
+                        Some(Src::new(format!("https://example.com/uploaded1.jpg")).unwrap()),
+                        Some(Src::new(format!("https://example.com/published1.jpg",)).unwrap()),
                         Utc::now(),
                         Utc::now(),
                     )
-                    .unwrap()],
-                    Some("gid://shopify/Category/111".to_string()),
+                    .unwrap()]),
                 )
-                .unwrap())
             });
 
         let req = test::TestRequest::get()
@@ -105,9 +120,9 @@ mod tests {
     async fn test_get_product_not_found() {
         let mut interactor = MockProductInteractor::new();
         interactor
-            .expect_get_product()
+            .expect_get_product_with_media()
             .with(eq("999".to_string()))
-            .returning(|_| Err(DomainError::NotFound));
+            .returning(|_| (Err(DomainError::NotFound), Err(DomainError::NotFound)));
 
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}/999"))
@@ -121,9 +136,9 @@ mod tests {
     async fn test_get_product_service_unavailable() {
         let mut interactor = MockProductInteractor::new();
         interactor
-            .expect_get_product()
+            .expect_get_product_with_media()
             .with(eq("1".to_string()))
-            .returning(|_| Err(DomainError::SystemError));
+            .returning(|_| (Err(DomainError::SystemError), Err(DomainError::SystemError)));
 
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}/1"))

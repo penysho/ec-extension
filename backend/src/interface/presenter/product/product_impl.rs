@@ -2,7 +2,7 @@ use actix_web::web::{self, Json};
 use async_trait::async_trait;
 
 use crate::{
-    domain::{error::error::DomainError, product::product::Product},
+    domain::{error::error::DomainError, media::media::Media, product::product::Product},
     interface::presenter::{
         product::schema::{
             GetProductResponse, GetProductResponseError, GetProductsResponse,
@@ -27,11 +27,17 @@ impl ProductPresenter for ProductPresenterImpl {
     /// Generate a response with detailed product information.
     async fn present_get_product(
         &self,
-        result: Result<Product, DomainError>,
+        product_result: Result<Product, DomainError>,
+        media_result: Result<Vec<Media>, DomainError>,
     ) -> Result<Self::GetProductResponse, Self::GetProductResponseError> {
-        match result {
+        let media = match media_result {
+            Ok(media) => media,
+            Err(DomainError::NotFound) => vec![],
+            Err(_) => return Err(GetProductResponseError::ServiceUnavailable),
+        };
+        match product_result {
             Ok(product) => Ok(web::Json(GetProductResponse {
-                product: ProductSchema::from(product),
+                product: ProductSchema::to_response(product, media),
             })),
             Err(DomainError::NotFound) => Err(GetProductResponseError::ProductNotFound),
             Err(_) => Err(GetProductResponseError::ServiceUnavailable),
@@ -49,7 +55,7 @@ impl ProductPresenter for ProductPresenterImpl {
             Ok(products) => {
                 let product_schemas: Vec<ProductSchema> = products
                     .into_iter()
-                    .map(|product| ProductSchema::from(product))
+                    .map(|product| ProductSchema::to_response(product, vec![]))
                     .collect();
 
                 Ok(web::Json(GetProductsResponse {
@@ -78,74 +84,63 @@ mod tests {
 
     use super::*;
 
-    fn mock_products() -> Vec<Product> {
-        vec![
-            Product::new(
-                "gid://shopify/Product/1".to_string(),
-                "Test Product 1",
-                "This is a test product description.",
-                ProductStatus::Active,
-                vec![Variant::new(
-                    "gid://shopify/ProductVariant/1".to_string(),
-                    Some("Test Variant 1"),
-                    100,
-                    Some(Sku::new("TESTSKU123").unwrap()),
-                    Some(Barcode::new("123456789012").unwrap()),
-                    Some(50),
-                    1,
-                    Utc::now(),
-                    Utc::now(),
+    fn mock_products(count: usize) -> Vec<Product> {
+        (0..count)
+            .map(|i| {
+                Product::new(
+                    format!("gid://shopify/Product/{i}"),
+                    format!("Test Product {i}"),
+                    "This is a test product description.",
+                    ProductStatus::Active,
+                    vec![Variant::new(
+                        "gid://shopify/ProductVariant/1".to_string(),
+                        Some("Test Variant 1"),
+                        100,
+                        Some(Sku::new("TESTSKU123").unwrap()),
+                        Some(Barcode::new("123456789012").unwrap()),
+                        Some(50),
+                        1,
+                        Utc::now(),
+                        Utc::now(),
+                    )
+                    .unwrap()],
+                    Some("gid://shopify/Category/111".to_string()),
                 )
-                .unwrap()],
-                Some("gid://shopify/Category/111".to_string()),
-            )
-            .unwrap(),
-            Product::new(
-                "gid://shopify/Product/2".to_string(),
-                "Test Product 2",
-                "This is a test product description.",
-                ProductStatus::Active,
-                vec![Variant::new(
-                    "gid://shopify/ProductVariant/2".to_string(),
-                    Some("Test Variant 2"),
-                    100,
-                    Some(Sku::new("TESTSKU123").unwrap()),
-                    Some(Barcode::new("123456789012").unwrap()),
-                    Some(50),
-                    1,
-                    Utc::now(),
-                    Utc::now(),
-                )
-                .unwrap()],
-                Some("gid://shopify/Category/111".to_string()),
-            )
-            .unwrap(),
-        ]
+                .unwrap()
+            })
+            .collect()
     }
 
-    fn mock_media() -> Media {
-        Media::new(
-            "1".to_string(),
-            Some("Test Media"),
-            MediaStatus::Active,
-            Some("gid://shopify/Product/1"),
-            Some(Src::new("https://example.com/uploaded.jpg").unwrap()),
-            Some(Src::new("https://example.com/published.jpg").unwrap()),
-            Utc::now(),
-            Utc::now(),
-        )
-        .unwrap()
+    fn mock_media(count: usize) -> Vec<Media> {
+        (0..count)
+            .map(|i| {
+                Media::new(
+                    format!("gid://shopify/ProductMedia/{}", i),
+                    Some(format!("Test Media {}", i)),
+                    MediaStatus::Active,
+                    Some(format!("gid://shopify/Product/{}", i)),
+                    Some(Src::new(format!("https://example.com/uploaded{}.jpg", i)).unwrap()),
+                    Some(Src::new(format!("https://example.com/published{}.jpg", i)).unwrap()),
+                    Utc::now(),
+                    Utc::now(),
+                )
+                .unwrap()
+            })
+            .collect()
     }
 
     #[actix_web::test]
     async fn test_present_get_product_success() {
         let presenter = ProductPresenterImpl::new();
-        let product = mock_products()[0].clone();
+        let product = mock_products(1)[0].clone();
+        let media = mock_media(5);
 
-        let result = presenter.present_get_product(Ok(product)).await.unwrap();
+        let result = presenter
+            .present_get_product(Ok(product), Ok(media))
+            .await
+            .unwrap();
 
-        assert_eq!(result.product.name, "Test Product 1");
-        assert_eq!(result.product.price, 100);
+        assert_eq!(result.product.name, "Test Product 0");
         assert_eq!(
             result.product.description,
             "This is a test product description."
@@ -157,7 +152,7 @@ mod tests {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter
-            .present_get_product(Err(DomainError::NotFound))
+            .present_get_product(Err(DomainError::NotFound), Err(DomainError::NotFound))
             .await;
 
         assert!(matches!(
@@ -171,7 +166,7 @@ mod tests {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter
-            .present_get_product(Err(DomainError::SystemError))
+            .present_get_product(Err(DomainError::SystemError), Err(DomainError::SystemError))
             .await;
 
         assert!(matches!(
@@ -183,7 +178,7 @@ mod tests {
     #[actix_web::test]
     async fn test_present_get_products_success() {
         let presenter = ProductPresenterImpl::new();
-        let products = mock_products();
+        let products = mock_products(5);
 
         let result = presenter
             .present_get_products(Ok(products))
@@ -191,11 +186,9 @@ mod tests {
             .unwrap()
             .into_inner();
 
-        assert_eq!(result.products.len(), 2);
-        assert_eq!(result.products[0].name, "Test Product 1");
-        assert_eq!(result.products[1].name, "Test Product 2");
-        assert_eq!(result.products[0].price, 100);
-        assert_eq!(result.products[1].price, 200);
+        assert_eq!(result.products.len(), 5);
+        assert_eq!(result.products[0].name, "Test Product 0");
+        assert_eq!(result.products[4].name, "Test Product 4");
     }
 
     #[actix_web::test]

@@ -42,11 +42,6 @@ impl Media {
         if id.is_empty() {
             return Err(DomainError::ValidationError);
         }
-        if let MediaStatus::InPreparation = status {
-            if uploaded_src.is_none() {
-                return Err(DomainError::ValidationError);
-            }
-        }
         if let MediaStatus::Active = status {
             if published_src.is_none() {
                 return Err(DomainError::ValidationError);

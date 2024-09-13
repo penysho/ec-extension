@@ -3,6 +3,8 @@ use mockall::automock;
 
 use crate::domain::{error::error::DomainError, product::product::Id as ProductId};
 
+use crate::domain::media::media::Media;
+
 /// Interactor interface for media.
 
 #[automock]
@@ -11,5 +13,5 @@ pub trait MediaInteractor {
     async fn get_media_by_product_id(
         &self,
         product_id: &ProductId,
-    ) -> Result<Vec<crate::domain::media::media::Media>, DomainError>;
+    ) -> Result<Vec<Media>, DomainError>;
 }

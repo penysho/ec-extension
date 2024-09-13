@@ -4,7 +4,10 @@ use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::product::product::{Product, ProductStatus},
+    domain::{
+        media::media::{Media, MediaStatus},
+        product::product::{Product, ProductStatus},
+    },
     interface::presenter::common::exception::GenericResponseError,
 };
 
@@ -13,6 +16,13 @@ pub enum ProductStatusEnum {
     Active,
     Inactive,
     Draft,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum MediaStatusEnum {
+    Active,
+    Inactive,
+    InPreparation,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,28 +35,55 @@ pub struct ProductSchema {
     pub(super) created_at: DateTime<Utc>,
     pub(super) updated_at: DateTime<Utc>,
     pub(super) category_id: Option<String>,
+    pub(super) media: Vec<MediaSchema>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MediaSchema {
     pub(super) id: String,
+    pub(super) status: MediaStatusEnum,
+    pub(super) alt: Option<String>,
+    pub(super) src: Option<String>,
+    pub(super) created_at: DateTime<Utc>,
+    pub(super) updated_at: DateTime<Utc>,
 }
 
-impl From<Product> for ProductSchema {
-    fn from(domain: Product) -> Self {
+impl ProductSchema {
+    pub fn to_response(product: Product, media: Vec<Media>) -> Self {
         ProductSchema {
-            id: domain.id().to_string(),
-            name: domain.name().to_string(),
-            price: *(domain.variants()[0].price()),
-            description: domain.description().to_string(),
-            status: match domain.status() {
+            id: product.id().to_string(),
+            name: product.name().to_string(),
+            price: *(product.variants()[0].price()),
+            description: product.description().to_string(),
+            status: match product.status() {
                 ProductStatus::Active => ProductStatusEnum::Active,
                 ProductStatus::Inactive => ProductStatusEnum::Inactive,
                 ProductStatus::Draft => ProductStatusEnum::Draft,
             },
-            created_at: domain.variants()[0].created_at().to_owned(),
-            updated_at: domain.variants()[0].updated_at().to_owned(),
-            category_id: domain.category_id().to_owned(),
+            created_at: product.variants()[0].created_at().to_owned(),
+            updated_at: product.variants()[0].updated_at().to_owned(),
+            category_id: product.category_id().to_owned(),
+            media: media
+                .into_iter()
+                .map(|media| MediaSchema::from(media))
+                .collect(),
+        }
+    }
+}
+
+impl From<Media> for MediaSchema {
+    fn from(media: Media) -> Self {
+        MediaSchema {
+            id: media.id().to_string(),
+            status: match media.status() {
+                MediaStatus::Active => MediaStatusEnum::Active,
+                MediaStatus::Inactive => MediaStatusEnum::Inactive,
+                MediaStatus::InPreparation => MediaStatusEnum::InPreparation,
+            },
+            alt: media.alt().to_owned(),
+            src: media.published_src().as_ref().map(|s| s.value().to_owned()),
+            created_at: media.created_at().to_owned(),
+            updated_at: media.updated_at().to_owned(),
         }
     }
 }
