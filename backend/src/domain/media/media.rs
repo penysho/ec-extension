@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
-use crate::domain::error::error::DomainError;
-
 use super::src::src::Src;
+use crate::domain::error::error::DomainError;
+use crate::domain::product::product::Id as ProductId;
 
 pub type Id = String;
 
@@ -14,10 +14,16 @@ pub enum MediaStatus {
     InPreparation,
 }
 
+#[derive(Debug, Clone)]
+pub enum AssociatedId {
+    Product(ProductId),
+}
+
 /// Entity of Media.
 #[derive(Debug, Getters, Clone)]
 pub struct Media {
     id: Id,
+    associated_id: Option<AssociatedId>,
     name: Option<String>,
     status: MediaStatus,
     alt: Option<String>,
@@ -30,6 +36,7 @@ pub struct Media {
 impl Media {
     pub fn new(
         id: impl Into<String>,
+        associated_id: Option<impl Into<AssociatedId>>,
         name: Option<impl Into<String>>,
         status: MediaStatus,
         alt: Option<impl Into<String>>,
@@ -50,6 +57,7 @@ impl Media {
 
         Ok(Media {
             id,
+            associated_id: associated_id.map(|i| i.into()),
             name: name.map(|n| n.into()),
             status,
             alt: alt.map(|a| a.into()),

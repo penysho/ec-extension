@@ -2,7 +2,11 @@ use async_trait::async_trait;
 use serde_json::json;
 
 use crate::{
-    domain::{error::error::DomainError, media::media::Media, product::product::Id as ProductId},
+    domain::{
+        error::error::DomainError,
+        media::media::{AssociatedId, Media},
+        product::product::Id as ProductId,
+    },
     infrastructure::ec::{
         ec_client_interface::ECClient,
         shopify::repository::{
@@ -52,7 +56,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
 
         let media_domains: Result<Vec<Media>, DomainError> = media
             .into_iter()
-            .map(|product| product.to_domain())
+            .map(|product| product.to_domain(Some(AssociatedId::Product(id.to_string()))))
             .collect();
 
         media_domains

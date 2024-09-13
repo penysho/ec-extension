@@ -24,7 +24,7 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::error::error::DomainError;
-    use crate::domain::media::media::{Media, MediaStatus};
+    use crate::domain::media::media::{AssociatedId, Media, MediaStatus};
     use crate::domain::media::src::src::Src;
     use crate::domain::product::product::{Product, ProductStatus};
     use crate::domain::product::variant::barcode::barcode::Barcode;
@@ -96,6 +96,7 @@ mod tests {
                     .unwrap()),
                     Ok(vec![Media::new(
                         format!("gid://shopify/ProductMedia/1"),
+                        Some(AssociatedId::Product("gid://shopify/Product/1".to_string())),
                         Some(format!("Test Media 1")),
                         MediaStatus::Active,
                         Some(format!("gid://shopify/Product/1")),

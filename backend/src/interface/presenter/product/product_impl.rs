@@ -73,7 +73,7 @@ mod tests {
 
     use crate::domain::{
         media::{
-            media::{Media, MediaStatus},
+            media::{AssociatedId, Media, MediaStatus},
             src::src::Src,
         },
         product::{
@@ -116,6 +116,7 @@ mod tests {
             .map(|i| {
                 Media::new(
                     format!("gid://shopify/ProductMedia/{}", i),
+                    Some(AssociatedId::Product(format!("gid://shopify/Product/{i}"))),
                     Some(format!("Test Media {}", i)),
                     MediaStatus::Active,
                     Some(format!("gid://shopify/Product/{}", i)),

@@ -5,7 +5,7 @@ use crate::{
     domain::{
         error::error::DomainError,
         media::{
-            media::{Media, MediaStatus},
+            media::{AssociatedId, Media, MediaStatus},
             src::src::Src,
         },
     },
@@ -36,7 +36,10 @@ impl From<MediaNode> for MediaSchema {
 }
 
 impl MediaSchema {
-    pub(super) fn to_domain(self) -> Result<Media, DomainError> {
+    pub(super) fn to_domain(
+        self,
+        associated_id: Option<AssociatedId>,
+    ) -> Result<Media, DomainError> {
         let status = match self.status.as_str() {
             "UPLOADED" => MediaStatus::Active,
             "READY" => MediaStatus::Active,
@@ -51,6 +54,7 @@ impl MediaSchema {
 
         Media::new(
             self.id,
+            associated_id,
             None::<String>,
             status,
             self.alt,
