@@ -10,4 +10,9 @@ pub trait MediaRepository: Send + Sync {
         &self,
         product_id: &ProductId,
     ) -> Result<Vec<Media>, DomainError>;
+
+    async fn get_media_by_product_ids(
+        &self,
+        id: Vec<&ProductId>,
+    ) -> Result<Vec<Media>, DomainError>;
 }

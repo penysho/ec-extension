@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::{
     domain::{
@@ -7,15 +7,20 @@ use crate::{
         media::media::{AssociatedId, Media},
         product::product::Id as ProductId,
     },
-    infrastructure::ec::{
-        ec_client_interface::ECClient,
-        shopify::repository::{
-            common::schema::GraphQLResponse,
-            media::schema::{MediaData, MediaSchema},
+    infrastructure::{
+        ec::{
+            ec_client_interface::ECClient,
+            shopify::repository::{
+                common::schema::GraphQLResponse,
+                media::schema::{MediaData, MediaSchema},
+            },
         },
+        error::{InfrastructureError, InfrastructureErrorMapper},
     },
     usecase::repository::media_repository_interface::MediaRepository,
 };
+
+use super::schema::MediaNode;
 
 /// Repository for products for Shopify.
 pub struct MediaRepositoryImpl<C: ECClient> {
@@ -58,6 +63,84 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
             .into_iter()
             .map(|product| product.to_domain(Some(AssociatedId::Product(id.to_string()))))
             .collect();
+
+        media_domains
+    }
+
+    async fn get_media_by_product_ids(
+        &self,
+        ids: Vec<&ProductId>,
+    ) -> Result<Vec<Media>, DomainError> {
+        let first_query = format!("first: {}", Self::GET_MEDIA_LIMIT);
+
+        let mut query = String::from("query {\n");
+
+        for (i, id) in ids.iter().enumerate() {
+            let alias = format!("i{}", i);
+            let query_part = format!(
+                "{}: files({}, query: \"product_id:'{}'\") {{
+                edges {{
+                    cursor
+                    node {{
+                        alt
+                        createdAt
+                        fileStatus
+                        id
+                        updatedAt
+                        preview {{
+                            status
+                            image {{
+                                altText
+                                height
+                                id
+                                originalSrc
+                                src
+                                transformedSrc
+                                url
+                                width
+                            }}
+                        }}
+                    }}
+                }}
+            }}\n",
+                alias, first_query, id
+            );
+            query.push_str(&query_part);
+        }
+
+        query.push_str("}\n");
+
+        let graphql_response: GraphQLResponse<Value> = self.client.query(&query).await?;
+        if let Some(errors) = graphql_response.errors {
+            log::error!("Error returned in GraphQL response. Response= {:?}", errors);
+            return Err(DomainError::QueryError);
+        }
+
+        let data = graphql_response.data.ok_or(DomainError::QueryError)?;
+
+        let mut media_schemas = Vec::new();
+        for (i, _) in ids.iter().enumerate() {
+            let alias = format!("i{}", i);
+            if let Some(file_data) = data.get(&alias) {
+                if let Some(files) = file_data.get("edges") {
+                    for edge in files.as_array().unwrap_or(&vec![]) {
+                        let node = &edge["node"];
+                        let v: MediaNode = serde_json::from_value(node.clone()).map_err(|e| {
+                            InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
+                        })?;
+                        let media_schema = MediaSchema::from(v);
+                        media_schemas.push(media_schema);
+                    }
+                }
+            }
+        }
+
+        let media_domains: Result<Vec<Media>, DomainError> = MediaSchema::to_domains(
+            media_schemas,
+            ids.into_iter()
+                .map(|id| Some(AssociatedId::Product(id.to_string())))
+                .collect(),
+        );
 
         media_domains
     }

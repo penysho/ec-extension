@@ -41,16 +41,13 @@ impl MediaSchema {
         associated_id: Option<AssociatedId>,
     ) -> Result<Media, DomainError> {
         let status = match self.status.as_str() {
-            "UPLOADED" => MediaStatus::Active,
-            "READY" => MediaStatus::Active,
+            "UPLOADED" | "READY" => MediaStatus::Active,
             "FAILED" => MediaStatus::Inactive,
             "PROCESSING" => MediaStatus::InPreparation,
             _ => MediaStatus::Inactive,
         };
-        let published_src = match self.src {
-            Some(src) => Some(Src::new(src)?),
-            None => None,
-        };
+
+        let published_src = self.src.map(Src::new).transpose()?;
 
         Media::new(
             self.id,
@@ -63,6 +60,17 @@ impl MediaSchema {
             self.created_at,
             self.updated_at,
         )
+    }
+
+    pub(super) fn to_domains(
+        schemas: Vec<MediaSchema>,
+        associated_ids: Vec<Option<AssociatedId>>,
+    ) -> Result<Vec<Media>, DomainError> {
+        schemas
+            .into_iter()
+            .zip(associated_ids.into_iter())
+            .map(|(schema, associated_id)| schema.to_domain(associated_id))
+            .collect()
     }
 }
 
