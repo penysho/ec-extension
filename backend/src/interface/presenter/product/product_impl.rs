@@ -50,12 +50,11 @@ impl ProductPresenter for ProductPresenterImpl {
     /// Generate a response for the product list.
     async fn present_get_products(
         &self,
-        product_result: Result<Vec<Product>, DomainError>,
-        media_result: Result<Vec<Media>, DomainError>,
+        result: Result<(Vec<Product>, Vec<Media>), DomainError>,
     ) -> Result<Self::GetProductsResponse, Self::GetProductsResponseError> {
-        let media = match media_result {
-            Ok(media) => media,
-            Err(_) => vec![],
+        let (products, media) = match result {
+            Ok((products, media)) => (products, media),
+            Err(_) => return Err(GetProductsResponseError::ServiceUnavailable),
         };
 
         let media_map: HashMap<AssociatedId, Vec<Media>> =
@@ -69,25 +68,20 @@ impl ProductPresenter for ProductPresenterImpl {
                 accum
             });
 
-        match product_result {
-            Ok(products) => {
-                let product_schemas: Vec<ProductSchema> = products
-                    .into_iter()
-                    .map(|product| {
-                        let binding = vec![];
-                        let media = media_map
-                            .get(&AssociatedId::Product(product.id().to_owned()))
-                            .unwrap_or(&binding);
-                        ProductSchema::to_response(product, media.to_owned())
-                    })
-                    .collect();
+        let product_schemas: Vec<ProductSchema> = products
+            .into_iter()
+            .map(|product| {
+                let binding = vec![];
+                let media = media_map
+                    .get(&AssociatedId::Product(product.id().to_owned()))
+                    .unwrap_or(&binding);
+                ProductSchema::to_response(product, media.to_owned())
+            })
+            .collect();
 
-                Ok(web::Json(GetProductsResponse {
-                    products: product_schemas,
-                }))
-            }
-            Err(_) => Err(GetProductsResponseError::ServiceUnavailable),
-        }
+        Ok(web::Json(GetProductsResponse {
+            products: product_schemas,
+        }))
     }
 }
 
@@ -207,7 +201,7 @@ mod tests {
         let media = mock_media(5);
 
         let result = presenter
-            .present_get_products(Ok(products), Ok(media))
+            .present_get_products(Ok((products, media)))
             .await
             .unwrap()
             .into_inner();
@@ -222,7 +216,7 @@ mod tests {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter
-            .present_get_products(Err(DomainError::SystemError), Err(DomainError::SystemError))
+            .present_get_products(Err(DomainError::SystemError))
             .await;
 
         assert!(matches!(

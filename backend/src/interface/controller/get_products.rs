@@ -15,10 +15,10 @@ impl Controller {
     /// Obtain a list of products.
     pub async fn get_products(&self, params: web::Query<GetProductsQueryParams>) -> impl Responder {
         let interactor = self.interact_provider.provide_product_interactor().await;
-        let (products, media) = interactor.get_products(&params.limit, &params.offset).await;
+        let results = interactor.get_products(&params.limit, &params.offset).await;
 
         let presenter = ProductPresenterImpl::new();
-        presenter.present_get_products(products, media).await
+        presenter.present_get_products(results).await
     }
 }
 
@@ -73,8 +73,8 @@ mod tests {
     async fn test_get_products_success() {
         let mut interactor = MockProductInteractor::new();
         interactor.expect_get_products().returning(|_, _| {
-            (
-                Ok(vec![
+            Ok((
+                vec![
                     Product::new(
                         "gid://shopify/Product/1".to_string(),
                         "Test Product 1",
@@ -115,8 +115,8 @@ mod tests {
                         Some("gid://shopify/Category/111".to_string()),
                     )
                     .unwrap(),
-                ]),
-                Ok(vec![Media::new(
+                ],
+                vec![Media::new(
                     format!("gid://shopify/ProductMedia/1"),
                     Some(AssociatedId::Product("gid://shopify/Product/1".to_string())),
                     Some(format!("Test Media 1")),
@@ -127,8 +127,8 @@ mod tests {
                     Utc::now(),
                     Utc::now(),
                 )
-                .unwrap()]),
-            )
+                .unwrap()],
+            ))
         });
 
         let req = test::TestRequest::get().uri(BASE_URL).to_request();
@@ -145,7 +145,7 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_products()
-            .returning(|_, _| (Ok(vec![]), Ok(vec![])));
+            .returning(|_, _| Ok((vec![], vec![])));
 
         let req = test::TestRequest::get().uri(BASE_URL).to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -161,7 +161,7 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_products()
-            .returning(|_, _| (Err(DomainError::SystemError), Err(DomainError::SystemError)));
+            .returning(|_, _| Err(DomainError::SystemError));
 
         let req = test::TestRequest::get().uri(BASE_URL).to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;

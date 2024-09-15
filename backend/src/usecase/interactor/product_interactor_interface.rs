@@ -12,13 +12,10 @@ pub trait ProductInteractor {
     async fn get_product_with_media(
         &self,
         id: &ProductId,
-    ) -> (Result<(Product, Vec<Media>), DomainError>);
+    ) -> Result<(Product, Vec<Media>), DomainError>;
     async fn get_products(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,
-    ) -> (
-        Result<Vec<Product>, DomainError>,
-        Result<Vec<Media>, DomainError>,
-    );
+    ) -> Result<(Vec<Product>, Vec<Media>), DomainError>;
 }
