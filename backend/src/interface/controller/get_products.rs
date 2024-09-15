@@ -18,7 +18,7 @@ impl Controller {
         let (products, media) = interactor.get_products(&params.limit, &params.offset).await;
 
         let presenter = ProductPresenterImpl::new();
-        presenter.present_get_products(products).await
+        presenter.present_get_products(products, media).await
     }
 }
 

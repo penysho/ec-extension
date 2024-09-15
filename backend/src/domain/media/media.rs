@@ -14,7 +14,7 @@ pub enum MediaStatus {
     InPreparation,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum AssociatedId {
     Product(ProductId),
 }

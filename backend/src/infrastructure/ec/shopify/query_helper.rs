@@ -7,6 +7,7 @@ impl ShopifyGQLQueryHelper {
         gid.replace(Self::SHOPIFY_PRODUCT_GID_PREFIX, "")
     }
 
+    /// Return pageInfo query.
     pub fn page_info() -> String {
         "pageInfo {
             hasPreviousPage

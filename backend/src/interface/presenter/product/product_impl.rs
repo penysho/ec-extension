@@ -1,8 +1,14 @@
+use std::collections::HashMap;
+
 use actix_web::web::{self, Json};
 use async_trait::async_trait;
 
 use crate::{
-    domain::{error::error::DomainError, media::media::Media, product::product::Product},
+    domain::{
+        error::error::DomainError,
+        media::media::{AssociatedId, Media},
+        product::product::Product,
+    },
     interface::presenter::{
         product::schema::{
             GetProductResponse, GetProductResponseError, GetProductsResponse,
@@ -32,8 +38,7 @@ impl ProductPresenter for ProductPresenterImpl {
     ) -> Result<Self::GetProductResponse, Self::GetProductResponseError> {
         let media = match media_result {
             Ok(media) => media,
-            Err(DomainError::NotFound) => vec![],
-            Err(_) => return Err(GetProductResponseError::ServiceUnavailable),
+            Err(_) => vec![],
         };
         match product_result {
             Ok(product) => Ok(web::Json(GetProductResponse {
@@ -49,13 +54,36 @@ impl ProductPresenter for ProductPresenterImpl {
     /// Generate a response for the product list.
     async fn present_get_products(
         &self,
-        result: Result<Vec<Product>, DomainError>,
+        product_result: Result<Vec<Product>, DomainError>,
+        media_result: Result<Vec<Media>, DomainError>,
     ) -> Result<Self::GetProductsResponse, Self::GetProductsResponseError> {
-        match result {
+        let media = match media_result {
+            Ok(media) => media,
+            Err(_) => vec![],
+        };
+
+        let media_map: HashMap<AssociatedId, Vec<Media>> =
+            media.into_iter().fold(HashMap::new(), |mut accum, medium| {
+                if let Some(associated_id) = medium.associated_id() {
+                    accum
+                        .entry(associated_id.to_owned())
+                        .or_insert_with(Vec::new)
+                        .push(medium);
+                }
+                accum
+            });
+
+        match product_result {
             Ok(products) => {
                 let product_schemas: Vec<ProductSchema> = products
                     .into_iter()
-                    .map(|product| ProductSchema::to_response(product, vec![]))
+                    .map(|product| {
+                        let binding = vec![];
+                        let media = media_map
+                            .get(&AssociatedId::Product(product.id().to_owned()))
+                            .unwrap_or(&binding);
+                        ProductSchema::to_response(product, media.to_owned())
+                    })
                     .collect();
 
                 Ok(web::Json(GetProductsResponse {
@@ -180,9 +208,10 @@ mod tests {
     async fn test_present_get_products_success() {
         let presenter = ProductPresenterImpl::new();
         let products = mock_products(5);
+        let media = mock_media(5);
 
         let result = presenter
-            .present_get_products(Ok(products))
+            .present_get_products(Ok(products), Ok(media))
             .await
             .unwrap()
             .into_inner();
@@ -197,7 +226,7 @@ mod tests {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter
-            .present_get_products(Err(DomainError::SystemError))
+            .present_get_products(Err(DomainError::SystemError), Err(DomainError::SystemError))
             .await;
 
         assert!(matches!(

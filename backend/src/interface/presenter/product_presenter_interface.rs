@@ -17,6 +17,7 @@ pub trait ProductPresenter {
     type GetProductsResponseError;
     async fn present_get_products(
         &self,
-        result: Result<Vec<Product>, DomainError>,
+        product_result: Result<Vec<Product>, DomainError>,
+        media_result: Result<Vec<Media>, DomainError>,
     ) -> Result<Self::GetProductsResponse, Self::GetProductsResponseError>;
 }
