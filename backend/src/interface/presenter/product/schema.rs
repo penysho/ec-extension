@@ -96,7 +96,9 @@ pub struct GetProductResponse {
 #[derive(Debug, Display, Error)]
 pub enum GetProductResponseError {
     #[display(fmt = "Product not found.")]
-    ProductNotFound,
+    NotFound,
+    #[display(fmt = "Bad request.")]
+    BadRequest,
     #[display(fmt = "Service unavailable. Give it some time and try again.")]
     ServiceUnavailable,
 }
@@ -104,7 +106,8 @@ pub enum GetProductResponseError {
 impl GenericResponseError for GetProductResponseError {
     fn status_code(&self) -> StatusCode {
         match *self {
-            GetProductResponseError::ProductNotFound => StatusCode::NOT_FOUND,
+            GetProductResponseError::NotFound => StatusCode::NOT_FOUND,
+            GetProductResponseError::BadRequest => StatusCode::BAD_REQUEST,
             GetProductResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
@@ -127,6 +130,10 @@ pub struct GetProductsResponse {
 
 #[derive(Debug, Display, Error)]
 pub enum GetProductsResponseError {
+    #[display(fmt = "Product not found.")]
+    NotFound,
+    #[display(fmt = "Bad request.")]
+    BadRequest,
     #[display(fmt = "Service unavailable. Give it some time and try again.")]
     ServiceUnavailable,
 }
@@ -134,6 +141,8 @@ pub enum GetProductsResponseError {
 impl GenericResponseError for GetProductsResponseError {
     fn status_code(&self) -> StatusCode {
         match *self {
+            GetProductsResponseError::NotFound => StatusCode::NOT_FOUND,
+            GetProductsResponseError::BadRequest => StatusCode::BAD_REQUEST,
             GetProductsResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }

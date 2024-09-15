@@ -141,7 +141,7 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_get_products_empty() {
+    async fn test_get_products_not_found() {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_products()
@@ -150,10 +150,20 @@ mod tests {
         let req = test::TestRequest::get().uri(BASE_URL).to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
-        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
 
-        let products: GetProductsResponse = test::read_body_json(resp).await;
-        assert!(products.products.is_empty());
+    #[actix_web::test]
+    async fn test_get_products_bad_request() {
+        let mut interactor = MockProductInteractor::new();
+        interactor
+            .expect_get_products()
+            .returning(|_, _| Err(DomainError::ValidationError));
+
+        let req = test::TestRequest::get().uri(BASE_URL).to_request();
+        let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
+
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[actix_web::test]

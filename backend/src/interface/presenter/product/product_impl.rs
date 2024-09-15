@@ -37,7 +37,8 @@ impl ProductPresenter for ProductPresenterImpl {
     ) -> Result<Self::GetProductResponse, Self::GetProductResponseError> {
         let (product, media) = match result {
             Ok((product, media)) => (product, media),
-            Err(DomainError::NotFound) => return Err(GetProductResponseError::ProductNotFound),
+            Err(DomainError::NotFound) => return Err(GetProductResponseError::NotFound),
+            Err(DomainError::ValidationError) => return Err(GetProductResponseError::BadRequest),
             Err(_) => return Err(GetProductResponseError::ServiceUnavailable),
         };
 
@@ -54,8 +55,12 @@ impl ProductPresenter for ProductPresenterImpl {
     ) -> Result<Self::GetProductsResponse, Self::GetProductsResponseError> {
         let (products, media) = match result {
             Ok((products, media)) => (products, media),
+            Err(DomainError::ValidationError) => return Err(GetProductsResponseError::BadRequest),
             Err(_) => return Err(GetProductsResponseError::ServiceUnavailable),
         };
+        if products.is_empty() {
+            return Err(GetProductsResponseError::NotFound);
+        }
 
         let media_map: HashMap<AssociatedId, Vec<Media>> =
             media.into_iter().fold(HashMap::new(), |mut accum, medium| {
@@ -174,14 +179,22 @@ mod tests {
             .present_get_product(Err(DomainError::NotFound))
             .await;
 
-        assert!(matches!(
-            result,
-            Err(GetProductResponseError::ProductNotFound)
-        ));
+        assert!(matches!(result, Err(GetProductResponseError::NotFound)));
     }
 
     #[actix_web::test]
-    async fn test_present_get_product_error() {
+    async fn test_present_get_product_bad_request() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter
+            .present_get_product(Err(DomainError::ValidationError))
+            .await;
+
+        assert!(matches!(result, Err(GetProductResponseError::BadRequest)));
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_product_service_unavailable() {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter
@@ -212,7 +225,27 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_present_get_products_error() {
+    async fn test_present_get_products_not_found() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter.present_get_products(Ok((vec![], vec![]))).await;
+
+        assert!(matches!(result, Err(GetProductsResponseError::NotFound)));
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_products_bad_request() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter
+            .present_get_products(Err(DomainError::ValidationError))
+            .await;
+
+        assert!(matches!(result, Err(GetProductsResponseError::BadRequest)));
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_products_service_unavailable() {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter

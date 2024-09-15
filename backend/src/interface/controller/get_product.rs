@@ -134,6 +134,22 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_get_product_bad_request() {
+        let mut interactor = MockProductInteractor::new();
+        interactor
+            .expect_get_product_with_media()
+            .with(eq("1".to_string()))
+            .returning(|_| Err(DomainError::ValidationError));
+
+        let req = test::TestRequest::get()
+            .uri(&format!("{BASE_URL}/1"))
+            .to_request();
+        let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
+
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[actix_web::test]
     async fn test_get_product_service_unavailable() {
         let mut interactor = MockProductInteractor::new();
         interactor
