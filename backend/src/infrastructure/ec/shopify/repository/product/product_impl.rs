@@ -42,7 +42,49 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
 
         let query = json!({
-        "query": format!("query {{ productVariants({first_query}, query: \"product_id:'{id}'\") {{ edges {{ node {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
+            "query": format!(
+                "query {{
+                    productVariants({first_query}, query: \"product_id:'{id}'\") {{
+                        edges {{
+                            node {{
+                                id
+                                barcode
+                                inventoryQuantity
+                                sku
+                                position
+                                price
+                                createdAt
+                                updatedAt
+                                inventoryItem {{
+                                    id
+                                }}
+                                product {{
+                                    id
+                                    title
+                                    handle
+                                    priceRangeV2 {{
+                                        maxVariantPrice {{
+                                            amount
+                                        }}
+                                    }}
+                                    description(truncateAt: {description_length})
+                                    status
+                                    category {{
+                                        id
+                                        name
+                                    }}
+                                }}
+                            }}
+                        }}
+                        pageInfo {{
+                            hasPreviousPage
+                            hasNextPage
+                            startCursor
+                            endCursor
+                        }}
+                    }}
+                }}"
+            )
         });
 
         let graphql_response: GraphQLResponse<VariantsData> = self.client.query(&query).await?;
@@ -90,7 +132,36 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 .map_or(String::new(), |a| format!("after: \"{}\"", a));
 
             let products_query = json!({
-                "query": format!("query {{ products({first_query}, {after_query}) {{ edges {{ node {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
+                "query": format!(
+                    "query {{
+                        products({first_query}, {after_query}) {{
+                            edges {{
+                                node {{
+                                    id
+                                    title
+                                    handle
+                                    priceRangeV2 {{
+                                        maxVariantPrice {{
+                                            amount
+                                        }}
+                                    }}
+                                    description(truncateAt: {description_length})
+                                    status
+                                    category {{
+                                        id
+                                        name
+                                    }}
+                                }}
+                            }}
+                            pageInfo {{
+                                hasPreviousPage
+                                hasNextPage
+                                startCursor
+                                endCursor
+                            }}
+                        }}
+                    }}"
+                )
             });
 
             let products_response: GraphQLResponse<ProductsData> =
@@ -120,7 +191,49 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 .join(",");
 
             let variants_query = json!({
-                "query": format!("query {{ productVariants({first_query}, query: \"product_ids:'{product_ids}'\") {{ edges {{ node {{ id barcode inventoryQuantity sku position price createdAt updatedAt inventoryItem {{ id }} product {{ id title handle priceRangeV2 {{ maxVariantPrice {{ amount }} }} description(truncateAt: {description_length}) status category {{ id name }} }} }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
+                "query": format!(
+                    "query {{
+                        productVariants({first_query}, query: \"product_ids:'{product_ids}'\") {{
+                            edges {{
+                                node {{
+                                    id
+                                    barcode
+                                    inventoryQuantity
+                                    sku
+                                    position
+                                    price
+                                    createdAt
+                                    updatedAt
+                                    inventoryItem {{
+                                        id
+                                    }}
+                                    product {{
+                                        id
+                                        title
+                                        handle
+                                        priceRangeV2 {{
+                                            maxVariantPrice {{
+                                                amount
+                                            }}
+                                        }}
+                                        description(truncateAt: {description_length})
+                                        status
+                                        category {{
+                                            id
+                                            name
+                                        }}
+                                    }}
+                                }}
+                            }}
+                            pageInfo {{
+                                hasPreviousPage
+                                hasNextPage
+                                startCursor
+                                endCursor
+                            }}
+                        }}
+                    }}"
+                )
             });
 
             log::debug!("variants_query: {:?}", variants_query);
@@ -154,7 +267,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             }
         }
 
-        log::info!("all_products.len(): {}", all_products.len());
+        log::debug!("all_products.len(): {}", all_products.len());
 
         let start = (offset).min(all_products.len() as u32) as usize;
         let end = (offset + limit).min(all_products.len() as u32) as usize;

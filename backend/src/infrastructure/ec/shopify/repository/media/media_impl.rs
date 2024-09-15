@@ -45,7 +45,32 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         let first_query = format!("first: {}", Self::GET_MEDIA_LIMIT);
 
         let query = json!({
-            "query": format!("query {{ files({first_query}, query: \"product_id:'{id}'\") {{ edges {{ node {{ id fileStatus alt preview {{ image {{ url }} }} createdAt updatedAt }} }} pageInfo {{ hasPreviousPage hasNextPage startCursor endCursor }} }} }}")
+            "query": format!(
+                "query {{
+                    files({first_query}, query: \"product_id:'{id}'\") {{
+                        edges {{
+                            node {{
+                                id
+                                fileStatus
+                                alt
+                                preview {{
+                                    image {{
+                                        url
+                                    }}
+                                }}
+                                createdAt
+                                updatedAt
+                            }}
+                        }}
+                        pageInfo {{
+                            hasPreviousPage
+                            hasNextPage
+                            startCursor
+                            endCursor
+                        }}
+                    }}
+                }}"
+            )
         });
 
         let graphql_response: GraphQLResponse<MediaData> = self.client.query(&query).await?;
@@ -81,29 +106,21 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
             let alias = format!("i{}", i);
             let query_part = format!(
                 "{}: files({}, query: \"product_id:'{}'\") {{
-                edges {{
-                    node {{
-                        alt
-                        createdAt
-                        fileStatus
-                        id
-                        updatedAt
-                        preview {{
-                            status
-                            image {{
-                                altText
-                                height
-                                id
-                                originalSrc
-                                src
-                                transformedSrc
-                                url
-                                width
+                    edges {{
+                        node {{
+                            id
+                            fileStatus
+                            alt
+                            preview {{
+                                image {{
+                                    url
+                                }}
                             }}
+                            createdAt
+                            updatedAt
                         }}
                     }}
-                }}
-            }}",
+                }}",
                 alias,
                 first_query,
                 ShopifyGQLClient::drop_product_gid_prefix(id)
@@ -112,11 +129,12 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         }
         query.push_str(" }");
 
-        let query_json = json!({
-            "query": query
-        });
-
-        let graphql_response: GraphQLResponse<Value> = self.client.query(&query_json).await?;
+        let graphql_response: GraphQLResponse<Value> = self
+            .client
+            .query(&json!({
+                "query": query
+            }))
+            .await?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response= {:?}", errors);
             return Err(DomainError::QueryError);
@@ -166,7 +184,7 @@ mod tests {
     use serde_json::{json, Value};
 
     use crate::{
-        domain::{error::error::DomainError, product::product::Id as ProductId},
+        domain::error::error::DomainError,
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
