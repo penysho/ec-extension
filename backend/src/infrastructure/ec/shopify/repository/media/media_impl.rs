@@ -11,7 +11,7 @@ use crate::{
         ec::{
             ec_client_interface::ECClient,
             shopify::{
-                client_impl::ShopifyGQLClient,
+                query_helper::ShopifyGQLQueryHelper,
                 repository::{
                     common::schema::GraphQLResponse,
                     media::schema::{MediaData, MediaSchema},
@@ -43,6 +43,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
     /// Retrieve multiple media.
     async fn get_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
         let first_query = format!("first: {}", Self::GET_MEDIA_LIMIT);
+        let page_info = ShopifyGQLQueryHelper::page_info();
 
         let query = json!({
             "query": format!(
@@ -62,12 +63,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                                 updatedAt
                             }}
                         }}
-                        pageInfo {{
-                            hasPreviousPage
-                            hasNextPage
-                            startCursor
-                            endCursor
-                        }}
+                        {page_info}
                     }}
                 }}"
             )
@@ -123,7 +119,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                 }}",
                 alias,
                 first_query,
-                ShopifyGQLClient::drop_product_gid_prefix(id)
+                ShopifyGQLQueryHelper::remove_product_gid_prefix(id)
             );
             query.push_str(&query_part);
         }

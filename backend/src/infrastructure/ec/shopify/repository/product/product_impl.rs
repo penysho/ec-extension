@@ -9,7 +9,7 @@ use crate::{
     infrastructure::ec::{
         ec_client_interface::ECClient,
         shopify::{
-            client_impl::ShopifyGQLClient,
+            query_helper::ShopifyGQLQueryHelper,
             repository::{
                 common::schema::GraphQLResponse,
                 product::schema::{ProductsData, VariantsData},
@@ -40,6 +40,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
         let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
+        let page_info = ShopifyGQLQueryHelper::page_info();
 
         let query = json!({
             "query": format!(
@@ -76,12 +77,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                                 }}
                             }}
                         }}
-                        pageInfo {{
-                            hasPreviousPage
-                            hasNextPage
-                            startCursor
-                            endCursor
-                        }}
+                        {page_info}
                     }}
                 }}"
             )
@@ -124,9 +120,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
 
         let mut cursor = None;
         let mut all_products: Vec<Product> = Vec::new();
+        let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
+        let page_info = ShopifyGQLQueryHelper::page_info();
 
         for _ in 0..(offset / Self::GET_PRODUCTS_LIMIT).max(1) {
-            let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
             let after_query = cursor
                 .as_deref()
                 .map_or(String::new(), |a| format!("after: \"{}\"", a));
@@ -153,12 +150,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                                     }}
                                 }}
                             }}
-                            pageInfo {{
-                                hasPreviousPage
-                                hasNextPage
-                                startCursor
-                                endCursor
-                            }}
+                            {page_info}
                         }}
                     }}"
                 )
@@ -186,9 +178,11 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             let product_ids = products_data
                 .edges
                 .into_iter()
-                .map(|node| ShopifyGQLClient::drop_product_gid_prefix(&node.node.id))
+                .map(|node| ShopifyGQLQueryHelper::remove_product_gid_prefix(&node.node.id))
                 .collect::<Vec<String>>()
                 .join(",");
+
+            log::debug!("product_ids: {:?}", product_ids);
 
             let variants_query = json!({
                 "query": format!(
@@ -225,18 +219,11 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                                     }}
                                 }}
                             }}
-                            pageInfo {{
-                                hasPreviousPage
-                                hasNextPage
-                                startCursor
-                                endCursor
-                            }}
+                            {page_info}
                         }}
                     }}"
                 )
             });
-
-            log::debug!("variants_query: {:?}", variants_query);
 
             let variants_response: GraphQLResponse<VariantsData> =
                 self.client.query(&variants_query).await?;
