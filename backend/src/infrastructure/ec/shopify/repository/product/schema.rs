@@ -61,30 +61,14 @@ impl From<VariantNode> for VariantSchema {
 }
 
 impl VariantSchema {
-    pub(super) fn to_domain(self) -> Result<Product, DomainError> {
-        let status = match self.product.status.as_str() {
-            "ACTIVE" => ProductStatus::Active,
-            "ARCHIVED" => ProductStatus::Inactive,
-            "DRAFT" => ProductStatus::Draft,
-            _ => ProductStatus::Inactive,
-        };
-        let sku = match self.sku {
-            Some(sku) => Some(Sku::new(sku)?),
-            None => None,
-        };
-        let barcode = match self.barcode {
-            Some(barcode) => Some(Barcode::new(barcode)?),
-            None => None,
-        };
-        let inventory_quantity = match self.inventory_quantity {
-            Some(inventory_quantity) => Some(inventory_quantity as u32),
-            None => None,
-        };
-        let title = self.product.title;
+    pub(super) fn to_variant_domain(&self) -> Result<Variant, DomainError> {
+        let sku = self.sku.clone().map(Sku::new).transpose()?;
+        let barcode = self.barcode.clone().map(Barcode::new).transpose()?;
+        let inventory_quantity = self.inventory_quantity.map(|qty| qty as u32);
 
-        let variants = vec![Variant::new(
-            self.id,
-            Some(&title),
+        Variant::new(
+            self.id.clone(),
+            None::<String>,
             self.price as u32,
             sku,
             barcode,
@@ -92,19 +76,10 @@ impl VariantSchema {
             self.position as u8,
             self.created_at,
             self.updated_at,
-        )?];
-
-        Product::new(
-            self.product.id,
-            title,
-            self.product.description,
-            status,
-            variants,
-            self.product.category_id,
         )
     }
 
-    pub(super) fn to_domains(
+    pub(super) fn to_product_domains(
         variant_schemas: Vec<VariantSchema>,
     ) -> Result<Vec<Product>, DomainError> {
         if variant_schemas.is_empty() {
@@ -115,22 +90,7 @@ impl VariantSchema {
         let mut products_in_order: Vec<Product> = Vec::new();
 
         for variant_schema in variant_schemas {
-            let sku = variant_schema.sku.map(Sku::new).transpose()?;
-            let barcode = variant_schema.barcode.map(Barcode::new).transpose()?;
-            let inventory_quantity = variant_schema.inventory_quantity.map(|qty| qty as u32);
-            let title = variant_schema.product.title.clone();
-
-            let variant_domain = Variant::new(
-                variant_schema.id,
-                Some(&title),
-                variant_schema.price as u32,
-                sku,
-                barcode,
-                inventory_quantity,
-                variant_schema.position as u8,
-                variant_schema.created_at,
-                variant_schema.updated_at,
-            )?;
+            let variant_domain = variant_schema.to_variant_domain()?;
 
             match product_domain_map.get_mut(&variant_schema.product.id) {
                 Some(product_domain) => {

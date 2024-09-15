@@ -98,7 +98,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             .map(|node| VariantSchema::from(node.node))
             .collect();
 
-        let domains = VariantSchema::to_domains(products)?;
+        let domains = VariantSchema::to_product_domains(products)?;
 
         if domains.is_empty() {
             log::error!("No product found for id: {}", id);
@@ -244,7 +244,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 .map(|node| VariantSchema::from(node.node))
                 .collect();
 
-            let product_domains = VariantSchema::to_domains(variants);
+            let product_domains = VariantSchema::to_product_domains(variants);
 
             all_products.extend(product_domains?);
 
