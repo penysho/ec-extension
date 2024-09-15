@@ -33,20 +33,16 @@ impl ProductPresenter for ProductPresenterImpl {
     /// Generate a response with detailed product information.
     async fn present_get_product(
         &self,
-        product_result: Result<Product, DomainError>,
-        media_result: Result<Vec<Media>, DomainError>,
+        result: Result<(Product, Vec<Media>), DomainError>,
     ) -> Result<Self::GetProductResponse, Self::GetProductResponseError> {
-        let media = match media_result {
-            Ok(media) => media,
-            Err(_) => vec![],
+        let (product, media) = match result {
+            Ok((product, media)) => (product, media),
+            Err(DomainError::NotFound) => return Err(GetProductResponseError::ProductNotFound),
+            Err(_) => return Err(GetProductResponseError::ServiceUnavailable),
         };
-        match product_result {
-            Ok(product) => Ok(web::Json(GetProductResponse {
-                product: ProductSchema::to_response(product, media),
-            })),
-            Err(DomainError::NotFound) => Err(GetProductResponseError::ProductNotFound),
-            Err(_) => Err(GetProductResponseError::ServiceUnavailable),
-        }
+
+        let schema = ProductSchema::to_response(product, media);
+        Ok(web::Json(GetProductResponse { product: schema }))
     }
 
     type GetProductsResponse = Json<GetProductsResponse>;
@@ -165,7 +161,7 @@ mod tests {
         let media = mock_media(5);
 
         let result = presenter
-            .present_get_product(Ok(product), Ok(media))
+            .present_get_product(Ok((product, media)))
             .await
             .unwrap();
 
@@ -181,7 +177,7 @@ mod tests {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter
-            .present_get_product(Err(DomainError::NotFound), Err(DomainError::NotFound))
+            .present_get_product(Err(DomainError::NotFound))
             .await;
 
         assert!(matches!(
@@ -195,7 +191,7 @@ mod tests {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter
-            .present_get_product(Err(DomainError::SystemError), Err(DomainError::SystemError))
+            .present_get_product(Err(DomainError::SystemError))
             .await;
 
         assert!(matches!(

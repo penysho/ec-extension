@@ -12,10 +12,10 @@ impl Controller {
         let id = &path.into_inner().0;
 
         let product_interactor = self.interact_provider.provide_product_interactor().await;
-        let (product, media) = product_interactor.get_product_with_media(id).await;
+        let result = product_interactor.get_product_with_media(id).await;
 
         let presenter = ProductPresenterImpl::new();
-        presenter.present_get_product(product, media).await
+        presenter.present_get_product(result).await
     }
 }
 
@@ -73,8 +73,8 @@ mod tests {
             .expect_get_product_with_media()
             .with(eq("1".to_string()))
             .returning(|_| {
-                (
-                    Ok(Product::new(
+                Ok((
+                    Product::new(
                         "gid://shopify/Product/1".to_string(),
                         "Test Product 1",
                         "This is a test product description.",
@@ -93,8 +93,8 @@ mod tests {
                         .unwrap()],
                         Some("gid://shopify/Category/111".to_string()),
                     )
-                    .unwrap()),
-                    Ok(vec![Media::new(
+                    .unwrap(),
+                    vec![Media::new(
                         format!("gid://shopify/ProductMedia/1"),
                         Some(AssociatedId::Product("gid://shopify/Product/1".to_string())),
                         Some(format!("Test Media 1")),
@@ -105,8 +105,8 @@ mod tests {
                         Utc::now(),
                         Utc::now(),
                     )
-                    .unwrap()]),
-                )
+                    .unwrap()],
+                ))
             });
 
         let req = test::TestRequest::get()
@@ -123,7 +123,7 @@ mod tests {
         interactor
             .expect_get_product_with_media()
             .with(eq("999".to_string()))
-            .returning(|_| (Err(DomainError::NotFound), Err(DomainError::NotFound)));
+            .returning(|_| Err(DomainError::NotFound));
 
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}/999"))
@@ -139,7 +139,7 @@ mod tests {
         interactor
             .expect_get_product_with_media()
             .with(eq("1".to_string()))
-            .returning(|_| (Err(DomainError::SystemError), Err(DomainError::SystemError)));
+            .returning(|_| Err(DomainError::SystemError));
 
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}/1"))

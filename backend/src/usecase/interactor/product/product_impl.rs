@@ -39,13 +39,15 @@ impl ProductInteractor for ProductInteractorImpl {
     async fn get_product_with_media(
         &self,
         id: &ProductId,
-    ) -> (
-        Result<Product, DomainError>,
-        Result<Vec<Media>, DomainError>,
-    ) {
-        let product = self.product_repository.get_product(id).await;
-        let media = self.media_repository.get_media_by_product_id(id).await;
-        (product, media)
+    ) -> Result<(Product, Vec<Media>), DomainError> {
+        let product_result = self.product_repository.get_product(id).await;
+        let media_result = self.media_repository.get_media_by_product_id(id).await;
+
+        match (product_result, media_result) {
+            (Ok(product), Ok(media)) => Ok((product, media)),
+            (Err(e), _) => Err(e),
+            (_, Err(e)) => Err(e),
+        }
     }
     /// Obtain a list of products.
     async fn get_products(
