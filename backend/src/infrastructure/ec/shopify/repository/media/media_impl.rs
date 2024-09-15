@@ -10,9 +10,12 @@ use crate::{
     infrastructure::{
         ec::{
             ec_client_interface::ECClient,
-            shopify::repository::{
-                common::schema::GraphQLResponse,
-                media::schema::{MediaData, MediaSchema},
+            shopify::{
+                client_impl::ShopifyGQLClient,
+                repository::{
+                    common::schema::GraphQLResponse,
+                    media::schema::{MediaData, MediaSchema},
+                },
             },
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
@@ -73,14 +76,12 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
     ) -> Result<Vec<Media>, DomainError> {
         let first_query = format!("first: {}", Self::GET_MEDIA_LIMIT);
 
-        let mut query = String::from("query {\n");
-
+        let mut query = String::from("query { ");
         for (i, id) in ids.iter().enumerate() {
             let alias = format!("i{}", i);
             let query_part = format!(
                 "{}: files({}, query: \"product_id:'{}'\") {{
                 edges {{
-                    cursor
                     node {{
                         alt
                         createdAt
@@ -102,15 +103,20 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                         }}
                     }}
                 }}
-            }}\n",
-                alias, first_query, id
+            }}",
+                alias,
+                first_query,
+                ShopifyGQLClient::drop_product_gid_prefix(id)
             );
             query.push_str(&query_part);
         }
+        query.push_str(" }");
 
-        query.push_str("}\n");
+        let query_json = json!({
+            "query": query
+        });
 
-        let graphql_response: GraphQLResponse<Value> = self.client.query(&query).await?;
+        let graphql_response: GraphQLResponse<Value> = self.client.query(&query_json).await?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response= {:?}", errors);
             return Err(DomainError::QueryError);
@@ -118,12 +124,18 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
 
         let data = graphql_response.data.ok_or(DomainError::QueryError)?;
 
+        if !data.is_object() {
+            log::error!("Expected data to be an object, but got: {:?}", data);
+            return Err(DomainError::QueryError);
+        }
+
         let mut media_schemas = Vec::new();
         for (i, _) in ids.iter().enumerate() {
             let alias = format!("i{}", i);
-            if let Some(file_data) = data.get(&alias) {
-                if let Some(files) = file_data.get("edges") {
-                    for edge in files.as_array().unwrap_or(&vec![]) {
+
+            if let Some(file_data) = data.get(&alias).and_then(|d| d.as_object()) {
+                if let Some(files) = file_data.get("edges").and_then(|f| f.as_array()) {
+                    for edge in files {
                         let node = &edge["node"];
                         let v: MediaNode = serde_json::from_value(node.clone()).map_err(|e| {
                             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
@@ -132,6 +144,8 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                         media_schemas.push(media_schema);
                     }
                 }
+            } else {
+                log::error!("No data found for alias: {}", alias);
             }
         }
 
@@ -149,10 +163,10 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     use crate::{
-        domain::error::error::DomainError,
+        domain::{error::error::DomainError, product::product::Id as ProductId},
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
@@ -198,6 +212,53 @@ mod tests {
             }),
             errors: None,
         }
+    }
+
+    fn mock_media_response_by_alias() -> GraphQLResponse<Value> {
+        let mock_graphql_response = json!({
+            "data": {
+                "i0": {
+                    "edges": [
+                        {
+                            "node": {
+                                "alt": "Alt text for media 0",
+                                "createdAt": "2024-07-30T15:37:45Z",
+                                "fileStatus": "READY",
+                                "id": "gid://shopify/Media/0",
+                                "updatedAt": "2024-07-30T15:37:45Z",
+                                "preview": {
+                                    "image": {
+                                        "id": "gid://shopify/Media/0",
+                                        "url": "https://example.com/image0.jpg",
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "i1": {
+                    "edges": [
+                        {
+                            "node": {
+                                "alt": "Alt text for media 1",
+                                "createdAt": "2024-07-30T15:37:45Z",
+                                "fileStatus": "READY",
+                                "id": "gid://shopify/Media/1",
+                                "updatedAt": "2024-07-30T15:37:45Z",
+                                "preview": {
+                                    "image": {
+                                        "id": "gid://shopify/Media/1",
+                                        "url": "https://example.com/image1.jpg",
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+            }
+        });
+
+        serde_json::from_value(mock_graphql_response).unwrap()
     }
 
     fn mock_with_error<T>() -> GraphQLResponse<T> {
@@ -303,6 +364,78 @@ mod tests {
         let repo = MediaRepositoryImpl::new(client);
 
         let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn get_media_by_product_ids_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<Value, GraphQLResponse<Value>>()
+            .times(1)
+            .return_once(|_| Ok(mock_media_response_by_alias()));
+
+        let repo = MediaRepositoryImpl::new(client);
+
+        let result = repo
+            .get_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
+            .await;
+
+        assert!(result.is_ok());
+        let media = result.unwrap();
+        assert_eq!(media.len(), 2);
+        assert_eq!(media[0].id(), "gid://shopify/Media/0");
+        assert_eq!(media[1].id(), "gid://shopify/Media/1");
+    }
+
+    #[tokio::test]
+    async fn get_media_by_product_ids_with_graphql_error() {
+        let mut client = MockECClient::new();
+
+        let graphql_response_with_error = mock_with_error();
+
+        client
+            .expect_query::<Value, GraphQLResponse<Value>>()
+            .times(1)
+            .return_once(|_| Ok(graphql_response_with_error));
+
+        let repo = MediaRepositoryImpl::new(client);
+
+        let result = repo
+            .get_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn get_media_by_product_ids_with_missing_data() {
+        let mut client = MockECClient::new();
+
+        let graphql_response_with_no_data = mock_with_no_data();
+
+        client
+            .expect_query::<Value, GraphQLResponse<Value>>()
+            .times(1)
+            .return_once(|_| Ok(graphql_response_with_no_data));
+
+        let repo = MediaRepositoryImpl::new(client);
+
+        let result = repo
+            .get_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
+            .await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {

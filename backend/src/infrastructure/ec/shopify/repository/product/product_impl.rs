@@ -8,9 +8,12 @@ use crate::{
     },
     infrastructure::ec::{
         ec_client_interface::ECClient,
-        shopify::repository::{
-            common::schema::GraphQLResponse,
-            product::schema::{ProductsData, VariantsData},
+        shopify::{
+            client_impl::ShopifyGQLClient,
+            repository::{
+                common::schema::GraphQLResponse,
+                product::schema::{ProductsData, VariantsData},
+            },
         },
     },
     usecase::repository::product_repository_interface::ProductRepository,
@@ -112,7 +115,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             let product_ids = products_data
                 .edges
                 .into_iter()
-                .map(|node| node.node.id.replace("gid://shopify/Product/", ""))
+                .map(|node| ShopifyGQLClient::drop_product_gid_prefix(&node.node.id))
                 .collect::<Vec<String>>()
                 .join(",");
 

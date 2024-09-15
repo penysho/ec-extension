@@ -24,6 +24,7 @@ pub struct ShopifyGQLClient {
 
 impl ShopifyGQLClient {
     const SHOPIFY_ACCESS_TOKEN_HEADER: &'static str = "X-Shopify-Access-Token";
+    const SHOPIFY_PRODUCT_GID_PREFIX: &'static str = "gid://shopify/Product/";
 
     pub fn new(config: ShopifyConfig) -> Self {
         Self {
@@ -40,6 +41,10 @@ impl ShopifyGQLClient {
             HeaderValue::from_str(self.config.access_token()).unwrap(),
         );
         headers
+    }
+
+    pub fn drop_product_gid_prefix(gid: &str) -> String {
+        gid.replace(Self::SHOPIFY_PRODUCT_GID_PREFIX, "")
     }
 }
 

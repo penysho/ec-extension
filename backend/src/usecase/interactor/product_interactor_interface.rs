@@ -20,5 +20,8 @@ pub trait ProductInteractor {
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,
-    ) -> Result<Vec<Product>, DomainError>;
+    ) -> (
+        Result<Vec<Product>, DomainError>,
+        Result<Vec<Media>, DomainError>,
+    );
 }

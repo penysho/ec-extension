@@ -52,10 +52,27 @@ impl ProductInteractor for ProductInteractorImpl {
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,
-    ) -> Result<Vec<Product>, DomainError> {
-        let products = self.product_repository.get_products(limit, offset).await;
-        // let product_ids: Vec<Id> = products?.iter().map(|p| p.id().clone()).collect();
+    ) -> (
+        Result<Vec<Product>, DomainError>,
+        Result<Vec<Media>, DomainError>,
+    ) {
+        let products_result = self.product_repository.get_products(limit, offset).await;
+        if let Err(_) = &products_result {
+            return (products_result, Err(DomainError::SystemError));
+        }
 
-        products
+        let product_ids: Vec<&ProductId> = products_result
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|product| product.id())
+            .collect();
+
+        let media_result = self
+            .media_repository
+            .get_media_by_product_ids(product_ids)
+            .await;
+
+        (products_result, media_result)
     }
 }

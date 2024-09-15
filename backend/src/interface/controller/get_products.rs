@@ -15,7 +15,7 @@ impl Controller {
     /// Obtain a list of products.
     pub async fn get_products(&self, params: web::Query<GetProductsQueryParams>) -> impl Responder {
         let interactor = self.interact_provider.provide_product_interactor().await;
-        let products = interactor.get_products(&params.limit, &params.offset).await;
+        let (products, media) = interactor.get_products(&params.limit, &params.offset).await;
 
         let presenter = ProductPresenterImpl::new();
         presenter.present_get_products(products).await
@@ -27,6 +27,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::error::error::DomainError;
+    use crate::domain::media::media::{AssociatedId, Media, MediaStatus};
+    use crate::domain::media::src::src::Src;
     use crate::domain::product::product::{Product, ProductStatus};
     use crate::domain::product::variant::barcode::barcode::Barcode;
     use crate::domain::product::variant::sku::sku::Sku;
@@ -71,48 +73,62 @@ mod tests {
     async fn test_get_products_success() {
         let mut interactor = MockProductInteractor::new();
         interactor.expect_get_products().returning(|_, _| {
-            Ok(vec![
-                Product::new(
-                    "gid://shopify/Product/1".to_string(),
-                    "Test Product 1",
-                    "This is a test product description.",
-                    ProductStatus::Active,
-                    vec![Variant::new(
-                        "gid://shopify/ProductVariant/1".to_string(),
-                        Some("Test Variant 1"),
-                        100,
-                        Some(Sku::new("TESTSKU123").unwrap()),
-                        Some(Barcode::new("123456789012").unwrap()),
-                        Some(50),
-                        1,
-                        Utc::now(),
-                        Utc::now(),
+            (
+                Ok(vec![
+                    Product::new(
+                        "gid://shopify/Product/1".to_string(),
+                        "Test Product 1",
+                        "This is a test product description.",
+                        ProductStatus::Active,
+                        vec![Variant::new(
+                            "gid://shopify/ProductVariant/1".to_string(),
+                            Some("Test Variant 1"),
+                            100,
+                            Some(Sku::new("TESTSKU123").unwrap()),
+                            Some(Barcode::new("123456789012").unwrap()),
+                            Some(50),
+                            1,
+                            Utc::now(),
+                            Utc::now(),
+                        )
+                        .unwrap()],
+                        Some("gid://shopify/Category/111".to_string()),
                     )
-                    .unwrap()],
-                    Some("gid://shopify/Category/111".to_string()),
-                )
-                .unwrap(),
-                Product::new(
-                    "gid://shopify/Product/2".to_string(),
-                    "Test Product 2",
-                    "This is a test product description.",
-                    ProductStatus::Active,
-                    vec![Variant::new(
-                        "gid://shopify/ProductVariant/2".to_string(),
-                        Some("Test Variant 2"),
-                        100,
-                        Some(Sku::new("TESTSKU123").unwrap()),
-                        Some(Barcode::new("123456789012").unwrap()),
-                        Some(50),
-                        1,
-                        Utc::now(),
-                        Utc::now(),
+                    .unwrap(),
+                    Product::new(
+                        "gid://shopify/Product/2".to_string(),
+                        "Test Product 2",
+                        "This is a test product description.",
+                        ProductStatus::Active,
+                        vec![Variant::new(
+                            "gid://shopify/ProductVariant/2".to_string(),
+                            Some("Test Variant 2"),
+                            100,
+                            Some(Sku::new("TESTSKU123").unwrap()),
+                            Some(Barcode::new("123456789012").unwrap()),
+                            Some(50),
+                            1,
+                            Utc::now(),
+                            Utc::now(),
+                        )
+                        .unwrap()],
+                        Some("gid://shopify/Category/111".to_string()),
                     )
-                    .unwrap()],
-                    Some("gid://shopify/Category/111".to_string()),
+                    .unwrap(),
+                ]),
+                Ok(vec![Media::new(
+                    format!("gid://shopify/ProductMedia/1"),
+                    Some(AssociatedId::Product("gid://shopify/Product/1".to_string())),
+                    Some(format!("Test Media 1")),
+                    MediaStatus::Active,
+                    Some(format!("gid://shopify/Product/1")),
+                    Some(Src::new(format!("https://example.com/uploaded1.jpg")).unwrap()),
+                    Some(Src::new(format!("https://example.com/published1.jpg",)).unwrap()),
+                    Utc::now(),
+                    Utc::now(),
                 )
-                .unwrap(),
-            ])
+                .unwrap()]),
+            )
         });
 
         let req = test::TestRequest::get().uri(BASE_URL).to_request();
@@ -129,7 +145,7 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_products()
-            .returning(|_, _| Ok(vec![]));
+            .returning(|_, _| (Ok(vec![]), Ok(vec![])));
 
         let req = test::TestRequest::get().uri(BASE_URL).to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -145,7 +161,7 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_products()
-            .returning(|_, _| Err(DomainError::SystemError));
+            .returning(|_, _| (Err(DomainError::SystemError), Err(DomainError::SystemError)));
 
         let req = test::TestRequest::get().uri(BASE_URL).to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
