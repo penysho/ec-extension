@@ -2,7 +2,7 @@ use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
 
-#[derive(Debug, Getters, Clone)]
+#[derive(Debug, Getters, Clone, PartialEq)]
 pub struct Sku {
     value: String,
 }

@@ -7,7 +7,7 @@ use crate::domain::product::product::Id as ProductId;
 
 pub type Id = String;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MediaStatus {
     Active,
     Inactive,
