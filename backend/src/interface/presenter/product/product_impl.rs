@@ -62,7 +62,7 @@ impl ProductPresenter for ProductPresenterImpl {
             return Err(GetProductsResponseError::NotFound);
         }
 
-        let media_map: HashMap<AssociatedId, Vec<Media>> =
+        let mut media_map: HashMap<AssociatedId, Vec<Media>> =
             media.into_iter().fold(HashMap::new(), |mut accum, medium| {
                 if let Some(associated_id) = medium.associated_id() {
                     accum
@@ -76,11 +76,11 @@ impl ProductPresenter for ProductPresenterImpl {
         let product_schemas: Vec<ProductSchema> = products
             .into_iter()
             .map(|product| {
-                let binding = vec![];
                 let media = media_map
-                    .get(&AssociatedId::Product(product.id().to_owned()))
-                    .unwrap_or(&binding);
-                ProductSchema::to_response(product, media.to_owned())
+                    .remove(&AssociatedId::Product(product.id().to_owned()))
+                    .unwrap_or_else(Vec::new);
+
+                ProductSchema::to_response(product, media)
             })
             .collect();
 

@@ -20,7 +20,7 @@ pub enum AssociatedId {
 }
 
 /// Entity of Media.
-#[derive(Debug, Getters, Clone)]
+#[derive(Debug, Getters)]
 pub struct Media {
     id: Id,
     associated_id: Option<AssociatedId>,
