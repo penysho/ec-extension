@@ -31,8 +31,6 @@ pub struct MediaRepositoryImpl<C: ECClient> {
 }
 
 impl<C: ECClient> MediaRepositoryImpl<C> {
-    const GET_MEDIA_LIMIT: u32 = 250;
-
     pub fn new(client: C) -> Self {
         Self { client }
     }
@@ -42,7 +40,7 @@ impl<C: ECClient> MediaRepositoryImpl<C> {
 impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
     /// Retrieve multiple media.
     async fn get_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
-        let first_query = format!("first: {}", Self::GET_MEDIA_LIMIT);
+        let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
         let query = json!({
@@ -95,7 +93,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         &self,
         ids: Vec<&ProductId>,
     ) -> Result<Vec<Media>, DomainError> {
-        let first_query = format!("first: {}", Self::GET_MEDIA_LIMIT);
+        let first_query = ShopifyGQLQueryHelper::first_query();
 
         let mut query = String::from("query { ");
         for (i, id) in ids.iter().enumerate() {

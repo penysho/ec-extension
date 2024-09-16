@@ -27,8 +27,6 @@ pub struct ProductRepositoryImpl<C: ECClient> {
 }
 
 impl<C: ECClient> ProductRepositoryImpl<C> {
-    const GET_PRODUCTS_LIMIT: u32 = 250;
-
     pub fn new(client: C) -> Self {
         Self { client }
     }
@@ -39,7 +37,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     /// Obtain detailed product information.
     async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
-        let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
+        let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
         let query = json!({
@@ -114,15 +112,15 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         offset: &Option<u32>,
     ) -> Result<Vec<Product>, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
-        let get_product_limit = Self::GET_PRODUCTS_LIMIT as usize;
+        let get_product_limit = ShopifyGQLQueryHelper::SHOPIFY_QUERY_LIMIT;
 
         let offset = offset.unwrap_or(0) as usize;
-        let limit = limit.unwrap_or(Self::GET_PRODUCTS_LIMIT) as usize;
+        let limit = limit.unwrap_or(get_product_limit as u32) as usize;
 
         let mut products_cursor = None;
         let mut all_variants: Vec<VariantSchema> = Vec::new();
 
-        let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
+        let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
         for i in 0..((limit + offset) / get_product_limit).max(1) {
@@ -477,6 +475,8 @@ mod tests {
                     end: 2,
                     has_next_page: false,
                 });
+
+                // Unify product IDs.
                 mock.data.as_mut().unwrap().product_variants.edges[1]
                     .node
                     .product
@@ -492,6 +492,7 @@ mod tests {
         let product = result.unwrap();
         assert_eq!(product.id(), "gid://shopify/Product/0");
         assert_eq!(*product.status(), ProductStatus::Active);
+
         assert_eq!(product.variants().len(), 2);
         assert_eq!(product.variants()[0].id(), "gid://shopify/ProductVariant/0");
         assert_eq!(*product.variants()[0].price(), 0);
