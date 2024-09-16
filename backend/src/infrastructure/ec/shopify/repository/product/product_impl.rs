@@ -119,21 +119,21 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let offset = offset.unwrap_or(0) as usize;
         let limit = limit.unwrap_or(Self::GET_PRODUCTS_LIMIT) as usize;
 
-        let mut cursor = None;
-        let mut all_products: Vec<Product> = Vec::new();
+        let mut products_cursor = None;
+        let mut all_variants: Vec<VariantSchema> = Vec::new();
 
         let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
         let page_info = ShopifyGQLQueryHelper::page_info();
 
-        for i in 0..(offset / get_product_limit).max(1) {
-            let after_query = cursor
+        for i in 0..((limit + offset) / get_product_limit).max(1) {
+            let products_after_query = products_cursor
                 .as_deref()
                 .map_or(String::new(), |a| format!("after: \"{}\"", a));
 
             let products_query = json!({
                 "query": format!(
                     "query {{
-                        products({first_query}, {after_query}) {{
+                        products({first_query}, {products_after_query}) {{
                             edges {{
                                 node {{
                                     id
@@ -178,11 +178,17 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             }
 
             // If only the upper limit is acquired and the acquisition is less than or equal to the offset, skip it.
-            cursor = products_data.page_info.end_cursor;
+            products_cursor = products_data.page_info.end_cursor;
             if products_data.edges.len() == get_product_limit
                 && get_product_limit * (i + 1) <= offset
                 && products_data.page_info.has_next_page
             {
+                log::debug!(
+                    "Skip products. index: {:?} <= index < {:?}, offset: {:?}",
+                    i,
+                    (i + 1) * get_product_limit,
+                    offset,
+                );
                 continue;
             }
 
@@ -195,10 +201,16 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
 
             log::debug!("product_ids: {:?}", product_ids);
 
-            let variants_query = json!({
-                "query": format!(
-                    "query {{
-                        productVariants({first_query}, query: \"product_ids:'{product_ids}'\") {{
+            let mut variants_cursor = None;
+            loop {
+                let variants_after_query = variants_cursor
+                    .as_deref()
+                    .map_or(String::new(), |a| format!("after: \"{}\"", a));
+
+                let variants_query = json!({
+                    "query": format!(
+                        "query {{
+                        productVariants({first_query}, {variants_after_query}, query: \"product_ids:'{product_ids}'\") {{
                             edges {{
                                 node {{
                                     id
@@ -233,46 +245,53 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                             {page_info}
                         }}
                     }}"
-                )
-            });
+                    )
+                });
 
-            let variants_response: GraphQLResponse<VariantsData> =
-                self.client.query(&variants_query).await?;
-            if let Some(errors) = variants_response.errors {
-                log::error!(
-                    "Error returned in Variants response. Response: {:?}",
-                    errors
-                );
-                return Err(DomainError::QueryError);
+                let variants_response: GraphQLResponse<VariantsData> =
+                    self.client.query(&variants_query).await?;
+                if let Some(errors) = variants_response.errors {
+                    log::error!(
+                        "Error returned in Variants response. Response: {:?}",
+                        errors
+                    );
+                    return Err(DomainError::QueryError);
+                }
+
+                let variants_data = variants_response
+                    .data
+                    .ok_or(DomainError::QueryError)?
+                    .product_variants;
+
+                let variants: Vec<VariantSchema> = variants_data
+                    .edges
+                    .into_iter()
+                    .map(|node| VariantSchema::from(node.node))
+                    .collect();
+
+                all_variants.extend(variants);
+
+                variants_cursor = variants_data.page_info.end_cursor;
+                if !variants_data.page_info.has_next_page {
+                    break;
+                }
             }
-
-            let variants: Vec<VariantSchema> = variants_response
-                .data
-                .ok_or(DomainError::QueryError)?
-                .product_variants
-                .edges
-                .into_iter()
-                .map(|node| VariantSchema::from(node.node))
-                .collect();
-
-            let product_domains = VariantSchema::to_product_domains(variants)?;
-
-            all_products.extend(product_domains);
 
             if !products_data.page_info.has_next_page {
                 break;
             }
         }
 
-        log::debug!("all_products.len(): {}", all_products.len());
+        let product_domains = VariantSchema::to_product_domains(all_variants)?;
+        log::debug!("product_domains.len(): {}", product_domains.len());
 
         let start = offset % get_product_limit;
-        let end = (start + limit).min(all_products.len());
+        let end = (start + limit).min(product_domains.len());
         if start >= end {
             return Ok(Vec::new());
         }
 
-        Ok(all_products
+        Ok(product_domains
             .into_iter()
             .skip(start)
             .take(end - start)
@@ -302,8 +321,14 @@ mod tests {
 
     use super::*;
 
-    fn mock_variants_response(count: usize) -> GraphQLResponse<VariantsData> {
-        let product_variants: Vec<Node<VariantNode>> = (0..count)
+    struct PageOption {
+        start: usize,
+        end: usize,
+        has_next_page: bool,
+    }
+
+    fn mock_variants_response(opt: PageOption) -> GraphQLResponse<VariantsData> {
+        let product_variants: Vec<Node<VariantNode>> = (opt.start..opt.end)
             .map(|i| Node {
                 node: VariantNode {
                     id: format!("gid://shopify/ProductVariant/{i}"),
@@ -341,9 +366,13 @@ mod tests {
                     edges: product_variants,
                     page_info: PageInfo {
                         has_previous_page: false,
-                        has_next_page: false,
+                        has_next_page: opt.has_next_page,
                         start_cursor: None,
-                        end_cursor: None,
+                        end_cursor: if opt.has_next_page {
+                            Some("end_cursor".to_string())
+                        } else {
+                            None
+                        },
                     },
                 },
             }),
@@ -351,8 +380,8 @@ mod tests {
         }
     }
 
-    fn mock_products_response(count: usize) -> GraphQLResponse<ProductsData> {
-        let products: Vec<Node<ProductNode>> = (0..count)
+    fn mock_products_response(opt: PageOption) -> GraphQLResponse<ProductsData> {
+        let products: Vec<Node<ProductNode>> = (opt.start..opt.end)
             .map(|i: usize| Node {
                 node: ProductNode {
                     id: format!("gid://shopify/Product/{i}"),
@@ -377,9 +406,13 @@ mod tests {
                     edges: products,
                     page_info: PageInfo {
                         has_previous_page: false,
-                        has_next_page: false,
+                        has_next_page: opt.has_next_page,
                         start_cursor: None,
-                        end_cursor: None,
+                        end_cursor: if opt.has_next_page {
+                            Some("end_cursor".to_string())
+                        } else {
+                            None
+                        },
                     },
                 },
             }),
@@ -411,7 +444,13 @@ mod tests {
         client
             .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_variants_response(10)));
+            .return_once(|_| {
+                Ok(mock_variants_response(PageOption {
+                    start: 0,
+                    end: 1,
+                    has_next_page: false,
+                }))
+            });
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -426,10 +465,49 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_get_product_multiple_variants_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .times(1)
+            .return_once(|_| {
+                let mut mock = mock_variants_response(PageOption {
+                    start: 0,
+                    end: 2,
+                    has_next_page: false,
+                });
+                mock.data.as_mut().unwrap().product_variants.edges[1]
+                    .node
+                    .product
+                    .id = "gid://shopify/Product/0".to_string();
+                Ok(mock)
+            });
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_product(&("0".to_string())).await;
+
+        assert!(result.is_ok());
+        let product = result.unwrap();
+        assert_eq!(product.id(), "gid://shopify/Product/0");
+        assert_eq!(*product.status(), ProductStatus::Active);
+        assert_eq!(product.variants().len(), 2);
+        assert_eq!(product.variants()[0].id(), "gid://shopify/ProductVariant/0");
+        assert_eq!(*product.variants()[0].price(), 0);
+        assert_eq!(product.variants()[1].id(), "gid://shopify/ProductVariant/1");
+        assert_eq!(*product.variants()[1].price(), 1);
+    }
+
+    #[tokio::test]
     async fn test_get_product_with_invalid_domain_conversion() {
         let mut client = MockECClient::new();
 
-        let mut invalid_variant = mock_variants_response(1);
+        let mut invalid_variant = mock_variants_response(PageOption {
+            start: 0,
+            end: 1,
+            has_next_page: false,
+        });
         invalid_variant
             .data
             .as_mut()
@@ -510,11 +588,23 @@ mod tests {
         client
             .expect_query::<Value, GraphQLResponse<ProductsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_products_response(250))); // Self::GET_PRODUCTS_LIMIT
+            .return_once(|_| {
+                Ok(mock_products_response(PageOption {
+                    start: 0,
+                    end: 250,
+                    has_next_page: false,
+                }))
+            });
         client
             .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_variants_response(250)));
+            .return_once(|_| {
+                Ok(mock_variants_response(PageOption {
+                    start: 0,
+                    end: 250,
+                    has_next_page: false,
+                }))
+            });
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -548,11 +638,23 @@ mod tests {
         client
             .expect_query::<Value, GraphQLResponse<ProductsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_products_response(250)));
+            .return_once(|_| {
+                Ok(mock_products_response(PageOption {
+                    start: 0,
+                    end: 250,
+                    has_next_page: false,
+                }))
+            });
         client
             .expect_query::<Value, GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_variants_response(250)));
+            .return_once(|_| {
+                Ok(mock_variants_response(PageOption {
+                    start: 0,
+                    end: 250,
+                    has_next_page: false,
+                }))
+            });
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -578,13 +680,87 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_get_products_multiple_retrievals_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .times(1)
+            .return_once(|_| {
+                Ok(mock_products_response(PageOption {
+                    start: 0,
+                    end: 250,
+                    has_next_page: true,
+                }))
+            });
+        client
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .times(1)
+            .return_once(|_| {
+                Ok(mock_variants_response(PageOption {
+                    start: 0,
+                    end: 250,
+                    has_next_page: false,
+                }))
+            });
+        client
+            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .times(1)
+            .return_once(|_| {
+                Ok(mock_products_response(PageOption {
+                    start: 250,
+                    end: 500,
+                    has_next_page: false,
+                }))
+            });
+        client
+            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .times(1)
+            .return_once(|_| {
+                Ok(mock_variants_response(PageOption {
+                    start: 250,
+                    end: 500,
+                    has_next_page: false,
+                }))
+            });
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let limit = Some(480);
+        let offset = Some(20);
+        let result = repo.get_products(&limit, &offset).await;
+
+        assert!(result.is_ok());
+        let products = result.unwrap();
+        assert_eq!(products.len(), 480);
+
+        assert_eq!(products[0].id(), "gid://shopify/Product/20");
+        assert_eq!(
+            products[0].variants()[0].id(),
+            "gid://shopify/ProductVariant/20"
+        );
+
+        assert_eq!(products[479].id(), "gid://shopify/Product/499");
+        assert_eq!(
+            products[479].variants()[0].id(),
+            "gid://shopify/ProductVariant/499"
+        );
+    }
+
+    #[tokio::test]
     async fn test_get_products_empty_success() {
         let mut client = MockECClient::new();
 
         client
             .expect_query::<Value, GraphQLResponse<ProductsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_products_response(0)));
+            .return_once(|_| {
+                Ok(mock_products_response(PageOption {
+                    start: 0,
+                    end: 0,
+                    has_next_page: false,
+                }))
+            });
 
         let repo = ProductRepositoryImpl::new(client);
 
