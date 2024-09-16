@@ -14,7 +14,7 @@ pub enum ProductStatus {
 }
 
 /// Entity of Products.
-#[derive(Debug, Getters, Clone)]
+#[derive(Debug, Getters)]
 pub struct Product {
     id: Id,
     name: String,

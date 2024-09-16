@@ -156,7 +156,7 @@ mod tests {
     #[actix_web::test]
     async fn test_present_get_product_success() {
         let presenter = ProductPresenterImpl::new();
-        let product = mock_products(1)[0].clone();
+        let product = mock_products(1).remove(0);
         let media = mock_media(5);
 
         let result = presenter

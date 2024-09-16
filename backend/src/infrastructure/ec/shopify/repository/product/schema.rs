@@ -86,15 +86,16 @@ impl VariantSchema {
             return Ok(Vec::new());
         }
 
-        let mut product_domain_map: HashMap<String, Product> = HashMap::new();
-        let mut products_in_order: Vec<Product> = Vec::new();
+        let mut index_map: HashMap<String, usize> = HashMap::new();
+        let mut products_domains: Vec<Product> = Vec::new();
 
         for variant_schema in variant_schemas {
             let variant_domain = variant_schema.to_variant_domain()?;
 
-            match product_domain_map.get_mut(&variant_schema.product.id) {
-                Some(product_domain) => {
-                    let _ = product_domain.add_variant(variant_domain);
+            match index_map.get(&variant_schema.product.id) {
+                Some(index) => {
+                    let product = products_domains.get_mut(*index).unwrap();
+                    let _ = product.add_variant(variant_domain);
                 }
                 None => {
                     let product_id = variant_schema.product.id.clone();
@@ -117,13 +118,13 @@ impl VariantSchema {
                         category_id,
                     )?;
 
-                    product_domain_map.insert(product_id.clone(), product_domain.clone());
-                    products_in_order.push(product_domain);
+                    index_map.insert(product_id.clone(), products_domains.len());
+                    products_domains.push(product_domain);
                 }
             };
         }
 
-        Ok(products_in_order)
+        Ok(products_domains)
     }
 }
 

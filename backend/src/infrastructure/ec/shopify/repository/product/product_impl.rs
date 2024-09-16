@@ -114,16 +114,18 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         offset: &Option<u32>,
     ) -> Result<Vec<Product>, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
+        let get_product_limit = Self::GET_PRODUCTS_LIMIT as usize;
 
-        let offset = offset.unwrap_or(0);
-        let limit = limit.unwrap_or(Self::GET_PRODUCTS_LIMIT);
+        let offset = offset.unwrap_or(0) as usize;
+        let limit = limit.unwrap_or(Self::GET_PRODUCTS_LIMIT) as usize;
 
         let mut cursor = None;
         let mut all_products: Vec<Product> = Vec::new();
+
         let first_query = format!("first: {}", Self::GET_PRODUCTS_LIMIT);
         let page_info = ShopifyGQLQueryHelper::page_info();
 
-        for _ in 0..(offset / Self::GET_PRODUCTS_LIMIT).max(1) {
+        for i in 0..(offset / get_product_limit).max(1) {
             let after_query = cursor
                 .as_deref()
                 .map_or(String::new(), |a| format!("after: \"{}\"", a));
@@ -173,6 +175,15 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
 
             if products_data.edges.is_empty() {
                 break;
+            }
+
+            // If only the upper limit is acquired and the acquisition is less than or equal to the offset, skip it.
+            cursor = products_data.page_info.end_cursor;
+            if products_data.edges.len() == get_product_limit
+                && get_product_limit * (i + 1) <= offset
+                && products_data.page_info.has_next_page
+            {
+                continue;
             }
 
             let product_ids = products_data
@@ -244,25 +255,28 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 .map(|node| VariantSchema::from(node.node))
                 .collect();
 
-            let product_domains = VariantSchema::to_product_domains(variants);
+            let product_domains = VariantSchema::to_product_domains(variants)?;
 
-            all_products.extend(product_domains?);
+            all_products.extend(product_domains);
 
-            cursor = products_data.page_info.end_cursor;
-            if products_data.page_info.has_next_page {
+            if !products_data.page_info.has_next_page {
                 break;
             }
         }
 
         log::debug!("all_products.len(): {}", all_products.len());
 
-        let start = (offset).min(all_products.len() as u32) as usize;
-        let end = (offset + limit).min(all_products.len() as u32) as usize;
+        let start = offset % get_product_limit;
+        let end = (start + limit).min(all_products.len());
         if start >= end {
             return Ok(Vec::new());
         }
 
-        Ok(all_products[start..end].to_vec())
+        Ok(all_products
+            .into_iter()
+            .skip(start)
+            .take(end - start)
+            .collect::<Vec<Product>>())
     }
 }
 
@@ -298,23 +312,23 @@ mod tests {
                         category: Some(TaxonomyCategory {
                             id: "gid://shopify/Category/111".to_string(),
                         }),
-                        title: "Test Product".to_string(),
+                        title: format!("Test Product {i}"),
                         price: PriceRangeV2 {
                             max_variant_price: MaxVariantPrice {
-                                amount: "100.00".to_string(),
+                                amount: format!("{i}.00"),
                             },
                         },
-                        description: "Test Description".to_string(),
+                        description: format!("Test Description {i}"),
                         status: "ACTIVE".to_string(),
                     },
                     inventory_item: InventoryNode {
                         id: "gid://shopify/InventoryItem/789012".to_string(),
                     },
                     barcode: Some("123456789012".to_string()),
-                    inventory_quantity: Some(50),
+                    inventory_quantity: Some(i as i32),
                     sku: Some("TESTSKU123".to_string()),
                     position: 1,
-                    price: "100.00".to_string(),
+                    price: format!("{i}.00"),
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                 },
@@ -345,13 +359,13 @@ mod tests {
                     category: Some(TaxonomyCategory {
                         id: "gid://shopify/Category/111".to_string(),
                     }),
-                    title: "Test Product".to_string(),
+                    title: format!("Test Product {i}"),
                     price: PriceRangeV2 {
                         max_variant_price: MaxVariantPrice {
-                            amount: "100.00".to_string(),
+                            amount: format!("{i}.00"),
                         },
                     },
-                    description: "Test Description".to_string(),
+                    description: format!("Test Description {i}"),
                     status: "ACTIVE".to_string(),
                 },
             })
@@ -401,12 +415,14 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("123456".to_string())).await;
+        let result = repo.get_product(&("0".to_string())).await;
 
         assert!(result.is_ok());
         let product = result.unwrap();
-        assert_eq!(product.id(), "gid://shopify/Product/123456");
-        assert_eq!(product.name(), "Test Product");
+        assert_eq!(product.id(), "gid://shopify/Product/0");
+        assert_eq!(*product.status(), ProductStatus::Active);
+        assert_eq!(product.variants()[0].id(), "gid://shopify/ProductVariant/0");
+        assert_eq!(*product.variants()[0].price(), 0);
     }
 
     #[tokio::test]
@@ -431,7 +447,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("123456".to_string())).await;
+        let result = repo.get_product(&("0".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ValidationError) = result {
@@ -507,10 +523,22 @@ mod tests {
         assert!(result.is_ok());
         let products = result.unwrap();
         assert_eq!(products.len(), 250);
+
         assert_eq!(products[0].id(), "gid://shopify/Product/0");
         assert_eq!(*(products[0].status()), ProductStatus::Active);
+        assert_eq!(
+            products[0].variants()[0].id(),
+            "gid://shopify/ProductVariant/0"
+        );
+
+        assert_eq!(*products[0].variants()[0].price(), 0);
         assert_eq!(products[249].id(), "gid://shopify/Product/249");
         assert_eq!(*(products[0].status()), ProductStatus::Active);
+        assert_eq!(
+            products[249].variants()[0].id(),
+            "gid://shopify/ProductVariant/249"
+        );
+        assert_eq!(*products[249].variants()[0].price(), 249);
     }
 
     #[tokio::test]
@@ -535,8 +563,18 @@ mod tests {
         assert!(result.is_ok());
         let products = result.unwrap();
         assert_eq!(products.len(), 10);
+
         assert_eq!(products[0].id(), "gid://shopify/Product/20");
+        assert_eq!(
+            products[0].variants()[0].id(),
+            "gid://shopify/ProductVariant/20"
+        );
+
         assert_eq!(products[9].id(), "gid://shopify/Product/29");
+        assert_eq!(
+            products[9].variants()[0].id(),
+            "gid://shopify/ProductVariant/29"
+        );
     }
 
     #[tokio::test]
