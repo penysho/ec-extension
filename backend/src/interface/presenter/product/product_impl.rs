@@ -1,8 +1,14 @@
+use std::collections::HashMap;
+
 use actix_web::web::{self, Json};
 use async_trait::async_trait;
 
 use crate::{
-    domain::{error::error::DomainError, product::product::Product},
+    domain::{
+        error::error::DomainError,
+        media::media::{AssociatedId, Media},
+        product::product::Product,
+    },
     interface::presenter::{
         product::schema::{
             GetProductResponse, GetProductResponseError, GetProductsResponse,
@@ -27,15 +33,17 @@ impl ProductPresenter for ProductPresenterImpl {
     /// Generate a response with detailed product information.
     async fn present_get_product(
         &self,
-        result: Result<Option<Product>, DomainError>,
+        result: Result<(Product, Vec<Media>), DomainError>,
     ) -> Result<Self::GetProductResponse, Self::GetProductResponseError> {
-        match result {
-            Ok(Some(product)) => Ok(web::Json(GetProductResponse {
-                product: ProductSchema::from(product),
-            })),
-            Ok(None) => Err(GetProductResponseError::ProductNotFound),
-            Err(_) => Err(GetProductResponseError::ServiceUnavailable),
-        }
+        let (product, media) = match result {
+            Ok((product, media)) => (product, media),
+            Err(DomainError::NotFound) => return Err(GetProductResponseError::NotFound),
+            Err(DomainError::ValidationError) => return Err(GetProductResponseError::BadRequest),
+            Err(_) => return Err(GetProductResponseError::ServiceUnavailable),
+        };
+
+        let schema = ProductSchema::to_response(product, media);
+        Ok(web::Json(GetProductResponse { product: schema }))
     }
 
     type GetProductsResponse = Json<GetProductsResponse>;
@@ -43,85 +51,150 @@ impl ProductPresenter for ProductPresenterImpl {
     /// Generate a response for the product list.
     async fn present_get_products(
         &self,
-        result: Result<Vec<Product>, DomainError>,
+        result: Result<(Vec<Product>, Vec<Media>), DomainError>,
     ) -> Result<Self::GetProductsResponse, Self::GetProductsResponseError> {
-        match result {
-            Ok(products) => {
-                let product_schemas: Vec<ProductSchema> = products
-                    .into_iter()
-                    .map(|product| ProductSchema::from(product))
-                    .collect();
-
-                Ok(web::Json(GetProductsResponse {
-                    products: product_schemas,
-                }))
-            }
-            Err(_) => Err(GetProductsResponseError::ServiceUnavailable),
+        let (products, media) = match result {
+            Ok((products, media)) => (products, media),
+            Err(DomainError::ValidationError) => return Err(GetProductsResponseError::BadRequest),
+            Err(_) => return Err(GetProductsResponseError::ServiceUnavailable),
+        };
+        if products.is_empty() {
+            return Err(GetProductsResponseError::NotFound);
         }
+
+        let mut media_map: HashMap<AssociatedId, Vec<Media>> =
+            media.into_iter().fold(HashMap::new(), |mut accum, medium| {
+                if let Some(associated_id) = medium.associated_id() {
+                    accum
+                        .entry(associated_id.to_owned())
+                        .or_insert_with(Vec::new)
+                        .push(medium);
+                }
+                accum
+            });
+
+        let product_schemas: Vec<ProductSchema> = products
+            .into_iter()
+            .map(|product| {
+                let media = media_map
+                    .remove(&AssociatedId::Product(product.id().to_owned()))
+                    .unwrap_or_else(Vec::new);
+
+                ProductSchema::to_response(product, media)
+            })
+            .collect();
+
+        Ok(web::Json(GetProductsResponse {
+            products: product_schemas,
+        }))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
+
     use crate::domain::{
-        media::media::{Media, MediaStatus},
-        product::product::ProductStatus,
+        media::{
+            media::{AssociatedId, Media, MediaStatus},
+            src::src::Src,
+        },
+        product::{
+            product::ProductStatus,
+            variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
+        },
     };
 
     use super::*;
 
-    fn mock_product() -> Product {
-        Product::new(
-            "1".to_string(),
-            "Test Product".to_string(),
-            100,
-            "Description".to_string(),
-            ProductStatus::Active,
-            Some("1".to_string()),
-            vec![mock_media()],
-        )
-        .unwrap()
+    fn mock_products(count: usize) -> Vec<Product> {
+        (0..count)
+            .map(|i| {
+                Product::new(
+                    format!("gid://shopify/Product/{i}"),
+                    format!("Test Product {i}"),
+                    "This is a test product description.",
+                    ProductStatus::Active,
+                    vec![Variant::new(
+                        "gid://shopify/ProductVariant/1".to_string(),
+                        Some("Test Variant 1"),
+                        100,
+                        Some(Sku::new("TESTSKU123").unwrap()),
+                        Some(Barcode::new("123456789012").unwrap()),
+                        Some(50),
+                        1,
+                        Utc::now(),
+                        Utc::now(),
+                    )
+                    .unwrap()],
+                    Some("gid://shopify/Category/111".to_string()),
+                )
+                .unwrap()
+            })
+            .collect()
     }
 
-    fn mock_media() -> Media {
-        Media::new(
-            "1".to_string(),
-            "Test Media".to_string(),
-            MediaStatus::Active,
-            Some("https://example.com/image.jpg".to_string()),
-        )
-        .unwrap()
+    fn mock_media(count: usize) -> Vec<Media> {
+        (0..count)
+            .map(|i| {
+                Media::new(
+                    format!("gid://shopify/ProductMedia/{}", i),
+                    Some(AssociatedId::Product(format!("gid://shopify/Product/{i}"))),
+                    Some(format!("Test Media {}", i)),
+                    MediaStatus::Active,
+                    Some(format!("gid://shopify/Product/{}", i)),
+                    Some(Src::new(format!("https://example.com/uploaded{}.jpg", i)).unwrap()),
+                    Some(Src::new(format!("https://example.com/published{}.jpg", i)).unwrap()),
+                    Utc::now(),
+                    Utc::now(),
+                )
+                .unwrap()
+            })
+            .collect()
     }
 
     #[actix_web::test]
     async fn test_present_get_product_success() {
         let presenter = ProductPresenterImpl::new();
-        let product = mock_product();
+        let product = mock_products(1).remove(0);
+        let media = mock_media(5);
 
         let result = presenter
-            .present_get_product(Ok(Some(product)))
+            .present_get_product(Ok((product, media)))
             .await
             .unwrap();
 
-        assert_eq!(result.product.name, "Test Product");
-        assert_eq!(result.product.price, 100);
-        assert_eq!(result.product.description, "Description");
+        assert_eq!(result.product.name, "Test Product 0");
+        assert_eq!(
+            result.product.description,
+            "This is a test product description."
+        );
     }
 
     #[actix_web::test]
     async fn test_present_get_product_not_found() {
         let presenter = ProductPresenterImpl::new();
 
-        let result = presenter.present_get_product(Ok(None)).await;
+        let result = presenter
+            .present_get_product(Err(DomainError::NotFound))
+            .await;
 
-        assert!(matches!(
-            result,
-            Err(GetProductResponseError::ProductNotFound)
-        ));
+        assert!(matches!(result, Err(GetProductResponseError::NotFound)));
     }
 
     #[actix_web::test]
-    async fn test_present_get_product_error() {
+    async fn test_present_get_product_bad_request() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter
+            .present_get_product(Err(DomainError::ValidationError))
+            .await;
+
+        assert!(matches!(result, Err(GetProductResponseError::BadRequest)));
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_product_service_unavailable() {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter
@@ -134,51 +207,45 @@ mod tests {
         ));
     }
 
-    fn mock_products() -> Vec<Product> {
-        vec![
-            Product::new(
-                "1".to_string(),
-                "Test Product 1".to_string(),
-                100,
-                "Description 1".to_string(),
-                ProductStatus::Active,
-                Some("1".to_string()),
-                vec![mock_media()],
-            )
-            .unwrap(),
-            Product::new(
-                "2".to_string(),
-                "Test Product 2".to_string(),
-                200,
-                "Description 2".to_string(),
-                ProductStatus::Active,
-                Some("2".to_string()),
-                vec![mock_media()],
-            )
-            .unwrap(),
-        ]
-    }
-
     #[actix_web::test]
     async fn test_present_get_products_success() {
         let presenter = ProductPresenterImpl::new();
-        let products = mock_products();
+        let products = mock_products(5);
+        let media = mock_media(5);
 
         let result = presenter
-            .present_get_products(Ok(products))
+            .present_get_products(Ok((products, media)))
             .await
             .unwrap()
             .into_inner();
 
-        assert_eq!(result.products.len(), 2);
-        assert_eq!(result.products[0].name, "Test Product 1");
-        assert_eq!(result.products[1].name, "Test Product 2");
-        assert_eq!(result.products[0].price, 100);
-        assert_eq!(result.products[1].price, 200);
+        assert_eq!(result.products.len(), 5);
+        assert_eq!(result.products[0].name, "Test Product 0");
+        assert_eq!(result.products[4].name, "Test Product 4");
     }
 
     #[actix_web::test]
-    async fn test_present_get_products_error() {
+    async fn test_present_get_products_not_found() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter.present_get_products(Ok((vec![], vec![]))).await;
+
+        assert!(matches!(result, Err(GetProductsResponseError::NotFound)));
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_products_bad_request() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter
+            .present_get_products(Err(DomainError::ValidationError))
+            .await;
+
+        assert!(matches!(result, Err(GetProductsResponseError::BadRequest)));
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_products_service_unavailable() {
         let presenter = ProductPresenterImpl::new();
 
         let result = presenter

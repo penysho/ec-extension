@@ -2,9 +2,9 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "build 'backend'",
       "type": "lldb",
       "request": "launch",
-      "name": "ec-extension 'backend'",
       "cargo": {
         "args": [
           "build",
@@ -20,6 +20,17 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/backend/.env"
-    }
+    },
+    // {
+    //   "name": "watch 'backend'",
+    //   "type": "lldb",
+    //   "request": "launch",
+    //   "program": "/usr/local/cargo/bin/cargo-watch",
+    //   "args": [
+    //      "-x run",
+    //   ],
+    //   "cwd": "${workspaceFolder}/backend",
+    //   "envFile": "${workspaceFolder}/backend/.env"
+    // }
   ]
 }

@@ -11,4 +11,6 @@ pub enum DomainError {
     InitConfigError,
     #[display(fmt = "Validation error.")]
     ValidationError,
+    #[display(fmt = "Resource not found.")]
+    NotFound,
 }

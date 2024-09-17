@@ -1,5 +1,6 @@
 use crate::domain::error::error::DomainError;
-use crate::domain::product::product::Product;
+use crate::domain::media::media::Media;
+use crate::domain::product::product::{Id as ProductId, Product};
 use async_trait::async_trait;
 use mockall::automock;
 
@@ -8,10 +9,13 @@ use mockall::automock;
 #[automock]
 #[async_trait]
 pub trait ProductInteractor {
-    async fn get_product(&self, id: &str) -> Result<Option<Product>, DomainError>;
+    async fn get_product_with_media(
+        &self,
+        id: &ProductId,
+    ) -> Result<(Product, Vec<Media>), DomainError>;
     async fn get_products(
         &self,
-        offset: &Option<u32>,
         limit: &Option<u32>,
-    ) -> Result<Vec<Product>, DomainError>;
+        offset: &Option<u32>,
+    ) -> Result<(Vec<Product>, Vec<Media>), DomainError>;
 }
