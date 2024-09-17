@@ -33,18 +33,24 @@ impl Product {
         description: impl Into<String>,
         status: ProductStatus,
         variants: Vec<Variant>,
-        category_id: Option<CategoryId>,
+        category_id: Option<impl Into<CategoryId>>,
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
+            log::error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
         let name = name.into();
         if name.is_empty() {
+            log::error!("Name cannot be empty");
             return Err(DomainError::ValidationError);
         }
         let description = description.into();
         if description.len() as u32 > Self::MAX_DESCRIPTION_LENGTH {
+            log::error!(
+                "Description cannot be longer than {} characters",
+                Self::MAX_DESCRIPTION_LENGTH
+            );
             return Err(DomainError::ValidationError);
         }
 
@@ -54,7 +60,7 @@ impl Product {
             description,
             status,
             variants,
-            category_id,
+            category_id: category_id.map(|c| c.into()),
         })
     }
 

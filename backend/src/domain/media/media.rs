@@ -47,10 +47,12 @@ impl Media {
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
+            log::error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
         if let MediaStatus::Active = status {
             if published_src.is_none() {
+                log::error!("Published src cannot be empty when status is active");
                 return Err(DomainError::ValidationError);
             }
         }
