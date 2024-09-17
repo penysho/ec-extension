@@ -7,7 +7,7 @@ use super::{barcode::barcode::Barcode, sku::sku::Sku};
 
 pub type Id = String;
 
-#[derive(Debug, Getters, Clone)]
+#[derive(Debug, Getters)]
 pub struct Variant {
     id: Id,
     name: Option<String>,
