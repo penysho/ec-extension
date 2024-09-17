@@ -1,3 +1,5 @@
 pub mod error;
-pub mod product;
+pub mod inventory;
+pub mod location;
 pub mod media;
+pub mod product;
