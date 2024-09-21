@@ -117,7 +117,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                 }}",
                 alias,
                 first_query,
-                ShopifyGQLQueryHelper::remove_product_gid_prefix(id)
+                ShopifyGQLQueryHelper::remove_gid_prefix(id)
             );
             query.push_str(&query_part);
         }

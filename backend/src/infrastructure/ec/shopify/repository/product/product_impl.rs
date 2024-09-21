@@ -193,7 +193,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             let product_ids = products_data
                 .edges
                 .into_iter()
-                .map(|node| ShopifyGQLQueryHelper::remove_product_gid_prefix(&node.node.id))
+                .map(|node| ShopifyGQLQueryHelper::remove_gid_prefix(&node.node.id))
                 .collect::<Vec<String>>()
                 .join(",");
 

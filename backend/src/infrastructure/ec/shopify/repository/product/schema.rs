@@ -69,7 +69,7 @@ impl VariantSchema {
         let inventory_quantity = self.inventory_quantity.map(|qty| qty as u32);
 
         Variant::new(
-            ShopifyGQLQueryHelper::remove_product_variant_gid_prefix(&self.id),
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
             None::<String>,
             self.price as u32,
             sku,
@@ -112,7 +112,7 @@ impl VariantSchema {
                     let category_id = variant_schema.product.category_id.clone();
 
                     let product_domain = Product::new(
-                        ShopifyGQLQueryHelper::remove_product_gid_prefix(&product_id),
+                        ShopifyGQLQueryHelper::remove_gid_prefix(&product_id),
                         title,
                         description,
                         status,

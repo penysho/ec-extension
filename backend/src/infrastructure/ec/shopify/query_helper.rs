@@ -26,22 +26,8 @@ impl ShopifyGQLQueryHelper {
     }
 
     /// Remove Shopify gid prefix.
-    pub fn remove_product_gid_prefix(gid: &str) -> String {
-        gid.replace(Self::SHOPIFY_PRODUCT_GID_PREFIX, "")
-    }
-
-    /// Remove Shopify gid prefix.
-    pub fn remove_product_variant_gid_prefix(gid: &str) -> String {
-        gid.replace(Self::SHOPIFY_PRODUCT_VARIANT_GID_PREFIX, "")
-    }
-
-    /// Remove Shopify gid prefix.
-    pub fn remove_media_image_gid_prefix(gid: &str) -> String {
-        gid.replace(Self::SHOPIFY_MEDIA_IMAGE_GID_PREFIX, "")
-    }
-
-    /// Remove Shopify gid prefix.
-    pub fn remove_inventory_item_gid_prefix(gid: &str) -> String {
-        gid.replace(Self::SHOPIFY_INVENTORY_ITEM_GID_PREFIX, "")
+    pub fn remove_gid_prefix(gid: &str) -> String {
+        let v: Vec<&str> = gid.rsplit('/').collect();
+        v[0].to_string()
     }
 }

@@ -52,7 +52,7 @@ impl MediaSchema {
         let published_src = self.src.map(Src::new).transpose()?;
 
         Media::new(
-            ShopifyGQLQueryHelper::remove_media_image_gid_prefix(&self.id),
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
             associated_id,
             None::<String>,
             status,
