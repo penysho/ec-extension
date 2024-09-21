@@ -196,12 +196,12 @@ mod tests {
         let media_nodes: Vec<Node<MediaNode>> = (0..count)
             .map(|i| Node {
                 node: MediaNode {
-                    id: format!("gid://shopify/Media/{i}"),
+                    id: format!("gid://shopify/MediaImage/{i}"),
                     file_status: "UPLOADED".to_string(),
                     alt: Some(format!("Alt text for media {i}")),
                     preview: Some(MediaPreviewImage {
                         image: Some(Image {
-                            url: format!("https://example.com/media/{i}.jpg"),
+                            url: format!("https://example.com/MediaImage/{i}.jpg"),
                         }),
                     }),
                     created_at: Utc::now(),
@@ -236,11 +236,11 @@ mod tests {
                                 "alt": "Alt text for media 0",
                                 "createdAt": "2024-07-30T15:37:45Z",
                                 "fileStatus": "READY",
-                                "id": "gid://shopify/Media/0",
+                                "id": "gid://shopify/MediaImage/0",
                                 "updatedAt": "2024-07-30T15:37:45Z",
                                 "preview": {
                                     "image": {
-                                        "id": "gid://shopify/Media/0",
+                                        "id": "gid://shopify/MediaImage/0",
                                         "url": "https://example.com/image0.jpg",
                                     }
                                 }
@@ -255,11 +255,11 @@ mod tests {
                                 "alt": "Alt text for media 1",
                                 "createdAt": "2024-07-30T15:37:45Z",
                                 "fileStatus": "READY",
-                                "id": "gid://shopify/Media/1",
+                                "id": "gid://shopify/MediaImage/1",
                                 "updatedAt": "2024-07-30T15:37:45Z",
                                 "preview": {
                                     "image": {
-                                        "id": "gid://shopify/Media/1",
+                                        "id": "gid://shopify/MediaImage/1",
                                         "url": "https://example.com/image1.jpg",
                                     }
                                 }
@@ -306,8 +306,8 @@ mod tests {
         assert!(result.is_ok());
         let media = result.unwrap();
         assert_eq!(media.len(), 10);
-        assert_eq!(media[0].id(), "gid://shopify/Media/0");
-        assert_eq!(media[9].id(), "gid://shopify/Media/9");
+        assert_eq!(media[0].id(), "0");
+        assert_eq!(media[9].id(), "9");
     }
 
     #[tokio::test]
@@ -403,8 +403,8 @@ mod tests {
         assert!(result.is_ok());
         let media = result.unwrap();
         assert_eq!(media.len(), 2);
-        assert_eq!(media[0].id(), "gid://shopify/Media/0");
-        assert_eq!(media[1].id(), "gid://shopify/Media/1");
+        assert_eq!(media[0].id(), "0");
+        assert_eq!(media[1].id(), "1");
     }
 
     #[tokio::test]

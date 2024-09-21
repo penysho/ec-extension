@@ -11,7 +11,9 @@ use crate::{
             variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
         },
     },
-    infrastructure::ec::shopify::repository::common::schema::Edges,
+    infrastructure::ec::shopify::{
+        query_helper::ShopifyGQLQueryHelper, repository::common::schema::Edges,
+    },
 };
 
 #[derive(Debug, Deserialize)]
@@ -67,7 +69,7 @@ impl VariantSchema {
         let inventory_quantity = self.inventory_quantity.map(|qty| qty as u32);
 
         Variant::new(
-            self.id.clone(),
+            ShopifyGQLQueryHelper::remove_product_variant_gid_prefix(&self.id),
             None::<String>,
             self.price as u32,
             sku,
@@ -98,7 +100,7 @@ impl VariantSchema {
                     let _ = product.add_variant(variant_domain);
                 }
                 None => {
-                    let product_id = variant_schema.product.id.clone();
+                    let product_id = variant_schema.product.id;
                     let title = variant_schema.product.title.clone();
                     let description = variant_schema.product.description.clone();
                     let status = match variant_schema.product.status.as_str() {
@@ -110,7 +112,7 @@ impl VariantSchema {
                     let category_id = variant_schema.product.category_id.clone();
 
                     let product_domain = Product::new(
-                        product_id.clone(),
+                        ShopifyGQLQueryHelper::remove_product_gid_prefix(&product_id),
                         title,
                         description,
                         status,
@@ -118,6 +120,7 @@ impl VariantSchema {
                         category_id,
                     )?;
 
+                    // keep indexMap with gid.
                     index_map.insert(product_id.clone(), products_domains.len());
                     products_domains.push(product_domain);
                 }

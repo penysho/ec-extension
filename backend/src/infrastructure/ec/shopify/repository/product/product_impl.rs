@@ -456,9 +456,9 @@ mod tests {
 
         assert!(result.is_ok());
         let product = result.unwrap();
-        assert_eq!(product.id(), "gid://shopify/Product/0");
+        assert_eq!(product.id(), "0");
         assert_eq!(*product.status(), ProductStatus::Active);
-        assert_eq!(product.variants()[0].id(), "gid://shopify/ProductVariant/0");
+        assert_eq!(product.variants()[0].id(), "0");
         assert_eq!(*product.variants()[0].price(), 0);
     }
 
@@ -490,13 +490,13 @@ mod tests {
 
         assert!(result.is_ok());
         let product = result.unwrap();
-        assert_eq!(product.id(), "gid://shopify/Product/0");
+        assert_eq!(product.id(), "0");
         assert_eq!(*product.status(), ProductStatus::Active);
 
         assert_eq!(product.variants().len(), 2);
-        assert_eq!(product.variants()[0].id(), "gid://shopify/ProductVariant/0");
+        assert_eq!(product.variants()[0].id(), "0");
         assert_eq!(*product.variants()[0].price(), 0);
-        assert_eq!(product.variants()[1].id(), "gid://shopify/ProductVariant/1");
+        assert_eq!(product.variants()[1].id(), "1");
         assert_eq!(*product.variants()[1].price(), 1);
     }
 
@@ -615,20 +615,14 @@ mod tests {
         let products = result.unwrap();
         assert_eq!(products.len(), 250);
 
-        assert_eq!(products[0].id(), "gid://shopify/Product/0");
+        assert_eq!(products[0].id(), "0");
         assert_eq!(*(products[0].status()), ProductStatus::Active);
-        assert_eq!(
-            products[0].variants()[0].id(),
-            "gid://shopify/ProductVariant/0"
-        );
+        assert_eq!(products[0].variants()[0].id(), "0");
 
         assert_eq!(*products[0].variants()[0].price(), 0);
-        assert_eq!(products[249].id(), "gid://shopify/Product/249");
+        assert_eq!(products[249].id(), "249");
         assert_eq!(*(products[0].status()), ProductStatus::Active);
-        assert_eq!(
-            products[249].variants()[0].id(),
-            "gid://shopify/ProductVariant/249"
-        );
+        assert_eq!(products[249].variants()[0].id(), "249");
         assert_eq!(*products[249].variants()[0].price(), 249);
     }
 
@@ -667,17 +661,11 @@ mod tests {
         let products = result.unwrap();
         assert_eq!(products.len(), 10);
 
-        assert_eq!(products[0].id(), "gid://shopify/Product/20");
-        assert_eq!(
-            products[0].variants()[0].id(),
-            "gid://shopify/ProductVariant/20"
-        );
+        assert_eq!(products[0].id(), "20");
+        assert_eq!(products[0].variants()[0].id(), "20");
 
-        assert_eq!(products[9].id(), "gid://shopify/Product/29");
-        assert_eq!(
-            products[9].variants()[0].id(),
-            "gid://shopify/ProductVariant/29"
-        );
+        assert_eq!(products[9].id(), "29");
+        assert_eq!(products[9].variants()[0].id(), "29");
     }
 
     #[tokio::test]
@@ -735,17 +723,11 @@ mod tests {
         let products = result.unwrap();
         assert_eq!(products.len(), 480);
 
-        assert_eq!(products[0].id(), "gid://shopify/Product/20");
-        assert_eq!(
-            products[0].variants()[0].id(),
-            "gid://shopify/ProductVariant/20"
-        );
+        assert_eq!(products[0].id(), "20");
+        assert_eq!(products[0].variants()[0].id(), "20");
 
-        assert_eq!(products[479].id(), "gid://shopify/Product/499");
-        assert_eq!(
-            products[479].variants()[0].id(),
-            "gid://shopify/ProductVariant/499"
-        );
+        assert_eq!(products[479].id(), "499");
+        assert_eq!(products[479].variants()[0].id(), "499");
     }
 
     #[tokio::test]

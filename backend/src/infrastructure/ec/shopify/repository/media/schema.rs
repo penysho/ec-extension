@@ -9,7 +9,9 @@ use crate::{
             src::src::Src,
         },
     },
-    infrastructure::ec::shopify::repository::common::schema::Edges,
+    infrastructure::ec::shopify::{
+        query_helper::ShopifyGQLQueryHelper, repository::common::schema::Edges,
+    },
 };
 
 #[derive(Debug, Deserialize)]
@@ -50,7 +52,7 @@ impl MediaSchema {
         let published_src = self.src.map(Src::new).transpose()?;
 
         Media::new(
-            self.id,
+            ShopifyGQLQueryHelper::remove_media_image_gid_prefix(&self.id),
             associated_id,
             None::<String>,
             status,
