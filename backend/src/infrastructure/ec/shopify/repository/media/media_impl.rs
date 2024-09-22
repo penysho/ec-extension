@@ -12,9 +12,9 @@ use crate::{
             ec_client_interface::ECClient,
             shopify::{
                 query_helper::ShopifyGQLQueryHelper,
-                repository::{
-                    common::schema::GraphQLResponse,
-                    media::schema::{MediaData, MediaSchema},
+                repository::schema::{
+                    common::GraphQLResponse,
+                    media::{MediaData, MediaNode, MediaSchema},
                 },
             },
         },
@@ -22,8 +22,6 @@ use crate::{
     },
     usecase::repository::media_repository_interface::MediaRepository,
 };
-
-use super::schema::MediaNode;
 
 /// Repository for products for Shopify.
 pub struct MediaRepositoryImpl<C: ECClient> {
@@ -182,10 +180,10 @@ mod tests {
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
-                common::schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
-                media::{
-                    media_impl::MediaRepositoryImpl,
-                    schema::{Image, MediaData, MediaNode, MediaPreviewImage},
+                media::media_impl::MediaRepositoryImpl,
+                schema::{
+                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
+                    media::{Image, MediaData, MediaNode, MediaPreviewImage},
                 },
             },
         },

@@ -10,18 +10,18 @@ use crate::{
         },
     },
     infrastructure::ec::shopify::{
-        query_helper::ShopifyGQLQueryHelper, repository::common::schema::Edges,
+        query_helper::ShopifyGQLQueryHelper, repository::schema::common::Edges,
     },
 };
 
 #[derive(Debug, Deserialize)]
-pub(super) struct MediaSchema {
-    pub(super) id: String,
-    pub(super) status: String,
-    pub(super) alt: Option<String>,
-    pub(super) src: Option<String>,
-    pub(super) created_at: DateTime<Utc>,
-    pub(super) updated_at: DateTime<Utc>,
+pub struct MediaSchema {
+    pub id: String,
+    pub status: String,
+    pub alt: Option<String>,
+    pub src: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl From<MediaNode> for MediaSchema {
@@ -38,10 +38,7 @@ impl From<MediaNode> for MediaSchema {
 }
 
 impl MediaSchema {
-    pub(super) fn to_domain(
-        self,
-        associated_id: Option<AssociatedId>,
-    ) -> Result<Media, DomainError> {
+    pub fn to_domain(self, associated_id: Option<AssociatedId>) -> Result<Media, DomainError> {
         let status = match self.status.as_str() {
             "UPLOADED" | "READY" => MediaStatus::Active,
             "FAILED" => MediaStatus::Inactive,
@@ -64,7 +61,7 @@ impl MediaSchema {
         )
     }
 
-    pub(super) fn to_domains(
+    pub fn to_domains(
         schemas: Vec<MediaSchema>,
         associated_ids: Vec<Option<AssociatedId>>,
     ) -> Result<Vec<Media>, DomainError> {
@@ -77,29 +74,29 @@ impl MediaSchema {
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct Image {
-    pub(super) url: String,
+pub struct Image {
+    pub url: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct MediaPreviewImage {
-    pub(super) image: Option<Image>,
+pub struct MediaPreviewImage {
+    pub image: Option<Image>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct MediaNode {
-    pub(super) id: String,
+pub struct MediaNode {
+    pub id: String,
     #[serde(rename = "fileStatus")]
-    pub(super) file_status: String,
-    pub(super) alt: Option<String>,
-    pub(super) preview: Option<MediaPreviewImage>,
+    pub file_status: String,
+    pub alt: Option<String>,
+    pub preview: Option<MediaPreviewImage>,
     #[serde(rename = "createdAt")]
-    pub(super) created_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
     #[serde(rename = "updatedAt")]
-    pub(super) updated_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
-pub(super) struct MediaData {
-    pub(super) files: Edges<MediaNode>,
+pub struct MediaData {
+    pub files: Edges<MediaNode>,
 }

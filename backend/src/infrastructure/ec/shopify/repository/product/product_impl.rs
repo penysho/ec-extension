@@ -10,16 +10,14 @@ use crate::{
         ec_client_interface::ECClient,
         shopify::{
             query_helper::ShopifyGQLQueryHelper,
-            repository::{
-                common::schema::GraphQLResponse,
-                product::schema::{ProductsData, VariantsData},
+            repository::schema::{
+                common::GraphQLResponse,
+                product::{ProductsData, VariantSchema, VariantsData},
             },
         },
     },
     usecase::repository::product_repository_interface::ProductRepository,
 };
-
-use super::schema::VariantSchema;
 
 /// Repository for products for Shopify.
 pub struct ProductRepositoryImpl<C: ECClient> {
@@ -308,8 +306,8 @@ mod tests {
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
-                common::schema::{Edges, GraphQLError, Node, PageInfo},
-                product::schema::{
+                schema::common::{Edges, GraphQLError, Node, PageInfo},
+                schema::product::{
                     InventoryNode, MaxVariantPrice, PriceRangeV2, ProductNode, TaxonomyCategory,
                     VariantNode,
                 },
