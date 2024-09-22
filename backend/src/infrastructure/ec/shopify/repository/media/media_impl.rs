@@ -177,7 +177,7 @@ mod tests {
     use serde_json::{json, Value};
 
     use crate::{
-        domain::error::error::DomainError,
+        domain::{error::error::DomainError, media::media::MediaStatus},
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
@@ -306,7 +306,20 @@ mod tests {
         let media = result.unwrap();
         assert_eq!(media.len(), 10);
         assert_eq!(media[0].id(), "0");
+        assert_eq!(*media[0].status(), MediaStatus::Active);
+        assert_eq!(
+            media[0].published_src().as_ref().unwrap().value(),
+            "https://example.com/MediaImage/0.jpg"
+        );
+        assert_eq!(media[0].alt().as_deref().unwrap(), "Alt text for media 0");
+
         assert_eq!(media[9].id(), "9");
+        assert_eq!(*media[9].status(), MediaStatus::Active);
+        assert_eq!(
+            media[9].published_src().as_ref().unwrap().value(),
+            "https://example.com/MediaImage/9.jpg"
+        );
+        assert_eq!(media[9].alt().as_deref().unwrap(), "Alt text for media 9");
     }
 
     #[tokio::test]
