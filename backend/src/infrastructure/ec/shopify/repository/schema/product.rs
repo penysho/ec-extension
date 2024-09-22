@@ -63,7 +63,7 @@ impl From<VariantNode> for VariantSchema {
 }
 
 impl VariantSchema {
-    pub fn to_variant_domain(&self) -> Result<Variant, DomainError> {
+    pub fn to_variant_domain(self) -> Result<Variant, DomainError> {
         let sku = self.sku.clone().map(Sku::new).transpose()?;
         let barcode = self.barcode.clone().map(Barcode::new).transpose()?;
         let inventory_quantity = self.inventory_quantity.map(|qty| qty as u32);
@@ -92,15 +92,14 @@ impl VariantSchema {
         let mut products_domains: Vec<Product> = Vec::new();
 
         for variant_schema in variant_schemas {
-            let variant_domain = variant_schema.to_variant_domain()?;
-
             match index_map.get(&variant_schema.product.id) {
                 Some(index) => {
                     let product = products_domains.get_mut(*index).unwrap();
+                    let variant_domain = variant_schema.to_variant_domain()?;
                     let _ = product.add_variant(variant_domain);
                 }
                 None => {
-                    let product_id = variant_schema.product.id;
+                    let product_id = variant_schema.product.id.clone();
                     let title = variant_schema.product.title.clone();
                     let description = variant_schema.product.description.clone();
                     let status = match variant_schema.product.status.as_str() {
@@ -110,6 +109,7 @@ impl VariantSchema {
                         _ => ProductStatus::Inactive,
                     };
                     let category_id = variant_schema.product.category_id.clone();
+                    let variant_domain = variant_schema.to_variant_domain()?;
 
                     let product_domain = Product::new(
                         ShopifyGQLQueryHelper::remove_gid_prefix(&product_id),
