@@ -89,12 +89,12 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
 
     async fn get_media_by_product_ids(
         &self,
-        ids: Vec<&ProductId>,
+        product_ids: Vec<&ProductId>,
     ) -> Result<Vec<Media>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
 
         let mut query = String::from("query { ");
-        for (i, id) in ids.iter().enumerate() {
+        for (i, id) in product_ids.iter().enumerate() {
             let alias = format!("i{}", i);
             let query_part = format!(
                 "{}: files({}, query: \"product_id:'{}'\") {{
@@ -140,7 +140,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         }
 
         let mut media_schemas = Vec::new();
-        for (i, _) in ids.iter().enumerate() {
+        for (i, _) in product_ids.iter().enumerate() {
             let alias = format!("i{}", i);
 
             if let Some(file_data) = data.get(&alias).and_then(|d| d.as_object()) {
@@ -161,7 +161,8 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
 
         let media_domains: Result<Vec<Media>, DomainError> = MediaSchema::to_domains(
             media_schemas,
-            ids.into_iter()
+            product_ids
+                .into_iter()
                 .map(|id| Some(AssociatedId::Product(id.to_string())))
                 .collect(),
         );
