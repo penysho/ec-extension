@@ -192,7 +192,7 @@ mod tests {
     };
 
     fn mock_media_response(count: usize) -> GraphQLResponse<MediaData> {
-        let media_nodes: Vec<Node<MediaNode>> = (0..count)
+        let nodes: Vec<Node<MediaNode>> = (0..count)
             .map(|i| Node {
                 node: MediaNode {
                     id: format!("gid://shopify/MediaImage/{i}"),
@@ -212,7 +212,7 @@ mod tests {
         GraphQLResponse {
             data: Some(MediaData {
                 files: Edges {
-                    edges: media_nodes,
+                    edges: nodes,
                     page_info: PageInfo {
                         has_previous_page: false,
                         has_next_page: false,
