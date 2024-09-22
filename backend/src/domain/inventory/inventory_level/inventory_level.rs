@@ -11,8 +11,6 @@ pub struct InventoryLevel {
     id: Id,
     location_id: LocationId,
     quantities: Vec<Quantity>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
 }
 
 impl InventoryLevel {
@@ -20,8 +18,6 @@ impl InventoryLevel {
         id: impl Into<String>,
         location_id: impl Into<LocationId>,
         quantities: Vec<Quantity>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
@@ -33,8 +29,6 @@ impl InventoryLevel {
             id,
             location_id: location_id.into(),
             quantities,
-            created_at,
-            updated_at,
         })
     }
 }
