@@ -3,7 +3,10 @@ use serde::Deserialize;
 
 use crate::infrastructure::ec::shopify::repository::schema::product::VariantSchema;
 
-use super::product::VariantNode;
+use super::{
+    location::{LocationNode, LocationSchema},
+    product::VariantNode,
+};
 
 impl From<InventoryItemNode> for InventoryItemSchema {
     fn from(node: InventoryItemNode) -> Self {
@@ -67,11 +70,6 @@ pub struct QuantitySchema {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct LocationSchema {
-    pub id: String,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct InventoryItemNode {
     pub id: String,
     pub variant: VariantNode,
@@ -95,9 +93,4 @@ pub struct InventoryLevelNode {
 pub struct QuantityNode {
     pub quantity: i32,
     pub name: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct LocationNode {
-    pub id: String,
 }
