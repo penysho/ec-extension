@@ -81,6 +81,29 @@ impl VariantSchema {
         )
     }
 
+    pub fn to_product_domain(self) -> Result<Product, DomainError> {
+        let product_id = self.product.id.clone();
+        let title = self.product.title.clone();
+        let description = self.product.description.clone();
+        let status = match self.product.status.as_str() {
+            "ACTIVE" => ProductStatus::Active,
+            "ARCHIVED" => ProductStatus::Inactive,
+            "DRAFT" => ProductStatus::Draft,
+            _ => ProductStatus::Inactive,
+        };
+        let category_id = self.product.category_id.clone();
+        let variant_domain = self.to_variant_domain()?;
+
+        Product::new(
+            ShopifyGQLQueryHelper::remove_gid_prefix(&product_id),
+            title,
+            description,
+            status,
+            vec![variant_domain],
+            category_id,
+        )
+    }
+
     pub fn to_product_domains(
         variant_schemas: Vec<VariantSchema>,
     ) -> Result<Vec<Product>, DomainError> {
@@ -90,7 +113,6 @@ impl VariantSchema {
 
         let mut index_map: HashMap<String, usize> = HashMap::new();
         let mut products_domains: Vec<Product> = Vec::new();
-
         for variant_schema in variant_schemas {
             match index_map.get(&variant_schema.product.id) {
                 Some(index) => {
@@ -99,30 +121,12 @@ impl VariantSchema {
                     let _ = product.add_variant(variant_domain);
                 }
                 None => {
-                    let product_id = variant_schema.product.id.clone();
-                    let title = variant_schema.product.title.clone();
-                    let description = variant_schema.product.description.clone();
-                    let status = match variant_schema.product.status.as_str() {
-                        "ACTIVE" => ProductStatus::Active,
-                        "ARCHIVED" => ProductStatus::Inactive,
-                        "DRAFT" => ProductStatus::Draft,
-                        _ => ProductStatus::Inactive,
-                    };
-                    let category_id = variant_schema.product.category_id.clone();
-                    let variant_domain = variant_schema.to_variant_domain()?;
-
-                    let product_domain = Product::new(
-                        ShopifyGQLQueryHelper::remove_gid_prefix(&product_id),
-                        title,
-                        description,
-                        status,
-                        vec![variant_domain],
-                        category_id,
-                    )?;
-
-                    // keep indexMap with gid.
-                    index_map.insert(product_id.clone(), products_domains.len());
-                    products_domains.push(product_domain);
+                    variant_schema.to_product_domain().map(|product_domain| {
+                        let product_id = product_domain.id().clone();
+                        // keep indexMap with gid.
+                        index_map.insert(product_id.clone(), products_domains.len());
+                        products_domains.push(product_domain);
+                    })?;
                 }
             };
         }
