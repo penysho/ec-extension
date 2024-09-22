@@ -99,7 +99,10 @@ mod tests {
     use serde_json::Value;
 
     use crate::{
-        domain::error::error::DomainError,
+        domain::{
+            error::error::DomainError,
+            inventory::inventory_level::quantity::quantity::InventoryType,
+        },
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
@@ -131,10 +134,12 @@ mod tests {
                             location: LocationNode {
                                 id: format!("gid://shopify/Location/{i}"),
                             },
-                            quantities: QuantityNode {
-                                quantity: 50,
-                                name: "available".to_string(),
-                            },
+                            quantities: (0..count)
+                                .map(|i| QuantityNode {
+                                    quantity: i as i32,
+                                    name: "available".to_string(),
+                                })
+                                .collect(),
                         }),
                         requires_shipping: true,
                         tracked: true,
@@ -197,7 +202,48 @@ mod tests {
         let inventories = result.unwrap();
         assert_eq!(inventories.len(), 10);
         assert_eq!(inventories[0].id(), "0");
+        assert_eq!(inventories[0].variant_id(), "0");
+        assert_eq!(inventories[0].inventory_level().as_ref().unwrap().id(), "0");
+        assert_eq!(
+            inventories[0]
+                .inventory_level()
+                .as_ref()
+                .unwrap()
+                .location_id(),
+            "0"
+        );
+        assert_eq!(
+            inventories[0]
+                .inventory_level()
+                .as_ref()
+                .unwrap()
+                .quantities()
+                .into_iter()
+                .map(|q| q.quantity().clone())
+                .collect::<Vec<u32>>(),
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        );
+        assert_eq!(
+            *(inventories[0]
+                .inventory_level()
+                .as_ref()
+                .unwrap()
+                .quantities()[0]
+                .inventory_type()),
+            InventoryType::Available
+        );
+
         assert_eq!(inventories[9].id(), "9");
+        assert_eq!(inventories[9].variant_id(), "9");
+        assert_eq!(inventories[9].inventory_level().as_ref().unwrap().id(), "9");
+        assert_eq!(
+            inventories[9]
+                .inventory_level()
+                .as_ref()
+                .unwrap()
+                .location_id(),
+            "9"
+        );
     }
 
     #[tokio::test]

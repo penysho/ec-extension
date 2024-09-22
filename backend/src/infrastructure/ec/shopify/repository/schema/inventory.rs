@@ -26,7 +26,7 @@ impl InventoryItemSchema {
 
         Inventory::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            self.variant_id,
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.variant_id),
             inventory_level,
             self.requires_shipping,
             self.tracked,
@@ -53,7 +53,7 @@ impl InventoryLevelSchema {
 
         InventoryLevel::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            self.location_id,
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.location_id),
             quantities?,
         )
     }
@@ -94,7 +94,7 @@ impl From<InventoryLevelNode> for InventoryLevelSchema {
         InventoryLevelSchema {
             id: node.id,
             location_id: node.location.id,
-            quantities: vec![node.quantities.into()],
+            quantities: node.quantities.into_iter().map(|q| q.into()).collect(),
         }
     }
 }
@@ -151,7 +151,7 @@ pub struct InventoryItemNode {
 pub struct InventoryLevelNode {
     pub id: String,
     pub location: LocationNode,
-    pub quantities: QuantityNode,
+    pub quantities: Vec<QuantityNode>,
 }
 
 #[derive(Debug, Deserialize)]
