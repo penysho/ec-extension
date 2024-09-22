@@ -137,30 +137,12 @@ pub struct TaxonomyCategory {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MaxVariantPrice {
-    pub amount: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct PriceRangeV2 {
-    #[serde(rename = "maxVariantPrice")]
-    pub max_variant_price: MaxVariantPrice,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct InventoryNode {
-    pub id: String,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct ProductNode {
     pub id: String,
 
     pub category: Option<TaxonomyCategory>,
 
     pub title: String,
-    #[serde(rename = "priceRangeV2")]
-    pub price: PriceRangeV2,
     pub description: String,
     pub status: String,
 }
@@ -175,8 +157,6 @@ pub struct VariantNode {
     pub id: String,
 
     pub product: ProductNode,
-    #[serde(rename = "inventoryItem")]
-    pub inventory_item: InventoryNode,
 
     pub barcode: Option<String>,
     #[serde(rename = "inventoryQuantity")]

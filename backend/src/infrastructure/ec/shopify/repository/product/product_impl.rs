@@ -307,10 +307,7 @@ mod tests {
             ec_client_interface::MockECClient,
             shopify::repository::{
                 schema::common::{Edges, GraphQLError, Node, PageInfo},
-                schema::product::{
-                    InventoryNode, MaxVariantPrice, PriceRangeV2, ProductNode, TaxonomyCategory,
-                    VariantNode,
-                },
+                schema::product::{ProductNode, TaxonomyCategory, VariantNode},
             },
         },
     };
@@ -334,16 +331,8 @@ mod tests {
                             id: "gid://shopify/Category/111".to_string(),
                         }),
                         title: format!("Test Product {i}"),
-                        price: PriceRangeV2 {
-                            max_variant_price: MaxVariantPrice {
-                                amount: format!("{i}.00"),
-                            },
-                        },
                         description: format!("Test Description {i}"),
                         status: "ACTIVE".to_string(),
-                    },
-                    inventory_item: InventoryNode {
-                        id: "gid://shopify/InventoryItem/789012".to_string(),
                     },
                     barcode: Some("123456789012".to_string()),
                     inventory_quantity: Some(i as i32),
@@ -385,11 +374,6 @@ mod tests {
                         id: "gid://shopify/Category/111".to_string(),
                     }),
                     title: format!("Test Product {i}"),
-                    price: PriceRangeV2 {
-                        max_variant_price: MaxVariantPrice {
-                            amount: format!("{i}.00"),
-                        },
-                    },
                     description: format!("Test Description {i}"),
                     status: "ACTIVE".to_string(),
                 },
