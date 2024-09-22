@@ -52,18 +52,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                                 price
                                 createdAt
                                 updatedAt
-                                inventoryItem {{
-                                    id
-                                }}
                                 product {{
                                     id
                                     title
                                     handle
-                                    priceRangeV2 {{
-                                        maxVariantPrice {{
-                                            amount
-                                        }}
-                                    }}
                                     description(truncateAt: {description_length})
                                     status
                                     category {{
@@ -135,11 +127,6 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                                     id
                                     title
                                     handle
-                                    priceRangeV2 {{
-                                        maxVariantPrice {{
-                                            amount
-                                        }}
-                                    }}
                                     description(truncateAt: {description_length})
                                     status
                                     category {{
@@ -217,18 +204,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                                     price
                                     createdAt
                                     updatedAt
-                                    inventoryItem {{
-                                        id
-                                    }}
                                     product {{
                                         id
                                         title
                                         handle
-                                        priceRangeV2 {{
-                                            maxVariantPrice {{
-                                                amount
-                                            }}
-                                        }}
                                         description(truncateAt: {description_length})
                                         status
                                         category {{
