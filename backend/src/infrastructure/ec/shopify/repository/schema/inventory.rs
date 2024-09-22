@@ -12,12 +12,10 @@ use crate::{
             },
         },
     },
-    infrastructure::ec::shopify::{
-        query_helper::ShopifyGQLQueryHelper, repository::schema::product::VariantSchema,
-    },
+    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
-use super::{common::Edges, location::LocationNode, product::VariantNode};
+use super::{common::Edges, location::LocationNode};
 
 impl InventoryItemSchema {
     pub fn to_domain(self) -> Result<Inventory, DomainError> {
@@ -28,7 +26,7 @@ impl InventoryItemSchema {
 
         Inventory::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            self.variant.id,
+            self.variant_id,
             inventory_level,
             self.requires_shipping,
             self.tracked,
@@ -81,7 +79,7 @@ impl From<InventoryItemNode> for InventoryItemSchema {
     fn from(node: InventoryItemNode) -> Self {
         InventoryItemSchema {
             id: node.id,
-            variant: node.variant.into(),
+            variant_id: node.variant.id,
             inventory_level: node.inventory_level.map(|level| level.into()),
             requires_shipping: node.requires_shipping,
             tracked: node.tracked,
@@ -113,7 +111,7 @@ impl From<QuantityNode> for QuantitySchema {
 #[derive(Debug, Deserialize)]
 pub struct InventoryItemSchema {
     pub id: String,
-    pub variant: VariantSchema,
+    pub variant_id: String,
     pub inventory_level: Option<InventoryLevelSchema>,
     pub requires_shipping: bool,
     pub tracked: bool,
@@ -137,7 +135,7 @@ pub struct QuantitySchema {
 #[derive(Debug, Deserialize)]
 pub struct InventoryItemNode {
     pub id: String,
-    pub variant: VariantNode,
+    pub variant: VariantIdNode,
     #[serde(rename = "inventoryLevel")]
     pub inventory_level: Option<InventoryLevelNode>,
     #[serde(rename = "requiresShipping")]
@@ -160,6 +158,11 @@ pub struct InventoryLevelNode {
 pub struct QuantityNode {
     pub quantity: i32,
     pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VariantIdNode {
+    pub id: String,
 }
 
 #[derive(Debug, Deserialize)]
