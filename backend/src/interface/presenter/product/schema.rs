@@ -90,7 +90,7 @@ impl From<Media> for MediaSchema {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GetProductResponse {
-    pub(super) product: ProductSchema,
+    pub product: ProductSchema,
 }
 
 #[derive(Debug, Display, Error)]
