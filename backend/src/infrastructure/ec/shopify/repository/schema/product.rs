@@ -64,8 +64,8 @@ impl From<VariantNode> for VariantSchema {
 
 impl VariantSchema {
     pub fn to_variant_domain(self) -> Result<Variant, DomainError> {
-        let sku = self.sku.clone().map(Sku::new).transpose()?;
-        let barcode = self.barcode.clone().map(Barcode::new).transpose()?;
+        let sku = self.sku.map(Sku::new).transpose()?;
+        let barcode = self.barcode.map(Barcode::new).transpose()?;
         let inventory_quantity = self.inventory_quantity.map(|qty| qty as u32);
 
         Variant::new(
@@ -114,7 +114,9 @@ impl VariantSchema {
         let mut index_map: HashMap<String, usize> = HashMap::new();
         let mut products_domains: Vec<Product> = Vec::new();
         for variant_schema in variant_schemas {
-            match index_map.get(&variant_schema.product.id) {
+            match index_map.get(&ShopifyGQLQueryHelper::remove_gid_prefix(
+                &variant_schema.product.id,
+            )) {
                 Some(index) => {
                     let product = products_domains.get_mut(*index).unwrap();
                     let variant_domain = variant_schema.to_variant_domain()?;
@@ -124,7 +126,7 @@ impl VariantSchema {
                     variant_schema.to_product_domain().map(|product_domain| {
                         let product_id = product_domain.id().clone();
                         // keep indexMap with gid.
-                        index_map.insert(product_id.clone(), products_domains.len());
+                        index_map.insert(product_id, products_domains.len());
                         products_domains.push(product_domain);
                     })?;
                 }
