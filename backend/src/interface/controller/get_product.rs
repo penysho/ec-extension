@@ -7,7 +7,7 @@ use crate::interface::{
 use actix_web::{web::Path, Responder};
 
 impl Controller {
-    /// Obtain detailed product information.
+    /// Get detailed product information.
     pub async fn get_product(&self, path: Path<(String,)>) -> impl Responder {
         let id = &path.into_inner().0;
 

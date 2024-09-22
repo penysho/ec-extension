@@ -23,7 +23,7 @@ impl MediaInteractorImpl {
 
 #[async_trait]
 impl MediaInteractor for MediaInteractorImpl {
-    /// Obtain a list of media by product id.
+    /// Get a list of media by product id.
     async fn get_media_by_product_id(
         &self,
         product_id: &ProductId,

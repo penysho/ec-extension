@@ -32,7 +32,7 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
-    /// Obtain detailed product information.
+    /// Get detailed product information.
     async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
         let first_query = ShopifyGQLQueryHelper::first_query();

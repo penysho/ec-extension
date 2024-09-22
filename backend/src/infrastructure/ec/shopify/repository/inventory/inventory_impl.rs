@@ -32,7 +32,7 @@ impl<C: ECClient> InventoryRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<C> {
-    /// Obtain product inventory information.
+    /// Get product inventory information.
     async fn get_inventories_by_product_id(
         &self,
         product_id: &ProductId,

@@ -12,7 +12,7 @@ pub struct GetProductsQueryParams {
 }
 
 impl Controller {
-    /// Obtain a list of products.
+    /// Get a list of products.
     pub async fn get_products(&self, params: web::Query<GetProductsQueryParams>) -> impl Responder {
         let interactor = self.interact_provider.provide_product_interactor().await;
         let results = interactor.get_products(&params.limit, &params.offset).await;
