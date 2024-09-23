@@ -6,7 +6,10 @@ use serde::{Deserialize, Serialize};
 use crate::{
     domain::{
         media::media::{Media, MediaStatus},
-        product::product::{Product, ProductStatus},
+        product::{
+            product::{Product, ProductStatus},
+            variant::variant::Variant,
+        },
     },
     interface::presenter::common::exception::GenericResponseError,
 };
@@ -29,13 +32,23 @@ pub enum MediaStatusEnum {
 pub struct ProductSchema {
     pub(super) id: String,
     pub(super) name: String,
-    pub(super) price: u32,
     pub(super) description: String,
     pub(super) status: ProductStatusEnum,
-    pub(super) created_at: DateTime<Utc>,
-    pub(super) updated_at: DateTime<Utc>,
     pub(super) category_id: Option<String>,
     pub(super) media: Vec<MediaSchema>,
+    pub(super) variants: Vec<VariantSchema>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct VariantSchema {
+    pub(super) id: String,
+    pub(super) price: u32,
+    pub(super) sku: Option<String>,
+    pub(super) barcode: Option<String>,
+    pub(super) inventory_quantity: Option<u32>,
+    pub(super) list_order: u8,
+    pub(super) created_at: DateTime<Utc>,
+    pub(super) updated_at: DateTime<Utc>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -49,23 +62,25 @@ pub struct MediaSchema {
 }
 
 impl ProductSchema {
-    pub fn to_response(product: Product, media: Vec<Media>) -> Self {
+    pub fn to_schema(product: Product, media: Vec<Media>) -> Self {
         ProductSchema {
             id: product.id().to_string(),
             name: product.name().to_string(),
-            price: *(product.variants()[0].price()),
             description: product.description().to_string(),
             status: match product.status() {
                 ProductStatus::Active => ProductStatusEnum::Active,
                 ProductStatus::Inactive => ProductStatusEnum::Inactive,
                 ProductStatus::Draft => ProductStatusEnum::Draft,
             },
-            created_at: product.variants()[0].created_at().to_owned(),
-            updated_at: product.variants()[0].updated_at().to_owned(),
             category_id: product.category_id().to_owned(),
             media: media
                 .into_iter()
                 .map(|media| MediaSchema::from(media))
+                .collect(),
+            variants: product
+                .variants()
+                .iter()
+                .map(|variant| VariantSchema::from(variant))
                 .collect(),
         }
     }
@@ -84,6 +99,24 @@ impl From<Media> for MediaSchema {
             src: media.published_src().as_ref().map(|s| s.value().to_owned()),
             created_at: media.created_at().to_owned(),
             updated_at: media.updated_at().to_owned(),
+        }
+    }
+}
+
+impl From<&Variant> for VariantSchema {
+    fn from(variant: &Variant) -> Self {
+        VariantSchema {
+            id: variant.id().to_string(),
+            price: *(variant.price()),
+            sku: variant.sku().as_ref().map(|sku| sku.value().to_owned()),
+            barcode: variant
+                .barcode()
+                .as_ref()
+                .map(|barcode| barcode.value().to_owned()),
+            inventory_quantity: variant.inventory_quantity().to_owned(),
+            list_order: variant.list_order().to_owned(),
+            created_at: variant.created_at().to_owned(),
+            updated_at: variant.updated_at().to_owned(),
         }
     }
 }

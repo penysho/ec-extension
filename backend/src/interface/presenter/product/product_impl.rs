@@ -42,7 +42,7 @@ impl ProductPresenter for ProductPresenterImpl {
             Err(_) => return Err(GetProductResponseError::ServiceUnavailable),
         };
 
-        let schema = ProductSchema::to_response(product, media);
+        let schema = ProductSchema::to_schema(product, media);
         Ok(web::Json(GetProductResponse { product: schema }))
     }
 
@@ -80,7 +80,7 @@ impl ProductPresenter for ProductPresenterImpl {
                     .remove(&AssociatedId::Product(product.id().to_owned()))
                     .unwrap_or_else(Vec::new);
 
-                ProductSchema::to_response(product, media)
+                ProductSchema::to_schema(product, media)
             })
             .collect();
 
@@ -94,15 +94,18 @@ impl ProductPresenter for ProductPresenterImpl {
 mod tests {
     use chrono::Utc;
 
-    use crate::domain::{
-        media::{
-            media::{AssociatedId, Media, MediaStatus},
-            src::src::Src,
+    use crate::{
+        domain::{
+            media::{
+                media::{AssociatedId, Media, MediaStatus},
+                src::src::Src,
+            },
+            product::{
+                product::ProductStatus,
+                variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
+            },
         },
-        product::{
-            product::ProductStatus,
-            variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
-        },
+        interface::presenter::product::schema::ProductStatusEnum,
     };
 
     use super::*;
@@ -111,13 +114,13 @@ mod tests {
         (0..count)
             .map(|i| {
                 Product::new(
-                    format!("gid://shopify/Product/{i}"),
+                    format!("{i}"),
                     format!("Test Product {i}"),
                     "This is a test product description.",
                     ProductStatus::Active,
                     vec![Variant::new(
-                        "gid://shopify/ProductVariant/1".to_string(),
-                        Some("Test Variant 1"),
+                        format!("{i}"),
+                        Some(format!("Test Variant {i}")),
                         100,
                         Some(Sku::new("TESTSKU123").unwrap()),
                         Some(Barcode::new("123456789012").unwrap()),
@@ -127,7 +130,7 @@ mod tests {
                         Utc::now(),
                     )
                     .unwrap()],
-                    Some("gid://shopify/Category/111".to_string()),
+                    Some("111"),
                 )
                 .unwrap()
             })
@@ -138,11 +141,11 @@ mod tests {
         (0..count)
             .map(|i| {
                 Media::new(
-                    format!("gid://shopify/ProductMedia/{}", i),
-                    Some(AssociatedId::Product(format!("gid://shopify/Product/{i}"))),
-                    Some(format!("Test Media {}", i)),
+                    format!("{i}"),
+                    Some(AssociatedId::Product(format!("{i}"))),
+                    Some(format!("Test Media {i}")),
                     MediaStatus::Active,
-                    Some(format!("gid://shopify/Product/{}", i)),
+                    Some(format!("{}", i)),
                     Some(Src::new(format!("https://example.com/uploaded{}.jpg", i)).unwrap()),
                     Some(Src::new(format!("https://example.com/published{}.jpg", i)).unwrap()),
                     Utc::now(),
@@ -164,11 +167,13 @@ mod tests {
             .await
             .unwrap();
 
+        assert_eq!(result.product.id, "0");
         assert_eq!(result.product.name, "Test Product 0");
         assert_eq!(
             result.product.description,
             "This is a test product description."
         );
+        assert_eq!(result.product.variants[0].id, "0");
     }
 
     #[actix_web::test]
