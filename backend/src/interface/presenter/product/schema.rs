@@ -14,22 +14,22 @@ use crate::{
     interface::presenter::common::exception::GenericResponseError,
 };
 
-#[derive(Serialize, Deserialize, Debug)]
-pub enum ProductStatusEnum {
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) enum ProductStatusEnum {
     Active,
     Inactive,
     Draft,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub enum MediaStatusEnum {
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) enum MediaStatusEnum {
     Active,
     Inactive,
     InPreparation,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ProductSchema {
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) struct ProductSchema {
     pub(super) id: String,
     pub(super) name: String,
     pub(super) description: String,
@@ -39,8 +39,8 @@ pub struct ProductSchema {
     pub(super) variants: Vec<VariantSchema>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct VariantSchema {
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) struct VariantSchema {
     pub(super) id: String,
     pub(super) price: u32,
     pub(super) sku: Option<String>,
@@ -51,8 +51,8 @@ pub struct VariantSchema {
     pub(super) updated_at: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct MediaSchema {
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) struct MediaSchema {
     pub(super) id: String,
     pub(super) status: MediaStatusEnum,
     pub(super) alt: Option<String>,
@@ -121,13 +121,13 @@ impl From<&Variant> for VariantSchema {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GetProductResponse {
-    pub product: ProductSchema,
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) struct GetProductResponse {
+    pub(super) product: ProductSchema,
 }
 
 #[derive(Debug, Display, Error)]
-pub enum GetProductResponseError {
+pub(super) enum GetProductResponseError {
     #[display(fmt = "Product not found.")]
     NotFound,
     #[display(fmt = "Bad request.")]
@@ -156,13 +156,13 @@ impl ResponseError for GetProductResponseError {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GetProductsResponse {
+#[derive(Debug, Serialize, Deserialize)]
+pub(super) struct GetProductsResponse {
     pub products: Vec<ProductSchema>,
 }
 
 #[derive(Debug, Display, Error)]
-pub enum GetProductsResponseError {
+pub(super) enum GetProductsResponseError {
     #[display(fmt = "Product not found.")]
     NotFound,
     #[display(fmt = "Bad request.")]
