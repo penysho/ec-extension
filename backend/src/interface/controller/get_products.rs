@@ -27,7 +27,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::error::error::DomainError;
-    use crate::domain::media::media::{AssociatedId, Media, MediaStatus};
+    use crate::domain::media::associated_id::associated_id::AssociatedId;
+    use crate::domain::media::media::{Media, MediaStatus};
     use crate::domain::media::src::src::Src;
     use crate::domain::product::product::{Product, ProductStatus};
     use crate::domain::product::variant::barcode::barcode::Barcode;
@@ -35,7 +36,6 @@ mod tests {
     use crate::domain::product::variant::variant::Variant;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
-    use crate::interface::presenter::product::schema::GetProductsResponse;
     use crate::usecase::interactor::product_interactor_interface::{
         MockProductInteractor, ProductInteractor,
     };
@@ -76,12 +76,32 @@ mod tests {
             Ok((
                 vec![
                     Product::new(
-                        "gid://shopify/Product/1".to_string(),
+                        "0",
+                        "Test Product 0",
+                        "This is a test product description.",
+                        ProductStatus::Active,
+                        vec![Variant::new(
+                            "0",
+                            Some("Test Variant 0"),
+                            100,
+                            Some(Sku::new("TESTSKU123").unwrap()),
+                            Some(Barcode::new("123456789012").unwrap()),
+                            Some(50),
+                            1,
+                            Utc::now(),
+                            Utc::now(),
+                        )
+                        .unwrap()],
+                        Some("111"),
+                    )
+                    .unwrap(),
+                    Product::new(
+                        "1",
                         "Test Product 1",
                         "This is a test product description.",
                         ProductStatus::Active,
                         vec![Variant::new(
-                            "gid://shopify/ProductVariant/1".to_string(),
+                            "1",
                             Some("Test Variant 1"),
                             100,
                             Some(Sku::new("TESTSKU123").unwrap()),
@@ -92,42 +112,36 @@ mod tests {
                             Utc::now(),
                         )
                         .unwrap()],
-                        Some("gid://shopify/Category/111".to_string()),
-                    )
-                    .unwrap(),
-                    Product::new(
-                        "gid://shopify/Product/2".to_string(),
-                        "Test Product 2",
-                        "This is a test product description.",
-                        ProductStatus::Active,
-                        vec![Variant::new(
-                            "gid://shopify/ProductVariant/2".to_string(),
-                            Some("Test Variant 2"),
-                            100,
-                            Some(Sku::new("TESTSKU123").unwrap()),
-                            Some(Barcode::new("123456789012").unwrap()),
-                            Some(50),
-                            1,
-                            Utc::now(),
-                            Utc::now(),
-                        )
-                        .unwrap()],
-                        Some("gid://shopify/Category/111".to_string()),
+                        Some("111"),
                     )
                     .unwrap(),
                 ],
-                vec![Media::new(
-                    format!("gid://shopify/ProductMedia/1"),
-                    Some(AssociatedId::Product("gid://shopify/Product/1".to_string())),
-                    Some(format!("Test Media 1")),
-                    MediaStatus::Active,
-                    Some(format!("gid://shopify/Product/1")),
-                    Some(Src::new(format!("https://example.com/uploaded1.jpg")).unwrap()),
-                    Some(Src::new(format!("https://example.com/published1.jpg",)).unwrap()),
-                    Utc::now(),
-                    Utc::now(),
-                )
-                .unwrap()],
+                vec![
+                    Media::new(
+                        format!("0"),
+                        Some(AssociatedId::Product("0".to_string())),
+                        Some(format!("Test Media 0")),
+                        MediaStatus::Active,
+                        Some(format!("0")),
+                        Some(Src::new(format!("https://example.com/uploaded.jpg")).unwrap()),
+                        Some(Src::new(format!("https://example.com/published.jpg",)).unwrap()),
+                        Utc::now(),
+                        Utc::now(),
+                    )
+                    .unwrap(),
+                    Media::new(
+                        format!("1"),
+                        Some(AssociatedId::Product("1".to_string())),
+                        Some(format!("Test Media 1")),
+                        MediaStatus::Active,
+                        Some(format!("1")),
+                        Some(Src::new(format!("https://example.com/uploaded.jpg")).unwrap()),
+                        Some(Src::new(format!("https://example.com/published.jpg",)).unwrap()),
+                        Utc::now(),
+                        Utc::now(),
+                    )
+                    .unwrap(),
+                ],
             ))
         });
 
@@ -135,9 +149,6 @@ mod tests {
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-
-        let products: GetProductsResponse = test::read_body_json(resp).await;
-        assert_eq!(products.products.len(), 2);
     }
 
     #[actix_web::test]

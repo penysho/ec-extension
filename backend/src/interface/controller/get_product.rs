@@ -24,7 +24,8 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::error::error::DomainError;
-    use crate::domain::media::media::{AssociatedId, Media, MediaStatus};
+    use crate::domain::media::associated_id::associated_id::AssociatedId;
+    use crate::domain::media::media::{Media, MediaStatus};
     use crate::domain::media::src::src::Src;
     use crate::domain::product::product::{Product, ProductStatus};
     use crate::domain::product::variant::barcode::barcode::Barcode;
@@ -71,17 +72,17 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_product_with_media()
-            .with(eq("1".to_string()))
+            .with(eq("0".to_string()))
             .returning(|_| {
                 Ok((
                     Product::new(
-                        "gid://shopify/Product/1".to_string(),
-                        "Test Product 1",
+                        "0",
+                        "Test Product 0",
                         "This is a test product description.",
                         ProductStatus::Active,
                         vec![Variant::new(
-                            "gid://shopify/ProductVariant/1".to_string(),
-                            Some("Test Variant 1"),
+                            "0",
+                            Some("Test Variant 0"),
                             100,
                             Some(Sku::new("TESTSKU123").unwrap()),
                             Some(Barcode::new("123456789012").unwrap()),
@@ -91,26 +92,40 @@ mod tests {
                             Utc::now(),
                         )
                         .unwrap()],
-                        Some("gid://shopify/Category/111".to_string()),
+                        Some("111"),
                     )
                     .unwrap(),
-                    vec![Media::new(
-                        format!("gid://shopify/ProductMedia/1"),
-                        Some(AssociatedId::Product("gid://shopify/Product/1".to_string())),
-                        Some(format!("Test Media 1")),
-                        MediaStatus::Active,
-                        Some(format!("gid://shopify/Product/1")),
-                        Some(Src::new(format!("https://example.com/uploaded1.jpg")).unwrap()),
-                        Some(Src::new(format!("https://example.com/published1.jpg",)).unwrap()),
-                        Utc::now(),
-                        Utc::now(),
-                    )
-                    .unwrap()],
+                    vec![
+                        Media::new(
+                            format!("0"),
+                            Some(AssociatedId::Product("0".to_string())),
+                            Some(format!("Test Media 0")),
+                            MediaStatus::Active,
+                            Some(format!("0")),
+                            Some(Src::new(format!("https://example.com/uploaded.jpg")).unwrap()),
+                            Some(Src::new(format!("https://example.com/published.jpg",)).unwrap()),
+                            Utc::now(),
+                            Utc::now(),
+                        )
+                        .unwrap(),
+                        Media::new(
+                            format!("1"),
+                            Some(AssociatedId::Product("0".to_string())),
+                            Some(format!("Test Media 1")),
+                            MediaStatus::Active,
+                            Some(format!("1")),
+                            Some(Src::new(format!("https://example.com/uploaded.jpg")).unwrap()),
+                            Some(Src::new(format!("https://example.com/published.jpg",)).unwrap()),
+                            Utc::now(),
+                            Utc::now(),
+                        )
+                        .unwrap(),
+                    ],
                 ))
             });
 
         let req = test::TestRequest::get()
-            .uri(&format!("{BASE_URL}/1"))
+            .uri(&format!("{BASE_URL}/0"))
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
@@ -138,11 +153,11 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_product_with_media()
-            .with(eq("1".to_string()))
+            .with(eq("0".to_string()))
             .returning(|_| Err(DomainError::ValidationError));
 
         let req = test::TestRequest::get()
-            .uri(&format!("{BASE_URL}/1"))
+            .uri(&format!("{BASE_URL}/0"))
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
@@ -154,11 +169,11 @@ mod tests {
         let mut interactor = MockProductInteractor::new();
         interactor
             .expect_get_product_with_media()
-            .with(eq("1".to_string()))
+            .with(eq("0".to_string()))
             .returning(|_| Err(DomainError::SystemError));
 
         let req = test::TestRequest::get()
-            .uri(&format!("{BASE_URL}/1"))
+            .uri(&format!("{BASE_URL}/0"))
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 

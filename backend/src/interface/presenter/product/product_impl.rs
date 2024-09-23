@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use crate::{
     domain::{
         error::error::DomainError,
-        media::media::{AssociatedId, Media},
+        media::{associated_id::associated_id::AssociatedId, media::Media},
         product::product::Product,
     },
     interface::presenter::{
@@ -41,6 +41,14 @@ impl ProductPresenter for ProductPresenterImpl {
             Err(DomainError::ValidationError) => return Err(GetProductResponseError::BadRequest),
             Err(_) => return Err(GetProductResponseError::ServiceUnavailable),
         };
+
+        let _ = media.iter().map(|m| match m.associated_id() {
+            Some(id) if id.clone() != AssociatedId::Product(product.id().clone()) => {
+                Err(DomainError::SystemError)
+            }
+            None => Err(DomainError::SystemError),
+            _ => Ok(m),
+        });
 
         let schema = ProductSchema::to_schema(product, media);
         Ok(web::Json(GetProductResponse { product: schema }))
@@ -94,18 +102,15 @@ impl ProductPresenter for ProductPresenterImpl {
 mod tests {
     use chrono::Utc;
 
-    use crate::{
-        domain::{
-            media::{
-                media::{AssociatedId, Media, MediaStatus},
-                src::src::Src,
-            },
-            product::{
-                product::ProductStatus,
-                variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
-            },
+    use crate::domain::{
+        media::{
+            media::{Media, MediaStatus},
+            src::src::Src,
         },
-        interface::presenter::product::schema::ProductStatusEnum,
+        product::{
+            product::ProductStatus,
+            variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
+        },
     };
 
     use super::*;
@@ -146,8 +151,8 @@ mod tests {
                     Some(format!("Test Media {i}")),
                     MediaStatus::Active,
                     Some(format!("{}", i)),
-                    Some(Src::new(format!("https://example.com/uploaded{}.jpg", i)).unwrap()),
-                    Some(Src::new(format!("https://example.com/published{}.jpg", i)).unwrap()),
+                    Some(Src::new(format!("https://example.com/uploaded_{}.jpg", i)).unwrap()),
+                    Some(Src::new(format!("https://example.com/published_{}.jpg", i)).unwrap()),
                     Utc::now(),
                     Utc::now(),
                 )
@@ -160,7 +165,8 @@ mod tests {
     async fn test_present_get_product_success() {
         let presenter = ProductPresenterImpl::new();
         let product = mock_products(1).remove(0);
-        let media = mock_media(5);
+        let mut media = mock_media(1);
+        media.extend(mock_media(1));
 
         let result = presenter
             .present_get_product(Ok((product, media)))
@@ -173,6 +179,9 @@ mod tests {
             result.product.description,
             "This is a test product description."
         );
+        assert_eq!(result.product.media.len(), 2);
+        assert_eq!(result.product.media[0].id, "0");
+        assert_eq!(result.product.variants.len(), 1);
         assert_eq!(result.product.variants[0].id, "0");
     }
 

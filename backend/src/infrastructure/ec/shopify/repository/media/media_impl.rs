@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use crate::{
     domain::{
         error::error::DomainError,
-        media::media::{AssociatedId, Media},
+        media::{associated_id::associated_id::AssociatedId, media::Media},
         product::product::Id as ProductId,
     },
     infrastructure::{

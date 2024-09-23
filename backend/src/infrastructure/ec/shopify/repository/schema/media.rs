@@ -5,7 +5,8 @@ use crate::{
     domain::{
         error::error::DomainError,
         media::{
-            media::{AssociatedId, Media, MediaStatus},
+            associated_id::associated_id::AssociatedId,
+            media::{Media, MediaStatus},
             src::src::Src,
         },
     },
