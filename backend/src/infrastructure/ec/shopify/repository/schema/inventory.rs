@@ -24,10 +24,15 @@ impl InventoryItemSchema {
             .map(|level| level.to_domain())
             .transpose()?;
 
+        let mut inventory_levels = Vec::new();
+        if let Some(level) = inventory_level {
+            inventory_levels = vec![level]
+        }
+
         Inventory::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.variant_id),
-            inventory_level,
+            inventory_levels,
             self.requires_shipping,
             self.tracked,
             self.created_at,

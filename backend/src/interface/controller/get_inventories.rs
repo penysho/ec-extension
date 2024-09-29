@@ -109,21 +109,19 @@ mod tests {
                 Ok(vec![Inventory::new(
                     format!("0"),
                     format!("0"),
-                    Some(
-                        InventoryLevel::new(
-                            format!("0"),
-                            "location_id",
-                            vec![
-                                Quantity::new(10, InventoryType::Available).unwrap(),
-                                Quantity::new(20, InventoryType::Committed).unwrap(),
-                                Quantity::new(30, InventoryType::Incoming).unwrap(),
-                                Quantity::new(40, InventoryType::Reserved).unwrap(),
-                                Quantity::new(50, InventoryType::SafetyStock).unwrap(),
-                                Quantity::new(60, InventoryType::Damaged).unwrap(),
-                            ],
-                        )
-                        .unwrap(),
-                    ),
+                    vec![InventoryLevel::new(
+                        format!("0"),
+                        "location_id",
+                        vec![
+                            Quantity::new(10, InventoryType::Available).unwrap(),
+                            Quantity::new(20, InventoryType::Committed).unwrap(),
+                            Quantity::new(30, InventoryType::Incoming).unwrap(),
+                            Quantity::new(40, InventoryType::Reserved).unwrap(),
+                            Quantity::new(50, InventoryType::SafetyStock).unwrap(),
+                            Quantity::new(60, InventoryType::Damaged).unwrap(),
+                        ],
+                    )
+                    .unwrap()],
                     true,
                     false,
                     Utc::now(),

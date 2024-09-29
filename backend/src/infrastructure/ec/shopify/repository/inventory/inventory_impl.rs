@@ -320,20 +320,10 @@ mod tests {
         assert_eq!(inventories.len(), 10);
         assert_eq!(inventories[0].id(), "0");
         assert_eq!(inventories[0].variant_id(), "0");
-        assert_eq!(inventories[0].inventory_level().as_ref().unwrap().id(), "0");
+        assert_eq!(inventories[0].inventory_levels()[0].id(), "0");
+        assert_eq!(inventories[0].inventory_levels()[0].location_id(), "0");
         assert_eq!(
-            inventories[0]
-                .inventory_level()
-                .as_ref()
-                .unwrap()
-                .location_id(),
-            "0"
-        );
-        assert_eq!(
-            inventories[0]
-                .inventory_level()
-                .as_ref()
-                .unwrap()
+            inventories[0].inventory_levels()[0]
                 .quantities()
                 .into_iter()
                 .map(|q| q.quantity().clone())
@@ -341,26 +331,14 @@ mod tests {
             [1, 2, 3]
         );
         assert_eq!(
-            *(inventories[0]
-                .inventory_level()
-                .as_ref()
-                .unwrap()
-                .quantities()[0]
-                .inventory_type()),
+            *(inventories[0].inventory_levels()[0].quantities()[0].inventory_type()),
             InventoryType::Available
         );
 
         assert_eq!(inventories[9].id(), "9");
         assert_eq!(inventories[9].variant_id(), "9");
-        assert_eq!(inventories[9].inventory_level().as_ref().unwrap().id(), "9");
-        assert_eq!(
-            inventories[9]
-                .inventory_level()
-                .as_ref()
-                .unwrap()
-                .location_id(),
-            "9"
-        );
+        assert_eq!(inventories[9].inventory_levels()[0].id(), "9");
+        assert_eq!(inventories[9].inventory_levels()[0].location_id(), "9");
     }
 
     #[tokio::test]
@@ -467,16 +445,10 @@ mod tests {
         let inventory = result.unwrap();
         assert_eq!(inventory.id(), "0");
         assert_eq!(inventory.variant_id(), "0");
-        assert_eq!(inventory.inventory_level().as_ref().unwrap().id(), "0");
+        assert_eq!(inventory.inventory_levels()[0].id(), "0");
+        assert_eq!(inventory.inventory_levels()[0].location_id(), "0");
         assert_eq!(
-            inventory.inventory_level().as_ref().unwrap().location_id(),
-            "0"
-        );
-        assert_eq!(
-            inventory
-                .inventory_level()
-                .as_ref()
-                .unwrap()
+            inventory.inventory_levels()[0]
                 .quantities()
                 .into_iter()
                 .map(|q| q.quantity().clone())
@@ -484,7 +456,7 @@ mod tests {
             [1, 2, 3]
         );
         assert_eq!(
-            *(inventory.inventory_level().as_ref().unwrap().quantities()[0].inventory_type()),
+            *(inventory.inventory_levels()[0].quantities()[0].inventory_type()),
             InventoryType::Available
         );
     }

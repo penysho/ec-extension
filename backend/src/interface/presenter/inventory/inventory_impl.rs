@@ -62,21 +62,19 @@ mod tests {
                 Inventory::new(
                     format!("{i}"),
                     format!("{i}"),
-                    Some(
-                        InventoryLevel::new(
-                            format!("{i}"),
-                            "location_id",
-                            vec![
-                                Quantity::new(10, InventoryType::Available).unwrap(),
-                                Quantity::new(20, InventoryType::Committed).unwrap(),
-                                Quantity::new(30, InventoryType::Incoming).unwrap(),
-                                Quantity::new(40, InventoryType::Reserved).unwrap(),
-                                Quantity::new(50, InventoryType::SafetyStock).unwrap(),
-                                Quantity::new(60, InventoryType::Damaged).unwrap(),
-                            ],
-                        )
-                        .unwrap(),
-                    ),
+                    vec![InventoryLevel::new(
+                        format!("{i}"),
+                        "location_id",
+                        vec![
+                            Quantity::new(10, InventoryType::Available).unwrap(),
+                            Quantity::new(20, InventoryType::Committed).unwrap(),
+                            Quantity::new(30, InventoryType::Incoming).unwrap(),
+                            Quantity::new(40, InventoryType::Reserved).unwrap(),
+                            Quantity::new(50, InventoryType::SafetyStock).unwrap(),
+                            Quantity::new(60, InventoryType::Damaged).unwrap(),
+                        ],
+                    )
+                    .unwrap()],
                     true,
                     false,
                     Utc::now(),
@@ -99,33 +97,17 @@ mod tests {
 
         assert_eq!(result.inventories[0].id, "0");
         assert_eq!(result.inventories[0].variant_id, "0");
+        assert_eq!(result.inventories[0].inventory_levels[0].id, "0");
         assert_eq!(
-            result.inventories[0].inventory_level.as_ref().unwrap().id,
-            "0"
-        );
-        assert_eq!(
-            result.inventories[0]
-                .inventory_level
-                .as_ref()
-                .unwrap()
-                .quantities
-                .len(),
+            result.inventories[0].inventory_levels[0].quantities.len(),
             6
         );
 
         assert_eq!(result.inventories[9].id, "9");
         assert_eq!(result.inventories[9].variant_id, "9");
+        assert_eq!(result.inventories[9].inventory_levels[0].id, "9");
         assert_eq!(
-            result.inventories[9].inventory_level.as_ref().unwrap().id,
-            "9"
-        );
-        assert_eq!(
-            result.inventories[9]
-                .inventory_level
-                .as_ref()
-                .unwrap()
-                .quantities
-                .len(),
+            result.inventories[9].inventory_levels[0].quantities.len(),
             6
         );
     }

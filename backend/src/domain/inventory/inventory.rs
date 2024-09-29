@@ -10,7 +10,7 @@ pub type Id = String;
 pub struct Inventory {
     id: Id,
     variant_id: VariantId,
-    inventory_level: Option<InventoryLevel>,
+    inventory_levels: Vec<InventoryLevel>,
     requires_shipping: bool,
     tracked: bool,
     created_at: DateTime<Utc>,
@@ -21,7 +21,7 @@ impl Inventory {
     pub fn new(
         id: impl Into<String>,
         variant_id: impl Into<VariantId>,
-        inventory_level: Option<InventoryLevel>,
+        inventory_levels: Vec<InventoryLevel>,
         requires_shipping: bool,
         tracked: bool,
         created_at: DateTime<Utc>,
@@ -36,7 +36,7 @@ impl Inventory {
         Ok(Self {
             id,
             variant_id: variant_id.into(),
-            inventory_level,
+            inventory_levels,
             requires_shipping,
             tracked,
             created_at,

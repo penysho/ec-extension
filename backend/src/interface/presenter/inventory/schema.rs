@@ -11,7 +11,7 @@ use crate::interface::presenter::common::exception::GenericResponseError;
 pub struct InventorySchema {
     pub(super) id: String,
     pub(super) variant_id: String,
-    pub(super) inventory_level: Option<InventoryLevelSchema>,
+    pub(super) inventory_levels: Vec<InventoryLevelSchema>,
     pub(super) requires_shipping: bool,
     pub(super) tracked: bool,
     pub(super) created_at: DateTime<Utc>,

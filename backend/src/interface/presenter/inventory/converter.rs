@@ -49,7 +49,11 @@ impl From<Inventory> for InventorySchema {
         InventorySchema {
             id: inventory.id().to_string(),
             variant_id: inventory.variant_id().to_string(),
-            inventory_level: inventory.inventory_level().as_ref().map(|i| i.into()),
+            inventory_levels: inventory
+                .inventory_levels()
+                .iter()
+                .map(|l| l.into())
+                .collect(),
             requires_shipping: *inventory.requires_shipping(),
             tracked: *inventory.tracked(),
             created_at: inventory.created_at().to_owned(),
