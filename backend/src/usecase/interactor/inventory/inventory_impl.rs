@@ -1,12 +1,9 @@
 use async_trait::async_trait;
 
 use crate::{
-    domain::{
-        error::error::DomainError, inventory::inventory::Inventory,
-        product::product::Id as ProductId,
-    },
+    domain::{error::error::DomainError, inventory::inventory::Inventory},
     usecase::{
-        interactor::inventory_interactor_interface::InventoryInteractor,
+        interactor::inventory_interactor_interface::{GetInventoriesQuery, InventoryInteractor},
         repository::{
             inventory_repository_interface::InventoryRepository,
             location_repository_interface::LocationRepository,
@@ -35,14 +32,21 @@ impl InventoryInteractorImpl {
 #[async_trait]
 impl InventoryInteractor for InventoryInteractorImpl {
     /// Retrieve inventory information for all locations based on product ID.
-    async fn get_inventories_from_all_locations_by_product_id(
+    async fn get_inventories_from_all_locations(
         &self,
-        product_id: &ProductId,
+        query: &GetInventoriesQuery,
     ) -> Result<Vec<Inventory>, DomainError> {
         let location_ids = self.location_repository.get_all_location_ids().await?;
+
         // TODO: Process for all locations.
-        self.inventory_repository
-            .get_inventories_by_product_id(product_id, &location_ids[0])
-            .await
+        match query {
+            GetInventoriesQuery::ProductId(product_id) => {
+                self.inventory_repository
+                    .get_inventories_by_product_id(product_id, &location_ids[0])
+                    .await
+            }
+            // TODO: Allow inventory information to be retrieved from SKU.
+            _ => Err(DomainError::InvalidRequest),
+        }
     }
 }

@@ -5,7 +5,6 @@ use async_trait::async_trait;
 use mockall::automock;
 
 /// Interactor interface for products.
-
 #[automock]
 #[async_trait]
 pub trait ProductInteractor {

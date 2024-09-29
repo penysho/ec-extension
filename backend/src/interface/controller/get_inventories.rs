@@ -2,11 +2,12 @@ use actix_web::{web, Responder};
 use serde::Deserialize;
 
 use crate::{
-    domain::error::error::DomainError,
+    domain::{error::error::DomainError, product::variant::sku::sku::Sku},
     interface::presenter::{
         inventory::inventory_impl::InventoryPresenterImpl,
         inventory_presenter_interface::InventoryPresenter,
     },
+    usecase::interactor::inventory_interactor_interface::GetInventoriesQuery,
 };
 
 use super::controller::Controller;
@@ -14,6 +15,7 @@ use super::controller::Controller;
 #[derive(Deserialize)]
 pub struct GetInventoriesQueryParams {
     product_id: Option<String>,
+    sku: Option<String>,
 }
 
 impl Controller {
@@ -24,28 +26,34 @@ impl Controller {
     ) -> impl Responder {
         let presenter = InventoryPresenterImpl::new();
 
-        // TODO: Allow SKUs to be retrieved by query parameter.
-        let product_id = match params.product_id.clone() {
-            Some(product_id) if !product_id.is_empty() => product_id,
-            Some(_) => {
-                return presenter
-                    .present_get_inventories(Err(DomainError::InvalidRequest))
-                    .await
-            }
-            None => {
-                return presenter
-                    .present_get_inventories(Err(DomainError::InvalidRequest))
-                    .await
-            }
+        let query = match validate_query_params(&params) {
+            Ok(query) => query,
+            Err(error) => return presenter.present_get_inventories(Err(error)).await,
         };
 
         let interactor = self.interact_provider.provide_inventory_interactor().await;
-        let results = interactor
-            .get_inventories_from_all_locations_by_product_id(&product_id)
-            .await;
+        let results = interactor.get_inventories_from_all_locations(&query).await;
 
         presenter.present_get_inventories(results).await
     }
+}
+
+fn validate_query_params(
+    params: &GetInventoriesQueryParams,
+) -> Result<GetInventoriesQuery, DomainError> {
+    if let Some(product_id) = params.product_id.clone() {
+        if !product_id.is_empty() {
+            return Ok(GetInventoriesQuery::ProductId(product_id));
+        }
+    }
+
+    if let Some(sku) = params.sku.clone() {
+        if let Ok(valid_sku) = Sku::new(sku.clone()) {
+            return Ok(GetInventoriesQuery::Sku(valid_sku));
+        }
+    }
+
+    Err(DomainError::InvalidRequest)
 }
 
 #[cfg(test)]
@@ -95,8 +103,8 @@ mod tests {
     async fn test_get_inventories_success() {
         let mut interactor = MockInventoryInteractor::new();
         interactor
-            .expect_get_inventories_from_all_locations_by_product_id()
-            .with(eq("0".to_string()))
+            .expect_get_inventories_from_all_locations()
+            .with(eq(GetInventoriesQuery::ProductId("0".to_string())))
             .returning(|_| {
                 Ok(vec![Inventory::new(
                     format!("0"),
@@ -148,7 +156,7 @@ mod tests {
     async fn test_get_inventories_not_found() {
         let mut interactor = MockInventoryInteractor::new();
         interactor
-            .expect_get_inventories_from_all_locations_by_product_id()
+            .expect_get_inventories_from_all_locations()
             .returning(|_| Ok(vec![]));
 
         let req = test::TestRequest::get()
@@ -163,7 +171,7 @@ mod tests {
     async fn test_get_inventories_bad_request() {
         let mut interactor = MockInventoryInteractor::new();
         interactor
-            .expect_get_inventories_from_all_locations_by_product_id()
+            .expect_get_inventories_from_all_locations()
             .returning(|_| Err(DomainError::ValidationError));
 
         let req = test::TestRequest::get()
@@ -178,7 +186,7 @@ mod tests {
     async fn test_get_inventories_service_unavailable() {
         let mut interactor = MockInventoryInteractor::new();
         interactor
-            .expect_get_inventories_from_all_locations_by_product_id()
+            .expect_get_inventories_from_all_locations()
             .returning(|_| Err(DomainError::SystemError));
 
         let req = test::TestRequest::get()
