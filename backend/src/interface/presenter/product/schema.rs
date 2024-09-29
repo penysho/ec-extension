@@ -33,6 +33,7 @@ pub struct ProductSchema {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VariantSchema {
     pub(super) id: String,
+    pub(super) name: Option<String>,
     pub(super) price: u32,
     pub(super) sku: Option<String>,
     pub(super) barcode: Option<String>,
@@ -45,6 +46,7 @@ pub struct VariantSchema {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MediaSchema {
     pub(super) id: String,
+    pub(super) name: Option<String>,
     pub(super) status: MediaStatusEnum,
     pub(super) alt: Option<String>,
     pub(super) src: Option<String>,

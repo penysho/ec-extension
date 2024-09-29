@@ -14,6 +14,7 @@ impl From<Media> for MediaSchema {
     fn from(media: Media) -> Self {
         MediaSchema {
             id: media.id().to_string(),
+            name: media.name().to_owned(),
             status: match media.status() {
                 MediaStatus::Active => MediaStatusEnum::Active,
                 MediaStatus::Inactive => MediaStatusEnum::Inactive,
@@ -31,6 +32,7 @@ impl From<&Variant> for VariantSchema {
     fn from(variant: &Variant) -> Self {
         VariantSchema {
             id: variant.id().to_string(),
+            name: variant.name().to_owned(),
             price: *(variant.price()),
             sku: variant.sku().as_ref().map(|sku| sku.value().to_owned()),
             barcode: variant
