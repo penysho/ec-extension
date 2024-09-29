@@ -3,8 +3,10 @@ use serde_json::json;
 
 use crate::{
     domain::{
-        error::error::DomainError, inventory::inventory::Inventory,
-        location::location::Id as LocationId, product::product::Id as ProductId,
+        error::error::DomainError,
+        inventory::inventory::Inventory,
+        location::location::Id as LocationId,
+        product::{product::Id as ProductId, variant::sku::sku::Sku},
     },
     infrastructure::ec::{
         ec_client_interface::ECClient,
@@ -12,7 +14,7 @@ use crate::{
             query_helper::ShopifyGQLQueryHelper,
             repository::schema::{
                 common::GraphQLResponse,
-                inventory::{InventoryItemSchema, VariantsDataForInventory},
+                inventory::{InventoryItemSchema, InventoryItemsData, VariantsDataForInventory},
             },
         },
     },
@@ -35,7 +37,7 @@ impl<C: ECClient> InventoryRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<C> {
-    /// Get product inventory information.
+    /// Get product inventory information by product id.
     async fn get_inventories_by_product_id(
         &self,
         product_id: &ProductId,
@@ -98,6 +100,74 @@ impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<
 
         InventoryItemSchema::to_domains(inventories)
     }
+
+    /// Get product inventory information by sku.
+    async fn get_inventories_by_sku(
+        &self,
+        sku: &Sku,
+        location_id: &LocationId,
+    ) -> Result<Inventory, DomainError> {
+        let first_query = ShopifyGQLQueryHelper::first_query();
+        let page_info = ShopifyGQLQueryHelper::page_info();
+        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
+        let sku = sku.value();
+
+        let query = json!({
+            "query": format!(
+                "query {{
+                    inventoryItems({first_query}, query: \"sku:{sku}\") {{
+                        edges {{
+                            node {{
+                                id
+                                variant {{
+                                    id
+                                }}
+                                inventoryLevel(locationId: \"{location_id}\") {{
+                                    id
+                                    location {{
+                                        id
+                                    }}
+                                    quantities(names: {inventory_names}) {{
+                                        name
+                                        quantity
+                                    }}
+                                }}
+                                requiresShipping
+                                tracked
+                                createdAt
+                                updatedAt
+                            }}
+                        }}
+                        {page_info}
+                    }}
+                }}"
+            )
+        });
+
+        let graphql_response: GraphQLResponse<InventoryItemsData> =
+            self.client.query(&query).await?;
+        if let Some(errors) = graphql_response.errors {
+            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            return Err(DomainError::QueryError);
+        }
+
+        let inventories: Vec<InventoryItemSchema> = graphql_response
+            .data
+            .ok_or(DomainError::QueryError)?
+            .inventory_items
+            .edges
+            .into_iter()
+            .map(|node| InventoryItemSchema::from(node.node))
+            .collect();
+
+        let domains = InventoryItemSchema::to_domains(inventories)?;
+
+        if domains.is_empty() {
+            log::error!("No inventory found for sku: {}", sku);
+            return Err(DomainError::NotFound);
+        }
+        Ok(domains.into_iter().next().unwrap())
+    }
 }
 
 #[cfg(test)]
@@ -109,6 +179,7 @@ mod tests {
         domain::{
             error::error::DomainError,
             inventory::inventory_level::quantity::quantity::InventoryType,
+            product::variant::sku::sku::Sku,
         },
         infrastructure::ec::{
             ec_client_interface::MockECClient,
@@ -117,8 +188,8 @@ mod tests {
                 schema::{
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
                     inventory::{
-                        InventoryItemNode, InventoryLevelNode, QuantityNode, VariantIdNode,
-                        VariantNodeForInventory, VariantsDataForInventory,
+                        InventoryItemNode, InventoryItemsData, InventoryLevelNode, QuantityNode,
+                        VariantIdNode, VariantNodeForInventory, VariantsDataForInventory,
                     },
                     location::LocationNode,
                 },
@@ -127,32 +198,46 @@ mod tests {
         usecase::repository::inventory_repository_interface::InventoryRepository,
     };
 
-    fn mock_inventories_response(count: usize) -> GraphQLResponse<VariantsDataForInventory> {
+    fn mock_inventory(id: u32) -> InventoryItemNode {
+        InventoryItemNode {
+            id: format!("gid://shopify/InventoryItem/{id}"),
+            variant: VariantIdNode {
+                id: format!("gid://shopify/ProductVariant/{id}"),
+            },
+            inventory_level: Some(InventoryLevelNode {
+                id: format!("gid://shopify/InventoryLevel/{id}"),
+                location: LocationNode {
+                    id: format!("gid://shopify/Location/{id}"),
+                },
+                quantities: vec![
+                    QuantityNode {
+                        quantity: 1,
+                        name: "available".to_string(),
+                    },
+                    QuantityNode {
+                        quantity: 2,
+                        name: "committed".to_string(),
+                    },
+                    QuantityNode {
+                        quantity: 3,
+                        name: "reserved".to_string(),
+                    },
+                ],
+            }),
+            requires_shipping: true,
+            tracked: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn mock_inventories_response_for_variant_data(
+        count: usize,
+    ) -> GraphQLResponse<VariantsDataForInventory> {
         let nodes: Vec<Node<VariantNodeForInventory>> = (0..count)
             .map(|i| Node {
                 node: VariantNodeForInventory {
-                    inventory_item: InventoryItemNode {
-                        id: format!("gid://shopify/InventoryItem/{i}"),
-                        variant: VariantIdNode {
-                            id: format!("gid://shopify/ProductVariant/{i}"),
-                        },
-                        inventory_level: Some(InventoryLevelNode {
-                            id: format!("gid://shopify/InventoryLevel/{i}"),
-                            location: LocationNode {
-                                id: format!("gid://shopify/Location/{i}"),
-                            },
-                            quantities: (0..count)
-                                .map(|i| QuantityNode {
-                                    quantity: i as i32,
-                                    name: "available".to_string(),
-                                })
-                                .collect(),
-                        }),
-                        requires_shipping: true,
-                        tracked: true,
-                        created_at: Utc::now(),
-                        updated_at: Utc::now(),
-                    },
+                    inventory_item: mock_inventory(i as u32),
                 },
             })
             .collect();
@@ -160,6 +245,31 @@ mod tests {
         GraphQLResponse {
             data: Some(VariantsDataForInventory {
                 product_variants: Edges {
+                    edges: nodes,
+                    page_info: PageInfo {
+                        has_previous_page: false,
+                        has_next_page: false,
+                        start_cursor: None,
+                        end_cursor: None,
+                    },
+                },
+            }),
+            errors: None,
+        }
+    }
+
+    fn mock_inventories_response_for_inventory_items_data(
+        count: usize,
+    ) -> GraphQLResponse<InventoryItemsData> {
+        let nodes: Vec<Node<InventoryItemNode>> = (0..count)
+            .map(|i: usize| Node {
+                node: mock_inventory(i as u32),
+            })
+            .collect();
+
+        GraphQLResponse {
+            data: Some(InventoryItemsData {
+                inventory_items: Edges {
                     edges: nodes,
                     page_info: PageInfo {
                         has_previous_page: false,
@@ -197,7 +307,7 @@ mod tests {
         client
             .expect_query::<Value, GraphQLResponse<VariantsDataForInventory>>()
             .times(1)
-            .return_once(|_| Ok(mock_inventories_response(10)));
+            .return_once(|_| Ok(mock_inventories_response_for_variant_data(10)));
 
         let repo = InventoryRepositoryImpl::new(client);
 
@@ -228,7 +338,7 @@ mod tests {
                 .into_iter()
                 .map(|q| q.quantity().clone())
                 .collect::<Vec<u32>>(),
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+            [1, 2, 3]
         );
         assert_eq!(
             *(inventories[0]
@@ -257,7 +367,7 @@ mod tests {
     async fn get_inventories_by_product_id_with_invalid_domain_conversion() {
         let mut client = MockECClient::new();
 
-        let mut invalid_variant = mock_inventories_response(1);
+        let mut invalid_variant = mock_inventories_response_for_variant_data(1);
         invalid_variant
             .data
             .as_mut()
@@ -328,6 +438,97 @@ mod tests {
 
         let result = repo
             .get_inventories_by_product_id(&"0".to_string(), &"0".to_string())
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn get_inventories_by_sku_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_inventories_response_for_inventory_items_data(1)));
+
+        let repo = InventoryRepositoryImpl::new(client);
+
+        let result = repo
+            .get_inventories_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .await;
+
+        assert!(result.is_ok());
+        let inventory = result.unwrap();
+        assert_eq!(inventory.id(), "0");
+        assert_eq!(inventory.variant_id(), "0");
+        assert_eq!(inventory.inventory_level().as_ref().unwrap().id(), "0");
+        assert_eq!(
+            inventory.inventory_level().as_ref().unwrap().location_id(),
+            "0"
+        );
+        assert_eq!(
+            inventory
+                .inventory_level()
+                .as_ref()
+                .unwrap()
+                .quantities()
+                .into_iter()
+                .map(|q| q.quantity().clone())
+                .collect::<Vec<u32>>(),
+            [1, 2, 3]
+        );
+        assert_eq!(
+            *(inventory.inventory_level().as_ref().unwrap().quantities()[0].inventory_type()),
+            InventoryType::Available
+        );
+    }
+
+    #[tokio::test]
+    async fn get_inventories_by_sku_with_graphql_error() {
+        let mut client = MockECClient::new();
+
+        let graphql_response_with_error = mock_with_error();
+
+        client
+            .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| Ok(graphql_response_with_error));
+
+        let repo = InventoryRepositoryImpl::new(client);
+
+        let result = repo
+            .get_inventories_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn get_inventories_by_sku_with_missing_data() {
+        let mut client = MockECClient::new();
+
+        let graphql_response_with_no_data = mock_with_no_data();
+
+        client
+            .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| Ok(graphql_response_with_no_data));
+
+        let repo = InventoryRepositoryImpl::new(client);
+
+        let result = repo
+            .get_inventories_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
             .await;
 
         assert!(result.is_err());

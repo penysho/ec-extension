@@ -176,3 +176,9 @@ pub struct VariantsDataForInventory {
     #[serde(rename = "productVariants")]
     pub product_variants: Edges<VariantNodeForInventory>,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct InventoryItemsData {
+    #[serde(rename = "inventoryItems")]
+    pub inventory_items: Edges<InventoryItemNode>,
+}
