@@ -25,6 +25,9 @@ pub struct InventoryRepositoryImpl<C: ECClient> {
 }
 
 impl<C: ECClient> InventoryRepositoryImpl<C> {
+    const SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY: &'static str =
+        "\"incoming,available,committed,reserved,damaged,safety_stock\"";
+
     pub fn new(client: C) -> Self {
         Self { client }
     }
@@ -40,6 +43,7 @@ impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<
     ) -> Result<Vec<Inventory>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
+        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
 
         let query = json!({
             "query": format!(
@@ -58,7 +62,7 @@ impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<
                                         location {{
                                             id
                                         }}
-                                        quantities(names: \"available\") {{
+                                        quantities(names: {inventory_names}) {{
                                             name
                                             quantity
                                         }}
