@@ -9,8 +9,10 @@ pub enum DomainError {
     QueryError,
     #[display(fmt = "Configuration cannot be initialized.")]
     InitConfigError,
-    #[display(fmt = "Validation error.")]
+    #[display(fmt = "Validation error in domain logic.")]
     ValidationError,
     #[display(fmt = "Resource not found.")]
     NotFound,
+    #[display(fmt = "Invalid request schema.")]
+    InvalidRequest,
 }

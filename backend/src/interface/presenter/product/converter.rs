@@ -10,31 +10,6 @@ use super::schema::{
     MediaSchema, MediaStatusEnum, ProductSchema, ProductStatusEnum, VariantSchema,
 };
 
-impl ProductSchema {
-    pub fn to_schema(product: Product, media: Vec<Media>) -> Self {
-        ProductSchema {
-            id: product.id().to_string(),
-            name: product.name().to_string(),
-            description: product.description().to_string(),
-            status: match product.status() {
-                ProductStatus::Active => ProductStatusEnum::Active,
-                ProductStatus::Inactive => ProductStatusEnum::Inactive,
-                ProductStatus::Draft => ProductStatusEnum::Draft,
-            },
-            category_id: product.category_id().to_owned(),
-            media: media
-                .into_iter()
-                .map(|media| MediaSchema::from(media))
-                .collect(),
-            variants: product
-                .variants()
-                .iter()
-                .map(|variant| VariantSchema::from(variant))
-                .collect(),
-        }
-    }
-}
-
 impl From<Media> for MediaSchema {
     fn from(media: Media) -> Self {
         MediaSchema {
@@ -62,10 +37,35 @@ impl From<&Variant> for VariantSchema {
                 .barcode()
                 .as_ref()
                 .map(|barcode| barcode.value().to_owned()),
-            inventory_quantity: variant.inventory_quantity().to_owned(),
-            list_order: variant.list_order().to_owned(),
+            inventory_quantity: *(variant.inventory_quantity()),
+            list_order: *(variant.list_order()),
             created_at: variant.created_at().to_owned(),
             updated_at: variant.updated_at().to_owned(),
+        }
+    }
+}
+
+impl ProductSchema {
+    pub(super) fn to_schema(product: Product, media: Vec<Media>) -> Self {
+        ProductSchema {
+            id: product.id().to_string(),
+            name: product.name().to_string(),
+            description: product.description().to_string(),
+            status: match product.status() {
+                ProductStatus::Active => ProductStatusEnum::Active,
+                ProductStatus::Inactive => ProductStatusEnum::Inactive,
+                ProductStatus::Draft => ProductStatusEnum::Draft,
+            },
+            category_id: product.category_id().to_owned(),
+            media: media
+                .into_iter()
+                .map(|media| MediaSchema::from(media))
+                .collect(),
+            variants: product
+                .variants()
+                .iter()
+                .map(|variant| VariantSchema::from(variant))
+                .collect(),
         }
     }
 }

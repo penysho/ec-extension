@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::interface::controller::{controller::Controller, get_products::GetProductsQueryParams};
+use crate::interface::controller::{
+    controller::Controller, get_inventories::GetInventoriesQueryParams,
+    get_products::GetProductsQueryParams,
+};
 use actix_web::{web, HttpResponse};
 
 /// Define actix routers.
@@ -23,6 +26,12 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                         controller.get_product(path).await
                     },
                 ),
+            )
+            .route(
+                "/inventories",
+                 web::get().to(|controller: web::Data<Arc<Controller>>, params: web::Query<GetInventoriesQueryParams>| async move {
+                    controller.get_inventories(params).await
+                }),
             ),
     );
 }

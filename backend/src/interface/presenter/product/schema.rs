@@ -6,21 +6,21 @@ use serde::{Deserialize, Serialize};
 use crate::interface::presenter::common::exception::GenericResponseError;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(super) enum ProductStatusEnum {
+pub enum ProductStatusEnum {
     Active,
     Inactive,
     Draft,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(super) enum MediaStatusEnum {
+pub enum MediaStatusEnum {
     Active,
     Inactive,
     InPreparation,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(super) struct ProductSchema {
+pub struct ProductSchema {
     pub(super) id: String,
     pub(super) name: String,
     pub(super) description: String,
@@ -31,7 +31,7 @@ pub(super) struct ProductSchema {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(super) struct VariantSchema {
+pub struct VariantSchema {
     pub(super) id: String,
     pub(super) price: u32,
     pub(super) sku: Option<String>,
@@ -43,7 +43,7 @@ pub(super) struct VariantSchema {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(super) struct MediaSchema {
+pub struct MediaSchema {
     pub(super) id: String,
     pub(super) status: MediaStatusEnum,
     pub(super) alt: Option<String>,
@@ -53,12 +53,12 @@ pub(super) struct MediaSchema {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(super) struct GetProductResponse {
+pub struct GetProductResponse {
     pub(super) product: ProductSchema,
 }
 
 #[derive(Debug, Display, Error)]
-pub(super) enum GetProductResponseError {
+pub enum GetProductResponseError {
     #[display(fmt = "Product not found.")]
     NotFound,
     #[display(fmt = "Bad request.")]
@@ -88,12 +88,12 @@ impl ResponseError for GetProductResponseError {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(super) struct GetProductsResponse {
+pub struct GetProductsResponse {
     pub products: Vec<ProductSchema>,
 }
 
 #[derive(Debug, Display, Error)]
-pub(super) enum GetProductsResponseError {
+pub enum GetProductsResponseError {
     #[display(fmt = "Product not found.")]
     NotFound,
     #[display(fmt = "Bad request.")]

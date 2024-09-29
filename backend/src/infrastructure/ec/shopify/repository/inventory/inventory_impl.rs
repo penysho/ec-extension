@@ -50,12 +50,15 @@ impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<
                                 id
                                 inventoryItem {{
                                     id
-                                    inventoryLevel(locationId: {location_id}) {{
+                                    variant {{
+                                        id
+                                    }}
+                                    inventoryLevel(locationId: \"{location_id}\") {{
                                         id
                                         location {{
                                             id
                                         }}
-                                        quantities(names: incoming,available,committed,reserved,damaged,safety_stock) {{
+                                        quantities(names: \"available\") {{
                                             name
                                             quantity
                                         }}

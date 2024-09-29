@@ -58,7 +58,7 @@ impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C>
             .locations
             .edges
             .into_iter()
-            .map(|node| ShopifyGQLQueryHelper::remove_gid_prefix(&node.node.id))
+            .map(|node| node.node.id)
             .collect();
 
         Ok(ids)
