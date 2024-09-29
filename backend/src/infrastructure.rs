@@ -1,5 +1,5 @@
 pub mod config;
-pub mod ec;
-pub mod error;
+mod ec;
+mod error;
 pub mod module;
 pub mod router;

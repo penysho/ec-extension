@@ -10,16 +10,14 @@ use crate::{
         ec_client_interface::ECClient,
         shopify::{
             query_helper::ShopifyGQLQueryHelper,
-            repository::{
-                common::schema::GraphQLResponse,
-                product::schema::{ProductsData, VariantsData},
+            repository::schema::{
+                common::GraphQLResponse,
+                product::{ProductsData, VariantSchema, VariantsData},
             },
         },
     },
     usecase::repository::product_repository_interface::ProductRepository,
 };
-
-use super::schema::VariantSchema;
 
 /// Repository for products for Shopify.
 pub struct ProductRepositoryImpl<C: ECClient> {
@@ -34,7 +32,7 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
-    /// Obtain detailed product information.
+    /// Get detailed product information.
     async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
         let description_length = Product::MAX_DESCRIPTION_LENGTH;
         let first_query = ShopifyGQLQueryHelper::first_query();
@@ -54,18 +52,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                                 price
                                 createdAt
                                 updatedAt
-                                inventoryItem {{
-                                    id
-                                }}
                                 product {{
                                     id
                                     title
                                     handle
-                                    priceRangeV2 {{
-                                        maxVariantPrice {{
-                                            amount
-                                        }}
-                                    }}
                                     description(truncateAt: {description_length})
                                     status
                                     category {{
@@ -137,11 +127,6 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                                     id
                                     title
                                     handle
-                                    priceRangeV2 {{
-                                        maxVariantPrice {{
-                                            amount
-                                        }}
-                                    }}
                                     description(truncateAt: {description_length})
                                     status
                                     category {{
@@ -193,7 +178,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             let product_ids = products_data
                 .edges
                 .into_iter()
-                .map(|node| ShopifyGQLQueryHelper::remove_product_gid_prefix(&node.node.id))
+                .map(|node| ShopifyGQLQueryHelper::remove_gid_prefix(&node.node.id))
                 .collect::<Vec<String>>()
                 .join(",");
 
@@ -219,18 +204,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                                     price
                                     createdAt
                                     updatedAt
-                                    inventoryItem {{
-                                        id
-                                    }}
                                     product {{
                                         id
                                         title
                                         handle
-                                        priceRangeV2 {{
-                                            maxVariantPrice {{
-                                                amount
-                                            }}
-                                        }}
                                         description(truncateAt: {description_length})
                                         status
                                         category {{
@@ -308,11 +285,8 @@ mod tests {
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
-                common::schema::{Edges, GraphQLError, Node, PageInfo},
-                product::schema::{
-                    InventoryNode, MaxVariantPrice, PriceRangeV2, ProductNode, TaxonomyCategory,
-                    VariantNode,
-                },
+                schema::common::{Edges, GraphQLError, Node, PageInfo},
+                schema::product::{ProductNode, TaxonomyCategory, VariantNode},
             },
         },
     };
@@ -336,16 +310,8 @@ mod tests {
                             id: "gid://shopify/Category/111".to_string(),
                         }),
                         title: format!("Test Product {i}"),
-                        price: PriceRangeV2 {
-                            max_variant_price: MaxVariantPrice {
-                                amount: format!("{i}.00"),
-                            },
-                        },
                         description: format!("Test Description {i}"),
                         status: "ACTIVE".to_string(),
-                    },
-                    inventory_item: InventoryNode {
-                        id: "gid://shopify/InventoryItem/789012".to_string(),
                     },
                     barcode: Some("123456789012".to_string()),
                     inventory_quantity: Some(i as i32),
@@ -387,11 +353,6 @@ mod tests {
                         id: "gid://shopify/Category/111".to_string(),
                     }),
                     title: format!("Test Product {i}"),
-                    price: PriceRangeV2 {
-                        max_variant_price: MaxVariantPrice {
-                            amount: format!("{i}.00"),
-                        },
-                    },
                     description: format!("Test Description {i}"),
                     status: "ACTIVE".to_string(),
                 },
@@ -456,9 +417,9 @@ mod tests {
 
         assert!(result.is_ok());
         let product = result.unwrap();
-        assert_eq!(product.id(), "gid://shopify/Product/0");
+        assert_eq!(product.id(), "0");
         assert_eq!(*product.status(), ProductStatus::Active);
-        assert_eq!(product.variants()[0].id(), "gid://shopify/ProductVariant/0");
+        assert_eq!(product.variants()[0].id(), "0");
         assert_eq!(*product.variants()[0].price(), 0);
     }
 
@@ -490,13 +451,13 @@ mod tests {
 
         assert!(result.is_ok());
         let product = result.unwrap();
-        assert_eq!(product.id(), "gid://shopify/Product/0");
+        assert_eq!(product.id(), "0");
         assert_eq!(*product.status(), ProductStatus::Active);
 
         assert_eq!(product.variants().len(), 2);
-        assert_eq!(product.variants()[0].id(), "gid://shopify/ProductVariant/0");
+        assert_eq!(product.variants()[0].id(), "0");
         assert_eq!(*product.variants()[0].price(), 0);
-        assert_eq!(product.variants()[1].id(), "gid://shopify/ProductVariant/1");
+        assert_eq!(product.variants()[1].id(), "1");
         assert_eq!(*product.variants()[1].price(), 1);
     }
 
@@ -615,20 +576,14 @@ mod tests {
         let products = result.unwrap();
         assert_eq!(products.len(), 250);
 
-        assert_eq!(products[0].id(), "gid://shopify/Product/0");
+        assert_eq!(products[0].id(), "0");
         assert_eq!(*(products[0].status()), ProductStatus::Active);
-        assert_eq!(
-            products[0].variants()[0].id(),
-            "gid://shopify/ProductVariant/0"
-        );
+        assert_eq!(products[0].variants()[0].id(), "0");
 
         assert_eq!(*products[0].variants()[0].price(), 0);
-        assert_eq!(products[249].id(), "gid://shopify/Product/249");
+        assert_eq!(products[249].id(), "249");
         assert_eq!(*(products[0].status()), ProductStatus::Active);
-        assert_eq!(
-            products[249].variants()[0].id(),
-            "gid://shopify/ProductVariant/249"
-        );
+        assert_eq!(products[249].variants()[0].id(), "249");
         assert_eq!(*products[249].variants()[0].price(), 249);
     }
 
@@ -667,17 +622,11 @@ mod tests {
         let products = result.unwrap();
         assert_eq!(products.len(), 10);
 
-        assert_eq!(products[0].id(), "gid://shopify/Product/20");
-        assert_eq!(
-            products[0].variants()[0].id(),
-            "gid://shopify/ProductVariant/20"
-        );
+        assert_eq!(products[0].id(), "20");
+        assert_eq!(products[0].variants()[0].id(), "20");
 
-        assert_eq!(products[9].id(), "gid://shopify/Product/29");
-        assert_eq!(
-            products[9].variants()[0].id(),
-            "gid://shopify/ProductVariant/29"
-        );
+        assert_eq!(products[9].id(), "29");
+        assert_eq!(products[9].variants()[0].id(), "29");
     }
 
     #[tokio::test]
@@ -735,17 +684,11 @@ mod tests {
         let products = result.unwrap();
         assert_eq!(products.len(), 480);
 
-        assert_eq!(products[0].id(), "gid://shopify/Product/20");
-        assert_eq!(
-            products[0].variants()[0].id(),
-            "gid://shopify/ProductVariant/20"
-        );
+        assert_eq!(products[0].id(), "20");
+        assert_eq!(products[0].variants()[0].id(), "20");
 
-        assert_eq!(products[479].id(), "gid://shopify/Product/499");
-        assert_eq!(
-            products[479].variants()[0].id(),
-            "gid://shopify/ProductVariant/499"
-        );
+        assert_eq!(products[479].id(), "499");
+        assert_eq!(products[479].variants()[0].id(), "499");
     }
 
     #[tokio::test]

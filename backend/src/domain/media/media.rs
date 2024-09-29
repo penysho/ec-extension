@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
+use super::associated_id::associated_id::AssociatedId;
 use super::src::src::Src;
 use crate::domain::error::error::DomainError;
-use crate::domain::product::product::Id as ProductId;
 
 pub type Id = String;
 
@@ -12,11 +12,6 @@ pub enum MediaStatus {
     Active,
     Inactive,
     InPreparation,
-}
-
-#[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub enum AssociatedId {
-    Product(ProductId),
 }
 
 /// Entity of Media.
@@ -47,10 +42,12 @@ impl Media {
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
+            log::error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
         if let MediaStatus::Active = status {
             if published_src.is_none() {
+                log::error!("Published src cannot be empty when status is active");
                 return Err(DomainError::ValidationError);
             }
         }

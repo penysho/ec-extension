@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 use crate::{
     domain::{
         error::error::DomainError,
-        media::media::{AssociatedId, Media},
+        media::{associated_id::associated_id::AssociatedId, media::Media},
         product::product::Id as ProductId,
     },
     infrastructure::{
@@ -12,9 +12,9 @@ use crate::{
             ec_client_interface::ECClient,
             shopify::{
                 query_helper::ShopifyGQLQueryHelper,
-                repository::{
-                    common::schema::GraphQLResponse,
-                    media::schema::{MediaData, MediaSchema},
+                repository::schema::{
+                    common::GraphQLResponse,
+                    media::{MediaData, MediaNode, MediaSchema},
                 },
             },
         },
@@ -22,8 +22,6 @@ use crate::{
     },
     usecase::repository::media_repository_interface::MediaRepository,
 };
-
-use super::schema::MediaNode;
 
 /// Repository for products for Shopify.
 pub struct MediaRepositoryImpl<C: ECClient> {
@@ -91,12 +89,12 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
 
     async fn get_media_by_product_ids(
         &self,
-        ids: Vec<&ProductId>,
+        product_ids: Vec<&ProductId>,
     ) -> Result<Vec<Media>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
 
         let mut query = String::from("query { ");
-        for (i, id) in ids.iter().enumerate() {
+        for (i, id) in product_ids.iter().enumerate() {
             let alias = format!("i{}", i);
             let query_part = format!(
                 "{}: files({}, query: \"product_id:'{}'\") {{
@@ -117,7 +115,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                 }}",
                 alias,
                 first_query,
-                ShopifyGQLQueryHelper::remove_product_gid_prefix(id)
+                ShopifyGQLQueryHelper::remove_gid_prefix(id)
             );
             query.push_str(&query_part);
         }
@@ -142,7 +140,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         }
 
         let mut media_schemas = Vec::new();
-        for (i, _) in ids.iter().enumerate() {
+        for (i, _) in product_ids.iter().enumerate() {
             let alias = format!("i{}", i);
 
             if let Some(file_data) = data.get(&alias).and_then(|d| d.as_object()) {
@@ -163,7 +161,8 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
 
         let media_domains: Result<Vec<Media>, DomainError> = MediaSchema::to_domains(
             media_schemas,
-            ids.into_iter()
+            product_ids
+                .into_iter()
                 .map(|id| Some(AssociatedId::Product(id.to_string())))
                 .collect(),
         );
@@ -178,14 +177,14 @@ mod tests {
     use serde_json::{json, Value};
 
     use crate::{
-        domain::error::error::DomainError,
+        domain::{error::error::DomainError, media::media::MediaStatus},
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
-                common::schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
-                media::{
-                    media_impl::MediaRepositoryImpl,
-                    schema::{Image, MediaData, MediaNode, MediaPreviewImage},
+                media::media_impl::MediaRepositoryImpl,
+                schema::{
+                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
+                    media::{Image, MediaData, MediaNode, MediaPreviewImage},
                 },
             },
         },
@@ -193,15 +192,15 @@ mod tests {
     };
 
     fn mock_media_response(count: usize) -> GraphQLResponse<MediaData> {
-        let media_nodes: Vec<Node<MediaNode>> = (0..count)
+        let nodes: Vec<Node<MediaNode>> = (0..count)
             .map(|i| Node {
                 node: MediaNode {
-                    id: format!("gid://shopify/Media/{i}"),
+                    id: format!("gid://shopify/MediaImage/{i}"),
                     file_status: "UPLOADED".to_string(),
                     alt: Some(format!("Alt text for media {i}")),
                     preview: Some(MediaPreviewImage {
                         image: Some(Image {
-                            url: format!("https://example.com/media/{i}.jpg"),
+                            url: format!("https://example.com/MediaImage/{i}.jpg"),
                         }),
                     }),
                     created_at: Utc::now(),
@@ -213,7 +212,7 @@ mod tests {
         GraphQLResponse {
             data: Some(MediaData {
                 files: Edges {
-                    edges: media_nodes,
+                    edges: nodes,
                     page_info: PageInfo {
                         has_previous_page: false,
                         has_next_page: false,
@@ -236,11 +235,11 @@ mod tests {
                                 "alt": "Alt text for media 0",
                                 "createdAt": "2024-07-30T15:37:45Z",
                                 "fileStatus": "READY",
-                                "id": "gid://shopify/Media/0",
+                                "id": "gid://shopify/MediaImage/0",
                                 "updatedAt": "2024-07-30T15:37:45Z",
                                 "preview": {
                                     "image": {
-                                        "id": "gid://shopify/Media/0",
+                                        "id": "gid://shopify/MediaImage/0",
                                         "url": "https://example.com/image0.jpg",
                                     }
                                 }
@@ -255,11 +254,11 @@ mod tests {
                                 "alt": "Alt text for media 1",
                                 "createdAt": "2024-07-30T15:37:45Z",
                                 "fileStatus": "READY",
-                                "id": "gid://shopify/Media/1",
+                                "id": "gid://shopify/MediaImage/1",
                                 "updatedAt": "2024-07-30T15:37:45Z",
                                 "preview": {
                                     "image": {
-                                        "id": "gid://shopify/Media/1",
+                                        "id": "gid://shopify/MediaImage/1",
                                         "url": "https://example.com/image1.jpg",
                                     }
                                 }
@@ -306,8 +305,21 @@ mod tests {
         assert!(result.is_ok());
         let media = result.unwrap();
         assert_eq!(media.len(), 10);
-        assert_eq!(media[0].id(), "gid://shopify/Media/0");
-        assert_eq!(media[9].id(), "gid://shopify/Media/9");
+        assert_eq!(media[0].id(), "0");
+        assert_eq!(*media[0].status(), MediaStatus::Active);
+        assert_eq!(
+            media[0].published_src().as_ref().unwrap().value(),
+            "https://example.com/MediaImage/0.jpg"
+        );
+        assert_eq!(media[0].alt().as_deref().unwrap(), "Alt text for media 0");
+
+        assert_eq!(media[9].id(), "9");
+        assert_eq!(*media[9].status(), MediaStatus::Active);
+        assert_eq!(
+            media[9].published_src().as_ref().unwrap().value(),
+            "https://example.com/MediaImage/9.jpg"
+        );
+        assert_eq!(media[9].alt().as_deref().unwrap(), "Alt text for media 9");
     }
 
     #[tokio::test]
@@ -403,8 +415,8 @@ mod tests {
         assert!(result.is_ok());
         let media = result.unwrap();
         assert_eq!(media.len(), 2);
-        assert_eq!(media[0].id(), "gid://shopify/Media/0");
-        assert_eq!(media[1].id(), "gid://shopify/Media/1");
+        assert_eq!(media[0].id(), "0");
+        assert_eq!(media[1].id(), "1");
     }
 
     #[tokio::test]

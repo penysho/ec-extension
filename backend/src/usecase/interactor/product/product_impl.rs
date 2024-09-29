@@ -35,7 +35,7 @@ impl ProductInteractorImpl {
 
 #[async_trait]
 impl ProductInteractor for ProductInteractorImpl {
-    /// Obtain detailed product information.
+    /// Get detailed product information.
     async fn get_product_with_media(
         &self,
         id: &ProductId,
@@ -49,7 +49,7 @@ impl ProductInteractor for ProductInteractorImpl {
             (_, Err(e)) => Err(e),
         }
     }
-    /// Obtain a list of products.
+    /// Get a list of products.
     async fn get_products(
         &self,
         limit: &Option<u32>,
