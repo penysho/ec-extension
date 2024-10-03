@@ -27,7 +27,8 @@ impl ShopifyGQLQueryHelper {
 
     /// Remove Shopify gid prefix.
     pub fn remove_gid_prefix(gid: &str) -> String {
-        let v: Vec<&str> = gid.rsplit('/').collect();
+        let gid_without_query: &str = gid.split('?').next().unwrap_or(gid);
+        let v: Vec<&str> = gid_without_query.rsplit('/').collect();
         v[0].to_string()
     }
 }
