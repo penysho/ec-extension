@@ -68,7 +68,10 @@ impl InventoryInteractor for InventoryInteractorImpl {
                         .inventory_level_repository
                         .get_inventory_level_by_sku(sku, &location_id)
                         .await?;
-                    inventory_levels.push(inventory_level);
+
+                    if let Some(inventory_level) = inventory_level {
+                        inventory_levels.push(inventory_level);
+                    }
                 }
 
                 let mut inventory_levels_map = HashMap::new();

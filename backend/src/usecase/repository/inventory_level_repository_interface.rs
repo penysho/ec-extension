@@ -11,5 +11,5 @@ pub trait InventoryLevelRepository: Send + Sync {
         &self,
         sku: &Sku,
         location_id: &LocationId,
-    ) -> Result<InventoryLevel, DomainError>;
+    ) -> Result<Option<InventoryLevel>, DomainError>;
 }

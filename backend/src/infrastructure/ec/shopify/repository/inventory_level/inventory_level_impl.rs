@@ -26,7 +26,7 @@ pub struct InventoryLevelRepositoryImpl<C: ECClient> {
 
 impl<C: ECClient> InventoryLevelRepositoryImpl<C> {
     const SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY: &'static str =
-        "\"incoming,available,committed,reserved,damaged,safety_stock\"";
+        "[\"incoming\",\"available\",\"committed\",\"reserved\",\"damaged\",\"safety_stock\"]";
 
     pub fn new(client: C) -> Self {
         Self { client }
@@ -40,7 +40,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         &self,
         sku: &Sku,
         location_id: &LocationId,
-    ) -> Result<InventoryLevel, DomainError> {
+    ) -> Result<Option<InventoryLevel>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
         let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
@@ -53,6 +53,13 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
                         edges {{
                             node {{
                                 id
+                                variant {{
+                                    id
+                                }}
+                                requiresShipping
+                                tracked
+                                createdAt
+                                updatedAt
                                 inventoryLevel(locationId: \"{location_id}\") {{
                                     id
                                     item {{
@@ -97,10 +104,10 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let domains = InventoryLevelSchema::to_domains(inventories)?;
 
         if domains.is_empty() {
-            log::error!("No inventory level found for sku: {}", sku);
-            return Err(DomainError::NotFound);
+            log::info!("No inventory level found for sku: {sku}, location: {location_id}");
+            return Ok(None);
         }
-        Ok(domains.into_iter().next().unwrap())
+        Ok(domains.into_iter().next())
     }
 }
 
@@ -225,7 +232,7 @@ mod tests {
             .await;
 
         assert!(result.is_ok());
-        let inventory_level = result.unwrap();
+        let inventory_level = result.unwrap().unwrap();
         assert_eq!(inventory_level.id(), "0");
         assert_eq!(inventory_level.location_id(), "0");
         assert_eq!(
