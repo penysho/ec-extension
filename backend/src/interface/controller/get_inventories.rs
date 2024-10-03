@@ -58,11 +58,12 @@ fn validate_query_params(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::sync::Arc;
 
-    use crate::domain::inventory::inventory::Inventory;
-    use crate::domain::inventory::inventory_level::inventory_level::InventoryLevel;
-    use crate::domain::inventory::inventory_level::quantity::quantity::{InventoryType, Quantity};
+    use crate::domain::inventory_item::inventory_item::InventoryItem;
+    use crate::domain::inventory_level::inventory_level::InventoryLevel;
+    use crate::domain::inventory_level::quantity::quantity::{InventoryType, Quantity};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::usecase::interactor::inventory_interactor_interface::{
@@ -106,28 +107,30 @@ mod tests {
             .expect_get_inventories_from_all_locations()
             .with(eq(GetInventoriesQuery::ProductId("0".to_string())))
             .returning(|_| {
-                Ok(vec![Inventory::new(
-                    format!("0"),
-                    format!("0"),
-                    vec![InventoryLevel::new(
-                        format!("0"),
-                        "location_id",
-                        vec![
-                            Quantity::new(10, InventoryType::Available).unwrap(),
-                            Quantity::new(20, InventoryType::Committed).unwrap(),
-                            Quantity::new(30, InventoryType::Incoming).unwrap(),
-                            Quantity::new(40, InventoryType::Reserved).unwrap(),
-                            Quantity::new(50, InventoryType::SafetyStock).unwrap(),
-                            Quantity::new(60, InventoryType::Damaged).unwrap(),
-                        ],
-                    )
-                    .unwrap()],
-                    true,
-                    false,
-                    Utc::now(),
-                    Utc::now(),
-                )
-                .unwrap()])
+                Ok((
+                    vec![
+                        InventoryItem::new("0", "0", true, false, Utc::now(), Utc::now()).unwrap(),
+                    ],
+                    vec![(
+                        "0".to_string(),
+                        vec![InventoryLevel::new(
+                            "0",
+                            "0",
+                            "location_id",
+                            vec![
+                                Quantity::new(10, InventoryType::Available).unwrap(),
+                                Quantity::new(20, InventoryType::Committed).unwrap(),
+                                Quantity::new(30, InventoryType::Incoming).unwrap(),
+                                Quantity::new(40, InventoryType::Reserved).unwrap(),
+                                Quantity::new(50, InventoryType::SafetyStock).unwrap(),
+                                Quantity::new(60, InventoryType::Damaged).unwrap(),
+                            ],
+                        )
+                        .unwrap()],
+                    )]
+                    .into_iter()
+                    .collect(),
+                ))
             });
 
         let req = test::TestRequest::get()
@@ -155,7 +158,7 @@ mod tests {
         let mut interactor = MockInventoryInteractor::new();
         interactor
             .expect_get_inventories_from_all_locations()
-            .returning(|_| Ok(vec![]));
+            .returning(|_| Ok((vec![], HashMap::new())));
 
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?product_id=0"))

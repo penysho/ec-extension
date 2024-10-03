@@ -4,12 +4,10 @@ use serde::Deserialize;
 use crate::{
     domain::{
         error::error::DomainError,
-        inventory::{
-            inventory::Inventory,
-            inventory_level::{
-                inventory_level::InventoryLevel,
-                quantity::quantity::{InventoryType, Quantity},
-            },
+        inventory_item::inventory_item::InventoryItem,
+        inventory_level::{
+            inventory_level::InventoryLevel,
+            quantity::quantity::{InventoryType, Quantity},
         },
     },
     infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
@@ -18,21 +16,10 @@ use crate::{
 use super::{common::Edges, location::LocationNode};
 
 impl InventoryItemSchema {
-    pub fn to_domain(self) -> Result<Inventory, DomainError> {
-        let inventory_level = self
-            .inventory_level
-            .map(|level| level.to_domain())
-            .transpose()?;
-
-        let mut inventory_levels = Vec::new();
-        if let Some(level) = inventory_level {
-            inventory_levels = vec![level]
-        }
-
-        Inventory::new(
+    pub fn to_domain(self) -> Result<InventoryItem, DomainError> {
+        InventoryItem::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.variant_id),
-            inventory_levels,
             self.requires_shipping,
             self.tracked,
             self.created_at,
@@ -40,7 +27,9 @@ impl InventoryItemSchema {
         )
     }
 
-    pub fn to_domains(schemas: Vec<InventoryItemSchema>) -> Result<Vec<Inventory>, DomainError> {
+    pub fn to_domains(
+        schemas: Vec<InventoryItemSchema>,
+    ) -> Result<Vec<InventoryItem>, DomainError> {
         schemas
             .into_iter()
             .map(|schema| schema.to_domain())
@@ -58,9 +47,19 @@ impl InventoryLevelSchema {
 
         InventoryLevel::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.inventory_item_id),
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.location_id),
             quantities?,
         )
+    }
+
+    pub fn to_domains(
+        schemas: Vec<InventoryLevelSchema>,
+    ) -> Result<Vec<InventoryLevel>, DomainError> {
+        schemas
+            .into_iter()
+            .map(|schema| schema.to_domain())
+            .collect()
     }
 }
 
@@ -85,7 +84,6 @@ impl From<InventoryItemNode> for InventoryItemSchema {
         InventoryItemSchema {
             id: node.id,
             variant_id: node.variant.id,
-            inventory_level: node.inventory_level.map(|level| level.into()),
             requires_shipping: node.requires_shipping,
             tracked: node.tracked,
             created_at: node.created_at,
@@ -98,6 +96,7 @@ impl From<InventoryLevelNode> for InventoryLevelSchema {
     fn from(node: InventoryLevelNode) -> Self {
         InventoryLevelSchema {
             id: node.id,
+            inventory_item_id: node.item.id,
             location_id: node.location.id,
             quantities: node.quantities.into_iter().map(|q| q.into()).collect(),
         }
@@ -117,7 +116,6 @@ impl From<QuantityNode> for QuantitySchema {
 pub struct InventoryItemSchema {
     pub id: String,
     pub variant_id: String,
-    pub inventory_level: Option<InventoryLevelSchema>,
     pub requires_shipping: bool,
     pub tracked: bool,
     pub created_at: DateTime<Utc>,
@@ -127,6 +125,7 @@ pub struct InventoryItemSchema {
 #[derive(Debug, Deserialize)]
 pub struct InventoryLevelSchema {
     pub id: String,
+    pub inventory_item_id: String,
     pub location_id: String,
     pub quantities: Vec<QuantitySchema>,
 }
@@ -155,8 +154,14 @@ pub struct InventoryItemNode {
 #[derive(Debug, Deserialize)]
 pub struct InventoryLevelNode {
     pub id: String,
+    pub item: InventoryItemIdNode,
     pub location: LocationNode,
     pub quantities: Vec<QuantityNode>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InventoryItemIdNode {
+    pub id: String,
 }
 
 #[derive(Debug, Deserialize)]

@@ -4,8 +4,7 @@ use serde_json::json;
 use crate::{
     domain::{
         error::error::DomainError,
-        inventory::inventory::Inventory,
-        location::location::Id as LocationId,
+        inventory_item::inventory_item::InventoryItem,
         product::{product::Id as ProductId, variant::sku::sku::Sku},
     },
     infrastructure::ec::{
@@ -18,34 +17,29 @@ use crate::{
             },
         },
     },
-    usecase::repository::inventory_repository_interface::InventoryRepository,
+    usecase::repository::inventory_item_repository_interface::InventoryItemRepository,
 };
 
 /// Repository for inventories for Shopify.
-pub struct InventoryRepositoryImpl<C: ECClient> {
+pub struct InventoryItemRepositoryImpl<C: ECClient> {
     client: C,
 }
 
-impl<C: ECClient> InventoryRepositoryImpl<C> {
-    const SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY: &'static str =
-        "\"incoming,available,committed,reserved,damaged,safety_stock\"";
-
+impl<C: ECClient> InventoryItemRepositoryImpl<C> {
     pub fn new(client: C) -> Self {
         Self { client }
     }
 }
 
 #[async_trait]
-impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<C> {
+impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemRepositoryImpl<C> {
     /// Get product inventory information by product id.
-    async fn get_inventories_by_product_id(
+    async fn get_inventory_items_by_product_id(
         &self,
         product_id: &ProductId,
-        location_id: &LocationId,
-    ) -> Result<Vec<Inventory>, DomainError> {
+    ) -> Result<Vec<InventoryItem>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
-        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
 
         let query = json!({
             "query": format!(
@@ -58,16 +52,6 @@ impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<
                                     id
                                     variant {{
                                         id
-                                    }}
-                                    inventoryLevel(locationId: \"{location_id}\") {{
-                                        id
-                                        location {{
-                                            id
-                                        }}
-                                        quantities(names: {inventory_names}) {{
-                                            name
-                                            quantity
-                                        }}
                                     }}
                                     requiresShipping
                                     tracked
@@ -102,14 +86,9 @@ impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<
     }
 
     /// Get product inventory information by sku.
-    async fn get_inventories_by_sku(
-        &self,
-        sku: &Sku,
-        location_id: &LocationId,
-    ) -> Result<Inventory, DomainError> {
+    async fn get_inventory_item_by_sku(&self, sku: &Sku) -> Result<InventoryItem, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
-        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
         let sku = sku.value();
 
         let query = json!({
@@ -121,16 +100,6 @@ impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<
                                 id
                                 variant {{
                                     id
-                                }}
-                                inventoryLevel(locationId: \"{location_id}\") {{
-                                    id
-                                    location {{
-                                        id
-                                    }}
-                                    quantities(names: {inventory_names}) {{
-                                        name
-                                        quantity
-                                    }}
                                 }}
                                 requiresShipping
                                 tracked
@@ -163,7 +132,7 @@ impl<C: ECClient + Send + Sync> InventoryRepository for InventoryRepositoryImpl<
         let domains = InventoryItemSchema::to_domains(inventories)?;
 
         if domains.is_empty() {
-            log::error!("No inventory found for sku: {}", sku);
+            log::error!("No inventory item found for sku: {}", sku);
             return Err(DomainError::NotFound);
         }
         Ok(domains.into_iter().next().unwrap())
@@ -176,26 +145,23 @@ mod tests {
     use serde_json::Value;
 
     use crate::{
-        domain::{
-            error::error::DomainError,
-            inventory::inventory_level::quantity::quantity::InventoryType,
-            product::variant::sku::sku::Sku,
-        },
+        domain::{error::error::DomainError, product::variant::sku::sku::Sku},
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
-                inventory::inventory_impl::InventoryRepositoryImpl,
+                inventory_item::inventory_item_impl::InventoryItemRepositoryImpl,
                 schema::{
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
                     inventory::{
-                        InventoryItemNode, InventoryItemsData, InventoryLevelNode, QuantityNode,
-                        VariantIdNode, VariantNodeForInventory, VariantsDataForInventory,
+                        InventoryItemIdNode, InventoryItemNode, InventoryItemsData,
+                        InventoryLevelNode, QuantityNode, VariantIdNode, VariantNodeForInventory,
+                        VariantsDataForInventory,
                     },
                     location::LocationNode,
                 },
             },
         },
-        usecase::repository::inventory_repository_interface::InventoryRepository,
+        usecase::repository::inventory_item_repository_interface::InventoryItemRepository,
     };
 
     fn mock_inventory(id: u32) -> InventoryItemNode {
@@ -206,6 +172,9 @@ mod tests {
             },
             inventory_level: Some(InventoryLevelNode {
                 id: format!("gid://shopify/InventoryLevel/{id}"),
+                item: InventoryItemIdNode {
+                    id: format!("gid://shopify/InventoryItem/{id}"),
+                },
                 location: LocationNode {
                     id: format!("gid://shopify/Location/{id}"),
                 },
@@ -301,7 +270,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventories_by_product_id_success() {
+    async fn get_inventory_items_by_product_id_success() {
         let mut client = MockECClient::new();
 
         client
@@ -309,10 +278,10 @@ mod tests {
             .times(1)
             .return_once(|_| Ok(mock_inventories_response_for_variant_data(10)));
 
-        let repo = InventoryRepositoryImpl::new(client);
+        let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventories_by_product_id(&"0".to_string(), &"0".to_string())
+            .get_inventory_items_by_product_id(&"0".to_string())
             .await;
 
         assert!(result.is_ok());
@@ -320,29 +289,27 @@ mod tests {
         assert_eq!(inventories.len(), 10);
         assert_eq!(inventories[0].id(), "0");
         assert_eq!(inventories[0].variant_id(), "0");
-        assert_eq!(inventories[0].inventory_levels()[0].id(), "0");
-        assert_eq!(inventories[0].inventory_levels()[0].location_id(), "0");
-        assert_eq!(
-            inventories[0].inventory_levels()[0]
-                .quantities()
-                .into_iter()
-                .map(|q| q.quantity().clone())
-                .collect::<Vec<u32>>(),
-            [1, 2, 3]
-        );
-        assert_eq!(
-            *(inventories[0].inventory_levels()[0].quantities()[0].inventory_type()),
-            InventoryType::Available
-        );
+        // assert_eq!(inventories[0].inventory_levels()[0].id(), "0");
+        // assert_eq!(inventories[0].inventory_levels()[0].location_id(), "0");
+        // assert_eq!(
+        //     inventories[0].inventory_levels()[0]
+        //         .quantities()
+        //         .into_iter()
+        //         .map(|q| q.quantity().clone())
+        //         .collect::<Vec<u32>>(),
+        //     [1, 2, 3]
+        // );
+        // assert_eq!(
+        //     *(inventories[0].inventory_levels()[0].quantities()[0].inventory_type()),
+        //     InventoryType::Available
+        // );
 
         assert_eq!(inventories[9].id(), "9");
         assert_eq!(inventories[9].variant_id(), "9");
-        assert_eq!(inventories[9].inventory_levels()[0].id(), "9");
-        assert_eq!(inventories[9].inventory_levels()[0].location_id(), "9");
     }
 
     #[tokio::test]
-    async fn get_inventories_by_product_id_with_invalid_domain_conversion() {
+    async fn get_inventory_items_by_product_id_with_invalid_domain_conversion() {
         let mut client = MockECClient::new();
 
         let mut invalid_variant = mock_inventories_response_for_variant_data(1);
@@ -362,10 +329,10 @@ mod tests {
             .times(1)
             .return_once(|_| Ok(invalid_variant));
 
-        let repo = InventoryRepositoryImpl::new(client);
+        let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventories_by_product_id(&"0".to_string(), &"0".to_string())
+            .get_inventory_items_by_product_id(&"0".to_string())
             .await;
 
         assert!(result.is_err());
@@ -377,7 +344,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventories_by_product_id_with_graphql_error() {
+    async fn get_inventory_items_by_product_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_error = mock_with_error();
@@ -387,10 +354,10 @@ mod tests {
             .times(1)
             .return_once(|_| Ok(graphql_response_with_error));
 
-        let repo = InventoryRepositoryImpl::new(client);
+        let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventories_by_product_id(&"0".to_string(), &"0".to_string())
+            .get_inventory_items_by_product_id(&"0".to_string())
             .await;
 
         assert!(result.is_err());
@@ -402,7 +369,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventories_by_product_id_with_missing_data() {
+    async fn get_inventory_items_by_product_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_no_data = mock_with_no_data();
@@ -412,10 +379,10 @@ mod tests {
             .times(1)
             .return_once(|_| Ok(graphql_response_with_no_data));
 
-        let repo = InventoryRepositoryImpl::new(client);
+        let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventories_by_product_id(&"0".to_string(), &"0".to_string())
+            .get_inventory_items_by_product_id(&"0".to_string())
             .await;
 
         assert!(result.is_err());
@@ -427,7 +394,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventories_by_sku_success() {
+    async fn get_inventory_item_by_sku_success() {
         let mut client = MockECClient::new();
 
         client
@@ -435,34 +402,20 @@ mod tests {
             .times(1)
             .return_once(|_| Ok(mock_inventories_response_for_inventory_items_data(1)));
 
-        let repo = InventoryRepositoryImpl::new(client);
+        let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventories_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .get_inventory_item_by_sku(&Sku::new("0".to_string()).unwrap())
             .await;
 
         assert!(result.is_ok());
         let inventory = result.unwrap();
         assert_eq!(inventory.id(), "0");
         assert_eq!(inventory.variant_id(), "0");
-        assert_eq!(inventory.inventory_levels()[0].id(), "0");
-        assert_eq!(inventory.inventory_levels()[0].location_id(), "0");
-        assert_eq!(
-            inventory.inventory_levels()[0]
-                .quantities()
-                .into_iter()
-                .map(|q| q.quantity().clone())
-                .collect::<Vec<u32>>(),
-            [1, 2, 3]
-        );
-        assert_eq!(
-            *(inventory.inventory_levels()[0].quantities()[0].inventory_type()),
-            InventoryType::Available
-        );
     }
 
     #[tokio::test]
-    async fn get_inventories_by_sku_with_graphql_error() {
+    async fn get_inventory_item_by_sku_with_graphql_error() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_error = mock_with_error();
@@ -472,10 +425,10 @@ mod tests {
             .times(1)
             .return_once(|_| Ok(graphql_response_with_error));
 
-        let repo = InventoryRepositoryImpl::new(client);
+        let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventories_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .get_inventory_item_by_sku(&Sku::new("0".to_string()).unwrap())
             .await;
 
         assert!(result.is_err());
@@ -487,7 +440,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventories_by_sku_with_missing_data() {
+    async fn get_inventory_item_by_sku_with_missing_data() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_no_data = mock_with_no_data();
@@ -497,10 +450,10 @@ mod tests {
             .times(1)
             .return_once(|_| Ok(graphql_response_with_no_data));
 
-        let repo = InventoryRepositoryImpl::new(client);
+        let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventories_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .get_inventory_item_by_sku(&Sku::new("0".to_string()).unwrap())
             .await;
 
         assert!(result.is_err());
