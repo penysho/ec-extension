@@ -4,6 +4,7 @@ use reqwest::{
     Client,
 };
 use serde::Serialize;
+use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -60,14 +61,49 @@ impl ECClient for ShopifyGQLClient {
             .send()
             .await
             .map_err(|e| {
+                log::error!("Error returned by GraphQL run. Error: {:?}", e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
         let graphql_response = response.json::<U>().await.map_err(|e| {
-            log::error!("Failed to parse GraphQL response. Error= {:?}", e);
+            log::error!("Failed to parse GraphQL query response. Error: {:?}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
         })?;
 
         Ok(graphql_response)
+    }
+
+    async fn mutation<T>(&self, query: &str, input: &T) -> Result<(), DomainError>
+    where
+        T: Serialize + ?Sized + Send + Sync + 'static,
+    {
+        // Lock the mutex to get the client
+        let client = self.client.lock().await;
+
+        let response = client
+            .post(self.config.store_url())
+            .headers(self.build_headers())
+            .json(&json!({
+                "query": query,
+                "variables": {
+                    "input": input
+                },
+            }))
+            .send()
+            .await
+            .map_err(|e| {
+                log::error!("Error returned by GraphQL run. Error: {:?}", e);
+                InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
+            })?;
+
+        match response.error_for_status() {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                log::error!("Failed to execute GraphQL mutation. Error: {:?}", e);
+                return Err(InfrastructureErrorMapper::to_domain(
+                    InfrastructureError::NetworkError(e),
+                ));
+            }
+        }
     }
 }
