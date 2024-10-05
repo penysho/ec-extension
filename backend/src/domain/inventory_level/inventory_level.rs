@@ -4,7 +4,13 @@ use crate::domain::{
 };
 use derive_getters::Getters;
 
-use super::quantity::quantity::Quantity;
+use super::{
+    inventory_change::{
+        change::{change::Change, ledger_document_uri::ledger_document_uri::LedgerDocumentUri},
+        inventory_change::InventoryChange,
+    },
+    quantity::quantity::{InventoryType, Quantity},
+};
 
 pub type Id = String;
 
@@ -35,5 +41,45 @@ impl InventoryLevel {
             location_id: location_id.into(),
             quantities,
         })
+    }
+
+    pub fn create_inventory_change(
+        &self,
+        name: &InventoryType,
+        reason: &str,
+        delta: i32,
+        ledger_document_uri: &Option<LedgerDocumentUri>,
+    ) -> Result<InventoryChange, DomainError> {
+        let change = Change::new(
+            delta,
+            self.inventory_item_id(),
+            ledger_document_uri.to_owned(),
+            self.location_id(),
+        )?;
+
+        InventoryChange::new(name.to_owned(), reason.to_string(), vec![change])
+    }
+
+    pub fn update_quantity_by_delta(
+        &mut self,
+        name: &InventoryType,
+        delta: i32,
+    ) -> Result<(), DomainError> {
+        let index = self
+            .quantities
+            .iter()
+            .position(|q| q.inventory_type() == name);
+
+        match index {
+            Some(index) => {
+                let _ = self.quantities[index].apply_delta(delta)?;
+                Ok(())
+            }
+            None => {
+                let quantity = Quantity::new(delta as u32, name.to_owned())?;
+                self.quantities.push(quantity);
+                Ok(())
+            }
+        }
     }
 }

@@ -6,7 +6,12 @@ use crate::{
     domain::{
         error::error::DomainError,
         inventory_item::inventory_item::{Id as InventoryItemId, InventoryItem},
-        inventory_level::inventory_level::InventoryLevel,
+        inventory_level::{
+            inventory_change::change::ledger_document_uri::ledger_document_uri::LedgerDocumentUri,
+            inventory_level::InventoryLevel, quantity::quantity::InventoryType,
+        },
+        location::location::Id as LocationId,
+        product::variant::sku::sku::Sku,
     },
     usecase::{
         interactor::inventory_interactor_interface::{GetInventoriesQuery, InventoryInteractor},
@@ -41,7 +46,7 @@ impl InventoryInteractorImpl {
 
 #[async_trait]
 impl InventoryInteractor for InventoryInteractorImpl {
-    /// Retrieve inventory information for all locations based on product ID.
+    /// get inventory information for all locations based on product ID.
     async fn get_inventories_from_all_locations(
         &self,
         query: &GetInventoriesQuery,
@@ -81,5 +86,39 @@ impl InventoryInteractor for InventoryInteractorImpl {
             }
             _ => Err(DomainError::InvalidRequest),
         }
+    }
+
+    async fn update_inventories_by_sku_with_location(
+        &self,
+        sku: &Sku,
+        name: &InventoryType,
+        reason: &str,
+        delta: i32,
+        ledger_document_uri: &Option<LedgerDocumentUri>,
+        location_id: &LocationId,
+    ) -> Result<InventoryLevel, DomainError> {
+        let mut inventory_level = self
+            .inventory_level_repository
+            .get_inventory_level_by_sku(sku, location_id)
+            .await?
+            .ok_or_else(|| {
+                log::error!(
+                    "InventoryLevel for the specified SKU is not found. SKU: {:?}, LocationId: {}",
+                    sku,
+                    location_id
+                );
+                DomainError::NotFound
+            })?;
+
+        let inventory_change =
+            inventory_level.create_inventory_change(name, reason, delta, ledger_document_uri)?;
+
+        self.inventory_level_repository
+            .update(inventory_change)
+            .await?;
+
+        inventory_level.update_quantity_by_delta(name, delta)?;
+
+        Ok(inventory_level)
     }
 }

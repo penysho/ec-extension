@@ -25,4 +25,10 @@ impl Quantity {
             inventory_type,
         })
     }
+
+    pub fn apply_delta(&mut self, delta: i32) -> Result<(), DomainError> {
+        self.quantity = (self.quantity as i32 + delta) as u32;
+
+        Ok(())
+    }
 }
