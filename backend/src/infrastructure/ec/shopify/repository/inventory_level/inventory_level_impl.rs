@@ -3,18 +3,27 @@ use serde_json::json;
 
 use crate::{
     domain::{
-        error::error::DomainError, inventory_level::inventory_level::InventoryLevel,
-        location::location::Id as LocationId, product::variant::sku::sku::Sku,
+        error::error::DomainError,
+        inventory_level::{
+            inventory_change::inventory_change::InventoryChange, inventory_level::InventoryLevel,
+        },
+        location::location::Id as LocationId,
+        product::variant::sku::sku::Sku,
     },
-    infrastructure::ec::{
-        ec_client_interface::ECClient,
-        shopify::{
-            query_helper::ShopifyGQLQueryHelper,
-            repository::schema::{
-                common::GraphQLResponse,
-                inventory::{InventoryItemsData, InventoryLevelSchema},
+    infrastructure::{
+        ec::{
+            ec_client_interface::ECClient,
+            shopify::{
+                query_helper::ShopifyGQLQueryHelper,
+                repository::schema::{
+                    common::GraphQLResponse,
+                    inventory::{
+                        InventoryAdjustQuantitiesInput, InventoryItemsData, InventoryLevelSchema,
+                    },
+                },
             },
         },
+        error::{InfrastructureError, InfrastructureErrorMapper},
     },
     usecase::repository::inventory_level_repository_interface::InventoryLevelRepository,
 };
@@ -109,6 +118,36 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         }
         Ok(domains.into_iter().next())
     }
+
+    async fn update(&self, inventory_change: InventoryChange) -> Result<(), DomainError> {
+        let schema = InventoryAdjustQuantitiesInput::from(inventory_change);
+        let input = serde_json::to_value(schema).map_err(|e| {
+            log::error!("Failed to parse the request structure. Error: {:?}", e);
+            InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
+        })?;
+
+        let query = String::from(
+            "mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {
+                inventoryAdjustQuantities(input: $input) {
+                    userErrors {
+                    field
+                    message
+                    }
+                    inventoryAdjustmentGroup {
+                    createdAt
+                    reason
+                    referenceDocumentUri
+                    changes {
+                        name
+                        delta
+                    }
+                }
+            }
+        }",
+        );
+
+        self.client.mutation(&query, &input).await
+    }
 }
 
 #[cfg(test)]
@@ -118,7 +157,16 @@ mod tests {
 
     use crate::{
         domain::{
-            error::error::DomainError, inventory_level::quantity::quantity::InventoryType,
+            error::error::DomainError,
+            inventory_level::{
+                inventory_change::{
+                    change::{
+                        change::Change, ledger_document_uri::ledger_document_uri::LedgerDocumentUri,
+                    },
+                    inventory_change::InventoryChange,
+                },
+                quantity::quantity::InventoryType,
+            },
             product::variant::sku::sku::Sku,
         },
         infrastructure::ec::{
@@ -197,6 +245,21 @@ mod tests {
             }),
             errors: None,
         }
+    }
+
+    fn mock_inventory_change() -> InventoryChange {
+        InventoryChange::new(
+            InventoryType::Committed,
+            "by order".to_string(),
+            vec![Change::new(
+                10,
+                "inventory_item_123",
+                Some(LedgerDocumentUri::new("https://example.com/document").unwrap()),
+                "location_456",
+            )
+            .unwrap()],
+        )
+        .unwrap()
     }
 
     fn mock_with_error<T>() -> GraphQLResponse<T> {
@@ -297,5 +360,37 @@ mod tests {
         } else {
             panic!("Expected DomainError::QueryError, but got something else");
         }
+    }
+
+    #[tokio::test]
+    async fn test_update_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value>()
+            .times(1)
+            .return_once(|_, _| Ok(()));
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo.update(mock_inventory_change()).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_with_network_error() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value>()
+            .times(1)
+            .return_once(|_, _| Err(DomainError::SystemError));
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo.update(mock_inventory_change()).await;
+
+        assert!(result.is_err());
     }
 }

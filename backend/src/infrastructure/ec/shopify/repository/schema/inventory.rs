@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     domain::{
         error::error::DomainError,
         inventory_item::inventory_item::InventoryItem,
         inventory_level::{
+            inventory_change::inventory_change::InventoryChange,
             inventory_level::InventoryLevel,
             quantity::quantity::{InventoryType, Quantity},
         },
@@ -191,4 +192,61 @@ pub struct VariantsDataForInventory {
 pub struct InventoryItemsData {
     #[serde(rename = "inventoryItems")]
     pub inventory_items: Edges<InventoryItemNode>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InventoryChangeInput {
+    pub delta: i32,
+    #[serde(rename = "inventoryItemId")]
+    pub inventory_item_id: String,
+    #[serde(rename = "ledgerDocumentUri")]
+    pub ledger_document_uri: Option<String>,
+    #[serde(rename = "locationId")]
+    pub location_id: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InventoryAdjustQuantitiesInput {
+    pub changes: Vec<InventoryChangeInput>,
+    pub name: String,
+    pub reason: String,
+}
+
+impl From<InventoryType> for String {
+    fn from(inventory_type: InventoryType) -> Self {
+        match inventory_type {
+            InventoryType::Available => "available".to_string(),
+            InventoryType::Incoming => "incoming".to_string(),
+            InventoryType::Committed => "committed".to_string(),
+            InventoryType::Damaged => "damaged".to_string(),
+            InventoryType::SafetyStock => "safety_stock".to_string(),
+            InventoryType::Reserved => "reserved".to_string(),
+        }
+    }
+}
+
+impl From<InventoryChange> for InventoryAdjustQuantitiesInput {
+    fn from(domain: InventoryChange) -> Self {
+        InventoryAdjustQuantitiesInput {
+            changes: domain
+                .changes()
+                .into_iter()
+                .map(|change| InventoryChangeInput {
+                    delta: *change.delta(),
+                    inventory_item_id: ShopifyGQLQueryHelper::add_inventory_item_gid_prefix(
+                        change.inventory_item_id(),
+                    ),
+                    ledger_document_uri: change
+                        .ledger_document_uri()
+                        .as_ref()
+                        .and_then(|l| Some(l.value().to_string())),
+                    location_id: ShopifyGQLQueryHelper::add_location_gid_prefix(
+                        change.location_id(),
+                    ),
+                })
+                .collect(),
+            name: domain.name().to_owned().into(),
+            reason: domain.reason().to_string(),
+        }
+    }
 }

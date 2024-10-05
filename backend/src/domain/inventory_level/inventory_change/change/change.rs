@@ -18,15 +18,15 @@ pub struct Change {
 impl Change {
     pub fn new(
         delta: i32,
-        inventory_item_id: InventoryItemId,
+        inventory_item_id: impl Into<InventoryItemId>,
         ledger_document_uri: Option<LedgerDocumentUri>,
-        location_id: LocationId,
+        location_id: impl Into<LocationId>,
     ) -> Result<Self, DomainError> {
         Ok(Self {
             delta,
-            inventory_item_id,
+            inventory_item_id: inventory_item_id.into(),
             ledger_document_uri,
-            location_id,
+            location_id: location_id.into(),
         })
     }
 }
