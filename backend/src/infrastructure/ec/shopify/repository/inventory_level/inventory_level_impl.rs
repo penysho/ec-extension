@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use serde_json::json;
 
 use crate::{
     domain::{
@@ -57,40 +56,38 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let sku = sku.value();
         let location_id = ShopifyGQLQueryHelper::add_location_gid_prefix(location_id);
 
-        let query = json!({
-            "query": format!(
-                "query {{
-                    inventoryItems({first_query}, query: \"sku:{sku}\") {{
-                        edges {{
-                            node {{
+        let query = format!(
+            "query {{
+                inventoryItems({first_query}, query: \"sku:{sku}\") {{
+                    edges {{
+                        node {{
+                            id
+                            variant {{
                                 id
-                                variant {{
+                            }}
+                            requiresShipping
+                            tracked
+                            createdAt
+                            updatedAt
+                            inventoryLevel(locationId: \"{location_id}\") {{
+                                id
+                                item {{
                                     id
                                 }}
-                                requiresShipping
-                                tracked
-                                createdAt
-                                updatedAt
-                                inventoryLevel(locationId: \"{location_id}\") {{
+                                location {{
                                     id
-                                    item {{
-                                        id
-                                    }}
-                                    location {{
-                                        id
-                                    }}
-                                    quantities(names: {inventory_names}) {{
-                                        name
-                                        quantity
-                                    }}
+                                }}
+                                quantities(names: {inventory_names}) {{
+                                    name
+                                    quantity
                                 }}
                             }}
                         }}
-                        {page_info}
                     }}
-                }}"
-            )
-        });
+                    {page_info}
+                }}
+            }}"
+        );
 
         let graphql_response: GraphQLResponse<InventoryItemsData> =
             self.client.query(&query).await?;
@@ -128,16 +125,14 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
         })?;
 
-        let query = String::from(
-            "mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {
-                inventoryAdjustQuantities(input: $input) {
-                    userErrors {
-                        code
-                        field
-                        message
-                    }
-                }
-            }",
+        let user_errors = ShopifyGQLQueryHelper::user_errors();
+
+        let query = format!(
+            "mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {{
+                inventoryAdjustQuantities(input: $input) {{
+                    {user_errors}
+                }}
+            }}",
         );
 
         let graphql_response: GraphQLResponse<InventoryAdjustQuantitiesData> =
@@ -154,10 +149,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             .user_errors;
 
         if !user_errors.is_empty() {
-            log::error!(
-                "Error returned in userErrors. userErrors: {:?}",
-                user_errors
-            );
+            log::error!("UserErrors returned. userErrors: {:?}", user_errors);
             return Err(DomainError::QueryError);
         }
 
@@ -239,9 +231,7 @@ mod tests {
         }
     }
 
-    fn mock_inventories_response_for_inventory_items_data(
-        count: usize,
-    ) -> GraphQLResponse<InventoryItemsData> {
+    fn mock_inventory_items_response(count: usize) -> GraphQLResponse<InventoryItemsData> {
         let nodes: Vec<Node<InventoryItemNode>> = (0..count)
             .map(|i: usize| Node {
                 node: mock_inventory(i as u32),
@@ -329,9 +319,9 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_inventories_response_for_inventory_items_data(1)));
+            .return_once(|_| Ok(mock_inventory_items_response(1)));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
@@ -362,7 +352,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
             .times(1)
             .return_once(|_| Ok(mock_with_error()));
 
@@ -385,7 +375,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
             .times(1)
             .return_once(|_| Ok(mock_with_no_data()));
 

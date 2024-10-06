@@ -9,10 +9,9 @@ pub trait ECClientResponse: Send + Sync {}
 #[automock]
 #[async_trait]
 pub trait ECClient: Send + Sync {
-    async fn query<T, U>(&self, query: &T) -> Result<U, DomainError>
+    async fn query<T>(&self, query: &str) -> Result<T, DomainError>
     where
-        T: Serialize + Send + Sync + 'static,
-        U: ECClientResponse + for<'de> Deserialize<'de> + Send + Sync + 'static;
+        T: ECClientResponse + for<'de> Deserialize<'de> + Send + Sync + 'static;
 
     async fn mutation<T, U>(&self, query: &str, input: &T) -> Result<U, DomainError>
     where

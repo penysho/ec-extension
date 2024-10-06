@@ -46,10 +46,9 @@ impl ShopifyGQLClient {
 
 #[async_trait]
 impl ECClient for ShopifyGQLClient {
-    async fn query<T, U>(&self, query: &T) -> Result<U, DomainError>
+    async fn query<T>(&self, query: &str) -> Result<T, DomainError>
     where
-        T: Serialize + ?Sized + Send + Sync + 'static,
-        U: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
+        T: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
     {
         // Lock the mutex to get the client
         let client = self.client.lock().await;
@@ -57,7 +56,9 @@ impl ECClient for ShopifyGQLClient {
         let response = client
             .post(self.config.store_url())
             .headers(self.build_headers())
-            .json(query)
+            .json(&json!({
+                "query": query,
+            }))
             .send()
             .await
             .map_err(|e| {
@@ -65,7 +66,7 @@ impl ECClient for ShopifyGQLClient {
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
-        let graphql_response = response.json::<U>().await.map_err(|e| {
+        let graphql_response = response.json::<T>().await.map_err(|e| {
             log::error!("Failed to parse GraphQL query response. Error: {:?}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
         })?;

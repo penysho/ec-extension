@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::{
     domain::{
@@ -41,29 +41,27 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
-        let query = json!({
-            "query": format!(
-                "query {{
-                    files({first_query}, query: \"product_id:'{id}'\") {{
-                        edges {{
-                            node {{
-                                id
-                                fileStatus
-                                alt
-                                preview {{
-                                    image {{
-                                        url
-                                    }}
+        let query = format!(
+            "query {{
+                files({first_query}, query: \"product_id:'{id}'\") {{
+                    edges {{
+                        node {{
+                            id
+                            fileStatus
+                            alt
+                            preview {{
+                                image {{
+                                    url
                                 }}
-                                createdAt
-                                updatedAt
                             }}
+                            createdAt
+                            updatedAt
                         }}
-                        {page_info}
                     }}
-                }}"
-            )
-        });
+                    {page_info}
+                }}
+            }}"
+        );
 
         let graphql_response: GraphQLResponse<MediaData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
@@ -121,12 +119,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         }
         query.push_str(" }");
 
-        let graphql_response: GraphQLResponse<Value> = self
-            .client
-            .query(&json!({
-                "query": query
-            }))
-            .await?;
+        let graphql_response: GraphQLResponse<Value> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response= {:?}", errors);
             return Err(DomainError::QueryError);
@@ -294,7 +287,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<MediaData>>()
+            .expect_query::<GraphQLResponse<MediaData>>()
             .times(1)
             .return_once(|_| Ok(mock_media_response(10)));
 
@@ -335,7 +328,7 @@ mod tests {
             .preview = None;
 
         client
-            .expect_query::<Value, GraphQLResponse<MediaData>>()
+            .expect_query::<GraphQLResponse<MediaData>>()
             .times(1)
             .return_once(|_| Ok(invalid_variant));
 
@@ -358,7 +351,7 @@ mod tests {
         let graphql_response_with_error = mock_with_error();
 
         client
-            .expect_query::<Value, GraphQLResponse<MediaData>>()
+            .expect_query::<GraphQLResponse<MediaData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_error));
 
@@ -381,7 +374,7 @@ mod tests {
         let graphql_response_with_no_data = mock_with_no_data();
 
         client
-            .expect_query::<Value, GraphQLResponse<MediaData>>()
+            .expect_query::<GraphQLResponse<MediaData>>()
             .times(1)
             .return_once(|_| Ok(graphql_response_with_no_data));
 
@@ -402,7 +395,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<Value>>()
+            .expect_query::<GraphQLResponse<Value>>()
             .times(1)
             .return_once(|_| Ok(mock_media_response_by_alias()));
 
@@ -423,12 +416,10 @@ mod tests {
     async fn get_media_by_product_ids_with_graphql_error() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_error = mock_with_error();
-
         client
-            .expect_query::<Value, GraphQLResponse<Value>>()
+            .expect_query::<GraphQLResponse<Value>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_error));
+            .return_once(|_| Ok(mock_with_error()));
 
         let repo = MediaRepositoryImpl::new(client);
 
@@ -448,12 +439,10 @@ mod tests {
     async fn get_media_by_product_ids_with_missing_data() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_no_data = mock_with_no_data();
-
         client
-            .expect_query::<Value, GraphQLResponse<Value>>()
+            .expect_query::<GraphQLResponse<Value>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_no_data));
+            .return_once(|_| Ok(mock_with_no_data()));
 
         let repo = MediaRepositoryImpl::new(client);
 

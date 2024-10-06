@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use serde_json::json;
 
 use crate::{
     domain::{
@@ -41,30 +40,28 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
-        let query = json!({
-            "query": format!(
-                "query {{
-                    productVariants({first_query}, query: \"product_id:'{product_id}'\") {{
-                        edges {{
-                            node {{
+        let query = format!(
+            "query {{
+                productVariants({first_query}, query: \"product_id:'{product_id}'\") {{
+                    edges {{
+                        node {{
+                            id
+                            inventoryItem {{
                                 id
-                                inventoryItem {{
+                                variant {{
                                     id
-                                    variant {{
-                                        id
-                                    }}
-                                    requiresShipping
-                                    tracked
-                                    createdAt
-                                    updatedAt
                                 }}
+                                requiresShipping
+                                tracked
+                                createdAt
+                                updatedAt
                             }}
                         }}
-                        {page_info}
                     }}
-                }}"
-            )
-        });
+                    {page_info}
+                }}
+            }}"
+        );
 
         let graphql_response: GraphQLResponse<VariantsDataForInventory> =
             self.client.query(&query).await?;
@@ -91,27 +88,25 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
         let page_info = ShopifyGQLQueryHelper::page_info();
         let sku = sku.value();
 
-        let query = json!({
-            "query": format!(
-                "query {{
-                    inventoryItems({first_query}, query: \"sku:{sku}\") {{
-                        edges {{
-                            node {{
+        let query = format!(
+            "query {{
+                inventoryItems({first_query}, query: \"sku:{sku}\") {{
+                    edges {{
+                        node {{
+                            id
+                            variant {{
                                 id
-                                variant {{
-                                    id
-                                }}
-                                requiresShipping
-                                tracked
-                                createdAt
-                                updatedAt
                             }}
+                            requiresShipping
+                            tracked
+                            createdAt
+                            updatedAt
                         }}
-                        {page_info}
                     }}
-                }}"
-            )
-        });
+                    {page_info}
+                }}
+            }}"
+        );
 
         let graphql_response: GraphQLResponse<InventoryItemsData> =
             self.client.query(&query).await?;
@@ -142,7 +137,6 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-    use serde_json::Value;
 
     use crate::{
         domain::{error::error::DomainError, product::variant::sku::sku::Sku},
@@ -274,7 +268,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantsDataForInventory>>()
+            .expect_query::<GraphQLResponse<VariantsDataForInventory>>()
             .times(1)
             .return_once(|_| Ok(mock_inventories_response_for_variant_data(10)));
 
@@ -289,20 +283,6 @@ mod tests {
         assert_eq!(inventories.len(), 10);
         assert_eq!(inventories[0].id(), "0");
         assert_eq!(inventories[0].variant_id(), "0");
-        // assert_eq!(inventories[0].inventory_levels()[0].id(), "0");
-        // assert_eq!(inventories[0].inventory_levels()[0].location_id(), "0");
-        // assert_eq!(
-        //     inventories[0].inventory_levels()[0]
-        //         .quantities()
-        //         .into_iter()
-        //         .map(|q| q.quantity().clone())
-        //         .collect::<Vec<u32>>(),
-        //     [1, 2, 3]
-        // );
-        // assert_eq!(
-        //     *(inventories[0].inventory_levels()[0].quantities()[0].inventory_type()),
-        //     InventoryType::Available
-        // );
 
         assert_eq!(inventories[9].id(), "9");
         assert_eq!(inventories[9].variant_id(), "9");
@@ -325,7 +305,7 @@ mod tests {
             .id = "".to_string();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantsDataForInventory>>()
+            .expect_query::<GraphQLResponse<VariantsDataForInventory>>()
             .times(1)
             .return_once(|_| Ok(invalid_variant));
 
@@ -347,12 +327,10 @@ mod tests {
     async fn get_inventory_items_by_product_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_error = mock_with_error();
-
         client
-            .expect_query::<Value, GraphQLResponse<VariantsDataForInventory>>()
+            .expect_query::<GraphQLResponse<VariantsDataForInventory>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_error));
+            .return_once(|_| Ok(mock_with_error()));
 
         let repo = InventoryItemRepositoryImpl::new(client);
 
@@ -372,12 +350,10 @@ mod tests {
     async fn get_inventory_items_by_product_id_with_missing_data() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_no_data = mock_with_no_data();
-
         client
-            .expect_query::<Value, GraphQLResponse<VariantsDataForInventory>>()
+            .expect_query::<GraphQLResponse<VariantsDataForInventory>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_no_data));
+            .return_once(|_| Ok(mock_with_no_data()));
 
         let repo = InventoryItemRepositoryImpl::new(client);
 
@@ -398,7 +374,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
             .times(1)
             .return_once(|_| Ok(mock_inventories_response_for_inventory_items_data(1)));
 
@@ -418,12 +394,10 @@ mod tests {
     async fn get_inventory_item_by_sku_with_graphql_error() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_error = mock_with_error();
-
         client
-            .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_error));
+            .return_once(|_| Ok(mock_with_error()));
 
         let repo = InventoryItemRepositoryImpl::new(client);
 
@@ -443,12 +417,10 @@ mod tests {
     async fn get_inventory_item_by_sku_with_missing_data() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_no_data = mock_with_no_data();
-
         client
-            .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_no_data));
+            .return_once(|_| Ok(mock_with_no_data()));
 
         let repo = InventoryItemRepositoryImpl::new(client);
 

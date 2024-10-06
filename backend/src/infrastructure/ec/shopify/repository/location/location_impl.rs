@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use serde_json::json;
 
 use crate::{
     domain::{error::error::DomainError, location::location::Id as LocationId},
@@ -31,20 +30,18 @@ impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C>
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
-        let query = json!({
-            "query": format!(
-                "query {{
-                    locations({first_query}) {{
-                        edges {{
-                            node {{
-                                id
-                            }}
+        let query = format!(
+            "query {{
+                locations({first_query}) {{
+                    edges {{
+                        node {{
+                            id
                         }}
-                        {page_info}
                     }}
-                }}"
-            )
-        });
+                    {page_info}
+                }}
+            }}"
+        );
 
         let graphql_response: GraphQLResponse<LocationsData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {

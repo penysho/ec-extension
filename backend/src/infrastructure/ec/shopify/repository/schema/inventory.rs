@@ -15,7 +15,7 @@ use crate::{
 };
 
 use super::{
-    common::{Edges, UserError, UserErrors},
+    common::{Edges, UserErrors},
     location::LocationNode,
 };
 
