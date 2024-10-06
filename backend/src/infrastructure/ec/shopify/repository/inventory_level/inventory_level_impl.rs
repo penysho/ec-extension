@@ -54,6 +54,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let page_info = ShopifyGQLQueryHelper::page_info();
         let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
         let sku = sku.value();
+        let location_id = ShopifyGQLQueryHelper::add_location_gid_prefix(location_id);
 
         let query = json!({
             "query": format!(

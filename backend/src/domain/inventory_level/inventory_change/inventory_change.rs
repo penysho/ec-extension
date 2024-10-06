@@ -30,6 +30,7 @@ impl InventoryChange {
                 log::error!("Available inventory cannot have ledger document URIs");
                 return Err(DomainError::ValidationError);
             }
+            InventoryType::Available => {}
             _ if changes
                 .iter()
                 .filter(|c| c.ledger_document_uri().is_none())

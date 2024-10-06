@@ -33,7 +33,7 @@ pub trait InventoryInteractor {
         DomainError,
     >;
 
-    async fn update_inventories_by_sku_with_location(
+    async fn allocate_inventory_by_sku_with_location(
         &self,
         sku: &Sku,
         name: &InventoryType,

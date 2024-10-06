@@ -28,11 +28,17 @@ impl ShopifyGQLQueryHelper {
 
     /// Add Shopify gid prefix for InventoryItem.
     pub fn add_inventory_item_gid_prefix(id: &str) -> String {
+        if id.contains(Self::SHOPIFY_INVENTORY_ITEM_GID_PREFIX) {
+            return id.to_string();
+        }
         format!("{}{}", Self::SHOPIFY_INVENTORY_ITEM_GID_PREFIX, id)
     }
 
     /// Add Shopify gid prefix for Location.
     pub fn add_location_gid_prefix(id: &str) -> String {
+        if id.contains(Self::SHOPIFY_LOCATION_GID_PREFIX) {
+            return id.to_string();
+        }
         format!("{}{}", Self::SHOPIFY_LOCATION_GID_PREFIX, id)
     }
 
