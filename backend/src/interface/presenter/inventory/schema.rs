@@ -27,7 +27,7 @@ pub struct InventoryLevelSchema {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QuantitySchema {
-    pub(super) quantity: u32,
+    pub(super) quantity: i32,
     pub(super) inventory_type: InventoryTypeEnum,
 }
 

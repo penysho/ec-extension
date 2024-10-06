@@ -14,12 +14,12 @@ pub enum InventoryType {
 
 #[derive(Debug, Getters, Clone, PartialEq)]
 pub struct Quantity {
-    quantity: u32,
+    quantity: i32,
     inventory_type: InventoryType,
 }
 
 impl Quantity {
-    pub fn new(quantity: u32, inventory_type: InventoryType) -> Result<Self, DomainError> {
+    pub fn new(quantity: i32, inventory_type: InventoryType) -> Result<Self, DomainError> {
         Ok(Self {
             quantity,
             inventory_type,
@@ -27,7 +27,7 @@ impl Quantity {
     }
 
     pub fn apply_delta(&mut self, delta: i32) -> Result<(), DomainError> {
-        self.quantity = (self.quantity as i32 + delta) as u32;
+        self.quantity = self.quantity as i32 + delta;
 
         Ok(())
     }

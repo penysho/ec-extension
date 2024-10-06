@@ -339,8 +339,8 @@ mod tests {
             inventory_level
                 .quantities()
                 .into_iter()
-                .map(|q| q.quantity().clone())
-                .collect::<Vec<u32>>(),
+                .map(|q| *q.quantity())
+                .collect::<Vec<i32>>(),
             [1, 2, 3]
         );
         assert_eq!(

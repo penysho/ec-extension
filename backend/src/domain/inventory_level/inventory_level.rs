@@ -76,7 +76,7 @@ impl InventoryLevel {
                 Ok(())
             }
             None => {
-                let quantity = Quantity::new(delta as u32, name.to_owned())?;
+                let quantity = Quantity::new(delta, name.to_owned())?;
                 self.quantities.push(quantity);
                 Ok(())
             }

@@ -52,7 +52,7 @@ impl QuantitySchema {
             _ => return Err(DomainError::ValidationError),
         };
 
-        Quantity::new(self.quantity as u32, inventory_type)
+        Quantity::new(self.quantity, inventory_type)
     }
 }
 
