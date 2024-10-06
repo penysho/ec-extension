@@ -101,3 +101,88 @@ impl InventoryChange {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::inventory_level::inventory_change::change::ledger_document_uri::ledger_document_uri::LedgerDocumentUri;
+
+    use super::*;
+
+    fn mock_change(delta: i32, ledger_document_uri: Option<LedgerDocumentUri>) -> Change {
+        Change::new(
+            delta,
+            "inventory_item_123",
+            ledger_document_uri,
+            "location_456",
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn test_inventory_change_with_available_and_invalid_ledger_document_uri() {
+        let change_with_ledger_uri = mock_change(
+            10,
+            Some(LedgerDocumentUri::new("https://example.com/document").unwrap()),
+        );
+
+        let result = InventoryChange::new(
+            InventoryType::Available,
+            InventoryChangeReason::Correction,
+            vec![change_with_ledger_uri],
+        );
+
+        assert!(result.is_err());
+        if let Err(DomainError::ValidationError) = result {
+            assert!(true);
+        } else {
+            assert!(false, "Expected DomainError::ValidationError");
+        }
+    }
+
+    #[test]
+    fn test_inventory_change_with_available_and_no_ledger_document_uri() {
+        let change_without_ledger_uri = mock_change(10, None);
+
+        let result = InventoryChange::new(
+            InventoryType::Available,
+            InventoryChangeReason::Correction,
+            vec![change_without_ledger_uri],
+        );
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_inventory_change_with_non_available_and_missing_ledger_document_uri() {
+        let change_without_ledger_uri = mock_change(10, None);
+
+        let result = InventoryChange::new(
+            InventoryType::Committed,
+            InventoryChangeReason::Correction,
+            vec![change_without_ledger_uri],
+        );
+
+        assert!(result.is_err());
+        if let Err(DomainError::ValidationError) = result {
+            assert!(true);
+        } else {
+            assert!(false, "Expected DomainError::ValidationError");
+        }
+    }
+
+    #[test]
+    fn test_inventory_change_with_non_available_and_valid_ledger_document_uri() {
+        let change_with_ledger_uri = mock_change(
+            10,
+            Some(LedgerDocumentUri::new("https://example.com/document").unwrap()),
+        );
+
+        let result = InventoryChange::new(
+            InventoryType::Committed,
+            InventoryChangeReason::Correction,
+            vec![change_with_ledger_uri],
+        );
+
+        assert!(result.is_ok());
+    }
+}

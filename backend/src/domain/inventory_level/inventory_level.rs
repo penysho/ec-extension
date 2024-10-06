@@ -94,3 +94,67 @@ impl InventoryLevel {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_inventory_level() {
+        let quantities = vec![Quantity::new(10, InventoryType::Available).unwrap()];
+
+        let inventory_level = InventoryLevel::new("level_id", "item_id", "location_id", quantities);
+
+        assert!(inventory_level.is_ok());
+    }
+
+    #[test]
+    fn test_new_inventory_level_invalid_id() {
+        let quantities = vec![Quantity::new(10, InventoryType::Available).unwrap()];
+
+        let inventory_level = InventoryLevel::new("", "item_id", "location_id", quantities);
+
+        assert!(inventory_level.is_err());
+    }
+
+    #[test]
+    fn test_create_inventory_change() {
+        let quantities = vec![Quantity::new(10, InventoryType::Available).unwrap()];
+        let inventory_level =
+            InventoryLevel::new("level_id", "item_id", "location_id", quantities).unwrap();
+
+        let inventory_change = inventory_level.create_inventory_change(
+            &InventoryType::Available,
+            &InventoryChangeReason::Correction,
+            5,
+            &None,
+        );
+
+        assert!(inventory_change.is_ok());
+    }
+
+    #[test]
+    fn test_update_quantity_by_delta() {
+        let quantities = vec![Quantity::new(10, InventoryType::Available).unwrap()];
+        let mut inventory_level =
+            InventoryLevel::new("level_id", "item_id", "location_id", quantities).unwrap();
+
+        let result = inventory_level.update_quantity_by_delta(&InventoryType::Available, 5);
+
+        assert!(result.is_ok());
+        assert_eq!(*inventory_level.quantities()[0].quantity(), 15);
+    }
+
+    #[test]
+    fn test_update_quantity_by_delta_new_type() {
+        let quantities = vec![Quantity::new(10, InventoryType::Available).unwrap()];
+        let mut inventory_level =
+            InventoryLevel::new("level_id", "item_id", "location_id", quantities).unwrap();
+
+        let result = inventory_level.update_quantity_by_delta(&InventoryType::Reserved, 5);
+
+        assert!(result.is_ok());
+        assert_eq!(inventory_level.quantities().len(), 2);
+        assert_eq!(*inventory_level.quantities()[1].quantity(), 5);
+    }
+}

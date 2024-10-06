@@ -71,3 +71,56 @@ impl Variant {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_variant() {
+        let variant = Variant::new(
+            "1",
+            Some("Test Variant"),
+            100,
+            Some(Sku::new("ABC123").unwrap()),
+            Some(Barcode::new("1234567890").unwrap()),
+            Some(10),
+            1,
+            Utc::now(),
+            Utc::now(),
+        );
+        assert!(variant.is_ok());
+    }
+
+    #[test]
+    fn test_new_variant_invalid_id() {
+        let variant = Variant::new(
+            "",
+            Some("Test Variant"),
+            100,
+            Some(Sku::new("ABC123").unwrap()),
+            Some(Barcode::new("1234567890").unwrap()),
+            Some(10),
+            1,
+            Utc::now(),
+            Utc::now(),
+        );
+        assert!(variant.is_err());
+    }
+
+    #[test]
+    fn test_new_variant_invalid_name() {
+        let variant = Variant::new(
+            "1",
+            Some(""),
+            100,
+            Some(Sku::new("ABC123").unwrap()),
+            Some(Barcode::new("1234567890").unwrap()),
+            Some(10),
+            1,
+            Utc::now(),
+            Utc::now(),
+        );
+        assert!(variant.is_err());
+    }
+}

@@ -80,3 +80,61 @@ impl Product {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_product() {
+        let product = Product::new(
+            "1",
+            "Product 1",
+            "Description 1",
+            ProductStatus::Active,
+            vec![],
+            None::<CategoryId>,
+        );
+        assert!(product.is_ok());
+    }
+
+    #[test]
+    fn test_new_product_invalid_id() {
+        let product = Product::new(
+            "",
+            "Product 1",
+            "Description 1",
+            ProductStatus::Active,
+            vec![],
+            None::<CategoryId>,
+        );
+        assert!(product.is_err());
+    }
+
+    #[test]
+    fn test_new_product_invalid_name() {
+        let product = Product::new(
+            "1",
+            "",
+            "Description 1",
+            ProductStatus::Active,
+            vec![],
+            None::<CategoryId>,
+        );
+        assert!(product.is_err());
+    }
+
+    #[test]
+    fn test_new_product_invalid_description() {
+        let description = "a".repeat((Product::MAX_DESCRIPTION_LENGTH + 1) as usize);
+        let product = Product::new(
+            "1",
+            "Product 1",
+            description,
+            ProductStatus::Active,
+            vec![],
+            None::<CategoryId>,
+        );
+        assert!(product.is_err());
+    }
+}
