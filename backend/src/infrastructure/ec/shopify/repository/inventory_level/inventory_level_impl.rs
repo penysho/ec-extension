@@ -119,6 +119,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         Ok(domains.into_iter().next())
     }
 
+    /// Update inventory quantity.
     async fn update(&self, inventory_change: InventoryChange) -> Result<(), DomainError> {
         let schema = InventoryAdjustQuantitiesInput::from(inventory_change);
         let input = serde_json::to_value(schema).map_err(|e| {

@@ -50,7 +50,20 @@ impl InventoryInteractorImpl {
 
 #[async_trait]
 impl InventoryInteractor for InventoryInteractorImpl {
-    /// get inventory information for all locations based on product ID.
+    /// get inventory information for all locations.
+    ///
+    /// # Arguments
+    ///
+    /// * `query` - get inventories query
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(Vec<InventoryItem>, HashMap<InventoryItemId, Vec<InventoryLevel>>), DomainError>` - inventory items and inventory levels
+    ///
+    /// # Errors
+    ///
+    /// Returns a domain error if the media repository fails.
+    #[allow(unused_variables)]
     async fn get_inventories_from_all_locations(
         &self,
         query: &GetInventoriesQuery,
@@ -92,6 +105,24 @@ impl InventoryInteractor for InventoryInteractorImpl {
         }
     }
 
+    /// allocate inventory by sku with location.
+    ///
+    /// # Arguments
+    ///
+    /// * `sku` - sku
+    /// * `name` - inventory type
+    /// * `reason` - inventory change reason
+    /// * `delta` - delta
+    /// * `ledger_document_uri` - ledger document uri
+    /// * `location_id` - location id
+    ///
+    /// # Returns
+    ///
+    /// * `Result<InventoryLevel, DomainError>` - inventory level
+    ///
+    /// # Errors
+    ///
+    /// Returns a domain error if the media repository fails.
     async fn allocate_inventory_by_sku_with_location(
         &self,
         sku: &Sku,
