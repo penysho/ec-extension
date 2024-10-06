@@ -12,7 +12,10 @@ use crate::{
     interface::presenter::inventory_presenter_interface::InventoryPresenter,
 };
 
-use super::schema::{GetInventoriesResponse, GetInventoriesResponseError, InventorySchema};
+use super::schema::{
+    GetInventoriesResponse, GetInventoriesResponseError, InventorySchema, PutInventoryResponse,
+    PutInventoryResponseError,
+};
 
 /// Generate a response schema for the inventory
 pub struct InventoryPresenterImpl;
@@ -63,6 +66,25 @@ impl InventoryPresenter for InventoryPresenterImpl {
             inventories: response,
         }))
     }
+
+    type PutInventoryResponse = Json<PutInventoryResponse>;
+    type PutInventoryResponseError = PutInventoryResponseError;
+    async fn present_put_inventory(
+        &self,
+        result: Result<InventoryLevel, DomainError>,
+    ) -> Result<Self::PutInventoryResponse, Self::PutInventoryResponseError> {
+        let inventory_level = match result {
+            Ok(inventory_level) => inventory_level,
+            Err(DomainError::NotFound) => return Err(PutInventoryResponseError::NotFound),
+            Err(DomainError::ValidationError) => return Err(PutInventoryResponseError::BadRequest),
+            Err(DomainError::InvalidRequest) => return Err(PutInventoryResponseError::BadRequest),
+            Err(_) => return Err(PutInventoryResponseError::ServiceUnavailable),
+        };
+
+        Ok(web::Json(PutInventoryResponse {
+            inventory_level: inventory_level.into(),
+        }))
+    }
 }
 
 #[cfg(test)]
@@ -91,7 +113,7 @@ mod tests {
 
     fn mock_inventory_level_map(
         count: usize,
-        inventory_item_id: InventoryItemId,
+        inventory_item_id: &InventoryItemId,
     ) -> HashMap<InventoryItemId, Vec<InventoryLevel>> {
         let mut map: HashMap<InventoryItemId, Vec<InventoryLevel>> = HashMap::new();
 
@@ -114,7 +136,7 @@ mod tests {
             })
             .collect();
 
-        map.insert(inventory_item_id, levels);
+        map.insert(inventory_item_id.clone(), levels);
         map
     }
 
@@ -124,7 +146,7 @@ mod tests {
         let items = mock_inventory_items(10);
         let levels = items
             .iter()
-            .map(|item| mock_inventory_level_map(5, item.id().clone()))
+            .map(|item| mock_inventory_level_map(5, item.id()))
             .flatten()
             .collect();
 
@@ -188,6 +210,55 @@ mod tests {
         assert!(matches!(
             result,
             Err(GetInventoriesResponseError::ServiceUnavailable)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_put_inventory_success() {
+        let presenter = InventoryPresenterImpl::new();
+        let mut level_map = mock_inventory_level_map(1, &("0".to_string()));
+        let level = level_map.remove("0").unwrap().remove(0);
+
+        let result = presenter.present_put_inventory(Ok(level)).await.unwrap();
+
+        assert_eq!(result.inventory_level.id, "0");
+        assert_eq!(result.inventory_level.location_id, "0");
+        assert_eq!(result.inventory_level.quantities.len(), 6);
+    }
+
+    #[actix_web::test]
+    async fn test_present_put_inventory_not_found() {
+        let presenter = InventoryPresenterImpl::new();
+
+        let result = presenter
+            .present_put_inventory(Err(DomainError::NotFound))
+            .await;
+
+        assert!(matches!(result, Err(PutInventoryResponseError::NotFound)));
+    }
+
+    #[actix_web::test]
+    async fn test_present_put_inventory_bad_request() {
+        let presenter = InventoryPresenterImpl::new();
+
+        let result = presenter
+            .present_put_inventory(Err(DomainError::InvalidRequest))
+            .await;
+
+        assert!(matches!(result, Err(PutInventoryResponseError::BadRequest)));
+    }
+
+    #[actix_web::test]
+    async fn test_present_put_inventory_service_unavailable() {
+        let presenter = InventoryPresenterImpl::new();
+
+        let result = presenter
+            .present_put_inventory(Err(DomainError::SystemError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(PutInventoryResponseError::ServiceUnavailable)
         ));
     }
 }

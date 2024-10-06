@@ -23,4 +23,11 @@ pub trait InventoryPresenter {
             DomainError,
         >,
     ) -> Result<Self::GetInventoriesResponse, Self::GetInventoriesResponseError>;
+
+    type PutInventoryResponse;
+    type PutInventoryResponseError;
+    async fn present_put_inventory(
+        &self,
+        result: Result<InventoryLevel, DomainError>,
+    ) -> Result<Self::PutInventoryResponse, Self::PutInventoryResponseError>;
 }
