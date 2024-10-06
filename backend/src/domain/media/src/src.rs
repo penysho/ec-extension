@@ -19,8 +19,8 @@ pub struct Src {
 }
 
 impl Src {
-    pub fn new(value: impl Into<String>) -> Result<Src, DomainError> {
-        Ok(Src {
+    pub fn new(value: impl Into<String>) -> Result<Self, DomainError> {
+        Ok(Self {
             value: value.into(),
         })
     }
