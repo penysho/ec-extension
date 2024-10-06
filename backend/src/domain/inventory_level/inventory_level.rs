@@ -14,6 +14,17 @@ use super::{
 
 pub type Id = String;
 
+/// Represents the inventory level of a specific item at a particular location.
+///
+/// The `InventoryLevel` struct holds information about the inventory of a specific
+/// item in a given location. It includes the item's identifier, location, and the
+/// quantities available at that location.
+///
+/// # Fields
+/// - `id` - The unique identifier for this inventory level record.
+/// - `inventory_item_id` - The identifier of the inventory item associated with this record.
+/// - `location_id` - The identifier of the location where this inventory level applies.
+/// - `quantities` - A vector representing the quantities available for this item at the location, including various types (e.g., available, reserved).
 #[derive(Debug, Getters)]
 pub struct InventoryLevel {
     id: Id,

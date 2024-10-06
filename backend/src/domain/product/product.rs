@@ -13,7 +13,17 @@ pub enum ProductStatus {
     Draft,
 }
 
-/// Entity of Products.
+/// Expresses product information by part number.
+///
+/// # Fields
+/// - `id` - The unique identifier for the product.
+/// - `name` - The name of the product.
+/// - `description` - A detailed description of the product.
+/// - `status` - The current status of the product (e.g., Draft, Published).
+/// - `variants` - A list of variants associated with the product. Variants represent different
+///   configurations of the product (e.g., different sizes or colors).
+/// - `category_id` - An optional field that represents the ID of the category to which the product
+///   belongs. If the product is not categorized, this will be `None`.
 #[derive(Debug, Getters)]
 pub struct Product {
     id: Id,

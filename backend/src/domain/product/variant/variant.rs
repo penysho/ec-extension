@@ -7,6 +7,19 @@ use super::{barcode::barcode::Barcode, sku::sku::Sku};
 
 pub type Id = String;
 
+/// Express product information in SKU units.
+///
+/// # Fields
+///
+/// * `id` - Unique identifier of the variant.
+/// * `name` - Name of the variant.
+/// * `price` - Price of the variant.
+/// * `sku` - Stock Keeping Unit of the variant.
+/// * `barcode` - Barcode of the variant.
+/// * `inventory_quantity` - Quantity of the variant in inventory.
+/// * `list_order` - Order of the variant in the list.
+/// * `created_at` - Date and time when the variant was created.
+/// * `updated_at` - Date and time when the variant was last updated.
 #[derive(Debug, Getters)]
 pub struct Variant {
     id: Id,

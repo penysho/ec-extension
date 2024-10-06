@@ -8,23 +8,24 @@ use super::change::change::Change;
 
 /// Reason for changing inventory.
 ///
-/// * correction	Used to correct an inventory error or as a general adjustment reason.
-/// * cycle_count_available	Used to specify an adjusted inventory count due to a discrepancy between the actual inventory quantity and previously recorded inventory quantity.
-/// * damaged	Used to remove units from inventory count due to damage.
-/// * movement_created	Used to specify that an inventory transfer or a purchase order has been created.
-/// * movement_updated	Used to specify that an inventory transfer or a purchase order has been updated.
-/// * movement_received	Used to specify that an inventory transfer or a purchase order has been received.
-/// * movement_canceled	Used to specify that an inventory transfer or a purchase order has been canceled.
-/// * other	Used to specify an alternate reason for the inventory adjustment.
-/// * promotion	Used to remove units from inventory count due to a promotion or donation.
-/// * quality_control	Used to specify that on-hand units that aren't sellable because they're currently in inspection for quality purposes.
-/// * received	Used to specify inventory that the merchant received.
-/// * reservation_created	Used to reserve, or temporarily set aside unavailable units.
-/// * reservation_deleted	Used to remove the number of unavailable units that have been reserved.
-/// * reservation_updated	Used to update the number of unavailable units that have been reserved.
-/// * restock	Used to add a returned unit back to available inventory so the unit can be resold.
-/// * safety_stock	Used to specify that on-hand units are being set aside to help guard against overselling.
-/// * shrinkage	Used when actual inventory levels are less than recorded due to theft or loss.
+/// # Variants
+/// * correction - Used to correct an inventory error or as a general adjustment reason.
+/// * cycle_count_available	 - Used to specify an adjusted inventory count due to a discrepancy between the actual inventory quantity and previously recorded inventory quantity.
+/// * damaged	 - Used to remove units from inventory count due to damage.
+/// * movement_created	 - Used to specify that an inventory transfer or a purchase order has been created.
+/// * movement_updated	 - Used to specify that an inventory transfer or a purchase order has been updated.
+/// * movement_received	 - Used to specify that an inventory transfer or a purchase order has been received.
+/// * movement_canceled	 - Used to specify that an inventory transfer or a purchase order has been canceled.
+/// * other	 - Used to specify an alternate reason for the inventory adjustment.
+/// * promotion	 - Used to remove units from inventory count due to a promotion or donation.
+/// * quality_control	 - Used to specify that on-hand units that aren't sellable because they're currently in inspection for quality purposes.
+/// * received	 - Used to specify inventory that the merchant received.
+/// * reservation_created	 - Used to reserve, or temporarily set aside unavailable units.
+/// * reservation_deleted	 - Used to remove the number of unavailable units that have been reserved.
+/// * reservation_updated	 - Used to update the number of unavailable units that have been reserved.
+/// * restock	 - Used to add a returned unit back to available inventory so the unit can be resold.
+/// * safety_stock	 - Used to specify that on-hand units are being set aside to help guard against overselling.
+/// * shrinkage	 - Used when actual inventory levels are less than recorded due to theft or loss.
 #[derive(Debug, Clone, PartialEq)]
 pub enum InventoryChangeReason {
     Correction,
@@ -43,6 +44,19 @@ pub enum InventoryChangeReason {
     ReservationUpdated,
 }
 
+/// Represents a change made to the inventory.
+///
+/// The `InventoryChange` struct tracks changes applied to the inventory, such as movements, corrections, or other adjustments.
+/// It captures the type of inventory affected, the reason for the change, and a list of specific changes that have been made.
+///
+/// # Fields
+/// - `name` - The type of inventory that the change applies to (e.g., Available, Committed).
+/// - `reason` - The reason for the inventory change, represented by the `InventoryChangeReason` enum (e.g., MovementCreated, Damaged).
+/// - `changes` - A vector of `Change` structs, each representing a specific alteration to the inventory, such as adjustments to the quantity or location.
+///
+/// # Example
+/// An example of an inventory change could be receiving new stock, where the `name` is `InventoryType::Incoming`,
+/// the `reason` is `InventoryChangeReason::Received`, and the `changes` list contains the specific adjustments.
 #[derive(Debug, Getters)]
 pub struct InventoryChange {
     name: InventoryType,

@@ -2,6 +2,18 @@ use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
 
+/// Represents different types of inventory in the system.
+///
+/// The `InventoryType` enum defines various categories of inventory that an item can be classified into.
+/// It helps in distinguishing the stock based on its state, such as available, committed, or damaged.
+///
+/// # Variants
+/// - `Available`: Represents the inventory that is currently available for sale or use.
+/// - `Committed` - Represents inventory that has been committed for an order or use but not yet fulfilled.
+/// - `Incoming` - Represents inventory that is expected to arrive in the future.
+/// - `Reserved` - Represents inventory that has been reserved for future use.
+/// - `SafetyStock` - Represents the inventory kept aside as safety stock for emergencies.
+/// - `Damaged` - Represents inventory that has been damaged and is not available for sale.
 #[derive(Debug, Clone, PartialEq)]
 pub enum InventoryType {
     Available,
@@ -12,6 +24,14 @@ pub enum InventoryType {
     Damaged,
 }
 
+/// Represents the quantity of a specific inventory type.
+///
+/// The `Quantity` struct holds the actual quantity of an item along with the type of inventory it belongs to.
+/// This helps in tracking how much of each type of inventory (e.g., available, committed) exists for a given item.
+///
+/// # Fields
+/// - `quantity` - The numerical value representing the amount of this inventory.
+/// - `inventory_type` - The type of inventory (e.g., Available, Committed, Damaged).
 #[derive(Debug, Getters, Clone, PartialEq)]
 pub struct Quantity {
     quantity: i32,

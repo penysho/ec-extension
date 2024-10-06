@@ -14,7 +14,22 @@ pub enum MediaStatus {
     InPreparation,
 }
 
-/// Entity of Media.
+/// Represents media associated with an entity such as a product or category.
+///
+/// The `Media` struct contains information related to media files, including
+/// details such as its ID, name, status, and sources for uploaded and published media.
+/// It also records the creation and last updated timestamps for the media.
+///
+/// # Fields
+/// - `id`: The unique identifier for the media.
+/// - `associated_id`: An optional ID for the entity (e.g., product) that this media is associated with.
+/// - `name`: An optional name for the media file.
+/// - `status`: The current status of the media (e.g., `Uploaded`, `Published`).
+/// - `alt`: An optional alternative text description for accessibility purposes.
+/// - `uploaded_src`: An optional source URL for the uploaded media file.
+/// - `published_src`: An optional source URL for the published media file.
+/// - `created_at`: The timestamp indicating when the media was created.
+/// - `updated_at`: The timestamp indicating when the media was last updated.
 #[derive(Debug, Getters)]
 pub struct Media {
     id: Id,

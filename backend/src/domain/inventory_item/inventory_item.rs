@@ -4,6 +4,19 @@ use derive_getters::Getters;
 
 pub type Id = String;
 
+/// Represents an inventory item in the system.
+///
+/// The `InventoryItem` struct contains information related to a specific inventory item,
+/// such as its ID, associated variant, shipping requirements, and tracking information,
+/// as well as the timestamps for when the item was created and last updated.
+///
+/// # Fields
+/// - `id` - The unique identifier for the inventory item.
+/// - `variant_id` - The identifier for the associated product variant.
+/// - `requires_shipping` - Indicates whether the item requires shipping.
+/// - `tracked` - Indicates whether the item is tracked for inventory management purposes.
+/// - `created_at` - The timestamp indicating when the item was created.
+/// - `updated_at` - The timestamp indicating when the item was last updated.
 #[derive(Debug, Getters)]
 pub struct InventoryItem {
     id: Id,
