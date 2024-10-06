@@ -73,9 +73,10 @@ impl ECClient for ShopifyGQLClient {
         Ok(graphql_response)
     }
 
-    async fn mutation<T>(&self, query: &str, input: &T) -> Result<(), DomainError>
+    async fn mutation<T, U>(&self, query: &str, input: &T) -> Result<U, DomainError>
     where
         T: Serialize + ?Sized + Send + Sync + 'static,
+        U: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
     {
         // Lock the mutex to get the client
         let client = self.client.lock().await;
@@ -96,14 +97,11 @@ impl ECClient for ShopifyGQLClient {
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
-        match response.error_for_status() {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                log::error!("Failed to execute GraphQL mutation. Error: {:?}", e);
-                return Err(InfrastructureErrorMapper::to_domain(
-                    InfrastructureError::NetworkError(e),
-                ));
-            }
-        }
+        let graphql_response = response.json::<U>().await.map_err(|e| {
+            log::error!("Failed to parse GraphQL query response. Error: {:?}", e);
+            InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
+        })?;
+
+        Ok(graphql_response)
     }
 }

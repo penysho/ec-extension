@@ -14,7 +14,10 @@ use crate::{
     infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
-use super::{common::Edges, location::LocationNode};
+use super::{
+    common::{Edges, UserError, UserErrors},
+    location::LocationNode,
+};
 
 impl InventoryItemSchema {
     pub fn to_domain(self) -> Result<InventoryItem, DomainError> {
@@ -249,4 +252,10 @@ impl From<InventoryChange> for InventoryAdjustQuantitiesInput {
             reason: domain.reason().to_string(),
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InventoryAdjustQuantitiesData {
+    #[serde(rename = "inventoryAdjustQuantities")]
+    pub inventory_adjust_quantities: UserErrors,
 }

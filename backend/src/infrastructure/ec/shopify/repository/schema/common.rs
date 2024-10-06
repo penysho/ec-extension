@@ -47,3 +47,18 @@ pub struct GraphQLError {
 pub struct GraphQLErrorExtensions {
     pub code: Option<String>,
 }
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+pub struct UserErrors {
+    #[serde(rename = "userErrors")]
+    pub user_errors: Vec<UserError>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+pub struct UserError {
+    pub code: Option<String>,
+    pub field: Vec<String>,
+    pub message: String,
+}

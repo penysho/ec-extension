@@ -14,7 +14,8 @@ pub trait ECClient: Send + Sync {
         T: Serialize + Send + Sync + 'static,
         U: ECClientResponse + for<'de> Deserialize<'de> + Send + Sync + 'static;
 
-    async fn mutation<T>(&self, query: &str, input: &T) -> Result<(), DomainError>
+    async fn mutation<T, U>(&self, query: &str, input: &T) -> Result<U, DomainError>
     where
-        T: Serialize + Send + Sync + 'static;
+        T: Serialize + Send + Sync + 'static,
+        U: ECClientResponse + for<'de> Deserialize<'de> + Send + Sync + 'static;
 }

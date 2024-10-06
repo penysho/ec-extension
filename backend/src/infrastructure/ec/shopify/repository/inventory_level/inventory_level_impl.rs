@@ -18,7 +18,8 @@ use crate::{
                 repository::schema::{
                     common::GraphQLResponse,
                     inventory::{
-                        InventoryAdjustQuantitiesInput, InventoryItemsData, InventoryLevelSchema,
+                        InventoryAdjustQuantitiesData, InventoryAdjustQuantitiesInput,
+                        InventoryItemsData, InventoryLevelSchema,
                     },
                 },
             },
@@ -131,23 +132,36 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             "mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {
                 inventoryAdjustQuantities(input: $input) {
                     userErrors {
-                    field
-                    message
-                    }
-                    inventoryAdjustmentGroup {
-                    createdAt
-                    reason
-                    referenceDocumentUri
-                    changes {
-                        name
-                        delta
+                        code
+                        field
+                        message
                     }
                 }
-            }
-        }",
+            }",
         );
 
-        self.client.mutation(&query, &input).await
+        let graphql_response: GraphQLResponse<InventoryAdjustQuantitiesData> =
+            self.client.mutation(&query, &input).await?;
+        if let Some(errors) = graphql_response.errors {
+            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            return Err(DomainError::QueryError);
+        }
+
+        let user_errors = graphql_response
+            .data
+            .ok_or(DomainError::QueryError)?
+            .inventory_adjust_quantities
+            .user_errors;
+
+        if !user_errors.is_empty() {
+            log::error!(
+                "Error returned in userErrors. userErrors: {:?}",
+                user_errors
+            );
+            return Err(DomainError::QueryError);
+        }
+
+        Ok(())
     }
 }
 
@@ -175,10 +189,12 @@ mod tests {
             shopify::repository::{
                 inventory_level::inventory_level_impl::InventoryLevelRepositoryImpl,
                 schema::{
-                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
+                    common::{
+                        Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError, UserErrors,
+                    },
                     inventory::{
-                        InventoryItemIdNode, InventoryItemNode, InventoryItemsData,
-                        InventoryLevelNode, QuantityNode, VariantIdNode,
+                        InventoryAdjustQuantitiesData, InventoryItemIdNode, InventoryItemNode,
+                        InventoryItemsData, InventoryLevelNode, QuantityNode, VariantIdNode,
                     },
                     location::LocationNode,
                 },
@@ -263,6 +279,34 @@ mod tests {
         .unwrap()
     }
 
+    fn mock_inventory_adjust_quantities_response() -> GraphQLResponse<InventoryAdjustQuantitiesData>
+    {
+        GraphQLResponse {
+            data: Some(InventoryAdjustQuantitiesData {
+                inventory_adjust_quantities: UserErrors {
+                    user_errors: vec![],
+                },
+            }),
+            errors: None,
+        }
+    }
+
+    fn mock_inventory_adjust_quantities_response_with_user_errors(
+    ) -> GraphQLResponse<InventoryAdjustQuantitiesData> {
+        GraphQLResponse {
+            data: Some(InventoryAdjustQuantitiesData {
+                inventory_adjust_quantities: UserErrors {
+                    user_errors: vec![UserError {
+                        code: None,
+                        field: vec!["quantity".to_string()],
+                        message: "Quantity must be positive".to_string(),
+                    }],
+                },
+            }),
+            errors: None,
+        }
+    }
+
     fn mock_with_error<T>() -> GraphQLResponse<T> {
         GraphQLResponse {
             data: None,
@@ -317,12 +361,10 @@ mod tests {
     async fn get_inventory_level_by_sku_with_graphql_error() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_error = mock_with_error();
-
         client
             .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_error));
+            .return_once(|_| Ok(mock_with_error()));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
@@ -342,12 +384,10 @@ mod tests {
     async fn get_inventory_level_by_sku_with_missing_data() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_no_data = mock_with_no_data();
-
         client
             .expect_query::<Value, GraphQLResponse<InventoryItemsData>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_no_data));
+            .return_once(|_| Ok(mock_with_no_data()));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
@@ -368,9 +408,9 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_mutation::<Value>()
+            .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
             .times(1)
-            .return_once(|_, _| Ok(()));
+            .return_once(|_, _| Ok(mock_inventory_adjust_quantities_response()));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
@@ -380,18 +420,65 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_update_with_network_error() {
+    async fn test_update_success_with_user_errors() {
         let mut client = MockECClient::new();
 
         client
-            .expect_mutation::<Value>()
+            .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
             .times(1)
-            .return_once(|_, _| Err(DomainError::SystemError));
+            .return_once(|_, _| Ok(mock_inventory_adjust_quantities_response_with_user_errors()));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo.update(mock_inventory_change()).await;
 
         assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_update_with_graphql_error() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
+            .times(1)
+            .return_once(|_, _| Ok(mock_with_no_data()));
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo.update(mock_inventory_change()).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_update_with_no_data() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
+            .times(1)
+            .return_once(|_, _| Ok(mock_with_error()));
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo.update(mock_inventory_change()).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
     }
 }
