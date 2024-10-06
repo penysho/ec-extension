@@ -13,7 +13,17 @@ pub enum ProductStatus {
     Draft,
 }
 
-/// Entity of Products.
+/// Expresses product information by part number.
+///
+/// # Fields
+/// - `id` - The unique identifier for the product.
+/// - `name` - The name of the product.
+/// - `description` - A detailed description of the product.
+/// - `status` - The current status of the product (e.g., Draft, Published).
+/// - `variants` - A list of variants associated with the product. Variants represent different
+///   configurations of the product (e.g., different sizes or colors).
+/// - `category_id` - An optional field that represents the ID of the category to which the product
+///   belongs. If the product is not categorized, this will be `None`.
 #[derive(Debug, Getters)]
 pub struct Product {
     id: Id,
@@ -68,5 +78,63 @@ impl Product {
     pub fn add_variant(&mut self, variant: Variant) -> Result<(), DomainError> {
         self.variants.push(variant);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_product() {
+        let product = Product::new(
+            "1",
+            "Product 1",
+            "Description 1",
+            ProductStatus::Active,
+            vec![],
+            None::<CategoryId>,
+        );
+        assert!(product.is_ok());
+    }
+
+    #[test]
+    fn test_new_product_invalid_id() {
+        let product = Product::new(
+            "",
+            "Product 1",
+            "Description 1",
+            ProductStatus::Active,
+            vec![],
+            None::<CategoryId>,
+        );
+        assert!(product.is_err());
+    }
+
+    #[test]
+    fn test_new_product_invalid_name() {
+        let product = Product::new(
+            "1",
+            "",
+            "Description 1",
+            ProductStatus::Active,
+            vec![],
+            None::<CategoryId>,
+        );
+        assert!(product.is_err());
+    }
+
+    #[test]
+    fn test_new_product_invalid_description() {
+        let description = "a".repeat((Product::MAX_DESCRIPTION_LENGTH + 1) as usize);
+        let product = Product::new(
+            "1",
+            "Product 1",
+            description,
+            ProductStatus::Active,
+            vec![],
+            None::<CategoryId>,
+        );
+        assert!(product.is_err());
     }
 }

@@ -7,6 +7,19 @@ use super::{barcode::barcode::Barcode, sku::sku::Sku};
 
 pub type Id = String;
 
+/// Express product information in SKU units.
+///
+/// # Fields
+///
+/// * `id` - Unique identifier of the variant.
+/// * `name` - Name of the variant.
+/// * `price` - Price of the variant.
+/// * `sku` - Stock Keeping Unit of the variant.
+/// * `barcode` - Barcode of the variant.
+/// * `inventory_quantity` - Quantity of the variant in inventory.
+/// * `list_order` - Order of the variant in the list.
+/// * `created_at` - Date and time when the variant was created.
+/// * `updated_at` - Date and time when the variant was last updated.
 #[derive(Debug, Getters)]
 pub struct Variant {
     id: Id,
@@ -56,5 +69,58 @@ impl Variant {
             updated_at,
             list_order,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_variant() {
+        let variant = Variant::new(
+            "1",
+            Some("Test Variant"),
+            100,
+            Some(Sku::new("ABC123").unwrap()),
+            Some(Barcode::new("1234567890").unwrap()),
+            Some(10),
+            1,
+            Utc::now(),
+            Utc::now(),
+        );
+        assert!(variant.is_ok());
+    }
+
+    #[test]
+    fn test_new_variant_invalid_id() {
+        let variant = Variant::new(
+            "",
+            Some("Test Variant"),
+            100,
+            Some(Sku::new("ABC123").unwrap()),
+            Some(Barcode::new("1234567890").unwrap()),
+            Some(10),
+            1,
+            Utc::now(),
+            Utc::now(),
+        );
+        assert!(variant.is_err());
+    }
+
+    #[test]
+    fn test_new_variant_invalid_name() {
+        let variant = Variant::new(
+            "1",
+            Some(""),
+            100,
+            Some(Sku::new("ABC123").unwrap()),
+            Some(Barcode::new("1234567890").unwrap()),
+            Some(10),
+            1,
+            Utc::now(),
+            Utc::now(),
+        );
+        assert!(variant.is_err());
     }
 }

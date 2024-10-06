@@ -4,6 +4,7 @@ use reqwest::{
     Client,
 };
 use serde::Serialize;
+use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -45,7 +46,35 @@ impl ShopifyGQLClient {
 
 #[async_trait]
 impl ECClient for ShopifyGQLClient {
-    async fn query<T, U>(&self, query: &T) -> Result<U, DomainError>
+    async fn query<T>(&self, query: &str) -> Result<T, DomainError>
+    where
+        T: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
+    {
+        // Lock the mutex to get the client
+        let client = self.client.lock().await;
+
+        let response = client
+            .post(self.config.store_url())
+            .headers(self.build_headers())
+            .json(&json!({
+                "query": query,
+            }))
+            .send()
+            .await
+            .map_err(|e| {
+                log::error!("Error returned by GraphQL run. Error: {:?}", e);
+                InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
+            })?;
+
+        let graphql_response = response.json::<T>().await.map_err(|e| {
+            log::error!("Failed to parse GraphQL query response. Error: {:?}", e);
+            InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
+        })?;
+
+        Ok(graphql_response)
+    }
+
+    async fn mutation<T, U>(&self, query: &str, input: &T) -> Result<U, DomainError>
     where
         T: Serialize + ?Sized + Send + Sync + 'static,
         U: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
@@ -56,15 +85,21 @@ impl ECClient for ShopifyGQLClient {
         let response = client
             .post(self.config.store_url())
             .headers(self.build_headers())
-            .json(query)
+            .json(&json!({
+                "query": query,
+                "variables": {
+                    "input": input
+                },
+            }))
             .send()
             .await
             .map_err(|e| {
+                log::error!("Error returned by GraphQL run. Error: {:?}", e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
         let graphql_response = response.json::<U>().await.map_err(|e| {
-            log::error!("Failed to parse GraphQL response. Error= {:?}", e);
+            log::error!("Failed to parse GraphQL query response. Error: {:?}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
         })?;
 

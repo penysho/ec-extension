@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use serde_json::json;
 
 use crate::{
     domain::{
@@ -38,38 +37,36 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
-        let query = json!({
-            "query": format!(
-                "query {{
-                    productVariants({first_query}, query: \"product_id:'{id}'\") {{
-                        edges {{
-                            node {{
+        let query = format!(
+            "query {{
+                productVariants({first_query}, query: \"product_id:'{id}'\") {{
+                    edges {{
+                        node {{
+                            id
+                            barcode
+                            inventoryQuantity
+                            sku
+                            position
+                            price
+                            createdAt
+                            updatedAt
+                            product {{
                                 id
-                                barcode
-                                inventoryQuantity
-                                sku
-                                position
-                                price
-                                createdAt
-                                updatedAt
-                                product {{
+                                title
+                                handle
+                                description(truncateAt: {description_length})
+                                status
+                                category {{
                                     id
-                                    title
-                                    handle
-                                    description(truncateAt: {description_length})
-                                    status
-                                    category {{
-                                        id
-                                        name
-                                    }}
+                                    name
                                 }}
                             }}
                         }}
-                        {page_info}
                     }}
-                }}"
-            )
-        });
+                    {page_info}
+                }}
+            }}"
+        );
 
         let graphql_response: GraphQLResponse<VariantsData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
@@ -118,28 +115,26 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 .as_deref()
                 .map_or(String::new(), |a| format!("after: \"{}\"", a));
 
-            let products_query = json!({
-                "query": format!(
-                    "query {{
-                        products({first_query}, {products_after_query}) {{
-                            edges {{
-                                node {{
+            let products_query = format!(
+                "query {{
+                    products({first_query}, {products_after_query}) {{
+                        edges {{
+                            node {{
+                                id
+                                title
+                                handle
+                                description(truncateAt: {description_length})
+                                status
+                                category {{
                                     id
-                                    title
-                                    handle
-                                    description(truncateAt: {description_length})
-                                    status
-                                    category {{
-                                        id
-                                        name
-                                    }}
+                                    name
                                 }}
                             }}
-                            {page_info}
                         }}
-                    }}"
-                )
-            });
+                        {page_info}
+                    }}
+                }}"
+            );
 
             let products_response: GraphQLResponse<ProductsData> =
                 self.client.query(&products_query).await?;
@@ -190,9 +185,8 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                     .as_deref()
                     .map_or(String::new(), |a| format!("after: \"{}\"", a));
 
-                let variants_query = json!({
-                    "query": format!(
-                        "query {{
+                let variants_query = format!(
+                    "query {{
                         productVariants({first_query}, {variants_after_query}, query: \"product_ids:'{product_ids}'\") {{
                             edges {{
                                 node {{
@@ -220,8 +214,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                             {page_info}
                         }}
                     }}"
-                    )
-                });
+                );
 
                 let variants_response: GraphQLResponse<VariantsData> =
                     self.client.query(&variants_query).await?;
@@ -277,7 +270,6 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
-    use serde_json::Value;
 
     use crate::{
         domain::error::error::DomainError,
@@ -401,7 +393,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_variants_response(PageOption {
@@ -428,7 +420,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| {
                 let mut mock = mock_variants_response(PageOption {
@@ -481,7 +473,7 @@ mod tests {
             .title = "".to_string();
 
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| Ok(invalid_variant));
 
@@ -501,12 +493,10 @@ mod tests {
     async fn test_get_product_with_graphql_error() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_error = mock_with_error();
-
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_error));
+            .return_once(|_| Ok(mock_with_error()));
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -524,12 +514,10 @@ mod tests {
     async fn test_get_product_with_missing_data() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_no_data = mock_with_no_data();
-
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_no_data));
+            .return_once(|_| Ok(mock_with_no_data()));
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -548,7 +536,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<GraphQLResponse<ProductsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_products_response(PageOption {
@@ -558,7 +546,7 @@ mod tests {
                 }))
             });
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_variants_response(PageOption {
@@ -592,7 +580,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<GraphQLResponse<ProductsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_products_response(PageOption {
@@ -602,7 +590,7 @@ mod tests {
                 }))
             });
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_variants_response(PageOption {
@@ -634,7 +622,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<GraphQLResponse<ProductsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_products_response(PageOption {
@@ -644,7 +632,7 @@ mod tests {
                 }))
             });
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_variants_response(PageOption {
@@ -654,7 +642,7 @@ mod tests {
                 }))
             });
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<GraphQLResponse<ProductsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_products_response(PageOption {
@@ -664,7 +652,7 @@ mod tests {
                 }))
             });
         client
-            .expect_query::<Value, GraphQLResponse<VariantsData>>()
+            .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_variants_response(PageOption {
@@ -696,7 +684,7 @@ mod tests {
         let mut client = MockECClient::new();
 
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<GraphQLResponse<ProductsData>>()
             .times(1)
             .return_once(|_| {
                 Ok(mock_products_response(PageOption {
@@ -721,12 +709,10 @@ mod tests {
     async fn test_get_products_with_graphql_error() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_error = mock_with_error();
-
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<GraphQLResponse<ProductsData>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_error));
+            .return_once(|_| Ok(mock_with_error()));
 
         let repo = ProductRepositoryImpl::new(client);
 
@@ -744,12 +730,10 @@ mod tests {
     async fn test_get_products_with_missing_data() {
         let mut client = MockECClient::new();
 
-        let graphql_response_with_no_data = mock_with_no_data();
-
         client
-            .expect_query::<Value, GraphQLResponse<ProductsData>>()
+            .expect_query::<GraphQLResponse<ProductsData>>()
             .times(1)
-            .return_once(|_| Ok(graphql_response_with_no_data));
+            .return_once(|_| Ok(mock_with_no_data()));
 
         let repo = ProductRepositoryImpl::new(client);
 

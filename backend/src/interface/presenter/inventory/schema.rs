@@ -11,7 +11,7 @@ use crate::interface::presenter::common::exception::GenericResponseError;
 pub struct InventorySchema {
     pub(super) id: String,
     pub(super) variant_id: String,
-    pub(super) inventory_level: Option<InventoryLevelSchema>,
+    pub(super) inventory_levels: Vec<InventoryLevelSchema>,
     pub(super) requires_shipping: bool,
     pub(super) tracked: bool,
     pub(super) created_at: DateTime<Utc>,
@@ -27,7 +27,7 @@ pub struct InventoryLevelSchema {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QuantitySchema {
-    pub(super) quantity: u32,
+    pub(super) quantity: i32,
     pub(super) inventory_type: InventoryTypeEnum,
 }
 
@@ -67,6 +67,41 @@ impl GenericResponseError for GetInventoriesResponseError {
 }
 
 impl ResponseError for GetInventoriesResponseError {
+    fn error_response(&self) -> HttpResponse {
+        <Self as GenericResponseError>::error_response(self)
+    }
+
+    fn status_code(&self) -> StatusCode {
+        <Self as GenericResponseError>::status_code(self)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PutInventoryResponse {
+    pub inventory_level: InventoryLevelSchema,
+}
+
+#[derive(Debug, Display, Error)]
+pub enum PutInventoryResponseError {
+    #[display(fmt = "Inventory level not found.")]
+    NotFound,
+    #[display(fmt = "Bad request.")]
+    BadRequest,
+    #[display(fmt = "Service unavailable. Give it some time and try again.")]
+    ServiceUnavailable,
+}
+
+impl GenericResponseError for PutInventoryResponseError {
+    fn status_code(&self) -> StatusCode {
+        match *self {
+            PutInventoryResponseError::NotFound => StatusCode::NOT_FOUND,
+            PutInventoryResponseError::BadRequest => StatusCode::BAD_REQUEST,
+            PutInventoryResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+        }
+    }
+}
+
+impl ResponseError for PutInventoryResponseError {
     fn error_response(&self) -> HttpResponse {
         <Self as GenericResponseError>::error_response(self)
     }

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::interface::controller::{
     controller::Controller, get_inventories::GetInventoriesQueryParams,
     get_products::GetProductsQueryParams,
+    put_inventory_quantity_by_sku::PutInventoryQuantityBySkuRequest,
 };
 use actix_web::{web, HttpResponse};
 
@@ -31,6 +32,13 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                 "/inventories",
                  web::get().to(|controller: web::Data<Arc<Controller>>, params: web::Query<GetInventoriesQueryParams>| async move {
                     controller.get_inventories(params).await
+                }),
+            )
+            .route(
+                "/inventories/quantities/sku/{sku}",
+                 web::put().to(|controller: web::Data<Arc<Controller>>, path: web::Path<(String,)>,
+        body: web::Json<PutInventoryQuantityBySkuRequest>| async move {
+                    controller.put_inventory_quantity_by_sku(path, body).await
                 }),
             ),
     );

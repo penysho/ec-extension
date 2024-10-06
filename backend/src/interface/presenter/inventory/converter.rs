@@ -1,5 +1,5 @@
-use crate::domain::inventory::{
-    inventory::Inventory,
+use crate::domain::{
+    inventory_item::inventory_item::InventoryItem,
     inventory_level::{
         inventory_level::InventoryLevel,
         quantity::quantity::{InventoryType, Quantity},
@@ -30,8 +30,8 @@ impl From<&Quantity> for QuantitySchema {
     }
 }
 
-impl From<&InventoryLevel> for InventoryLevelSchema {
-    fn from(inventory_level: &InventoryLevel) -> Self {
+impl From<InventoryLevel> for InventoryLevelSchema {
+    fn from(inventory_level: InventoryLevel) -> Self {
         InventoryLevelSchema {
             id: inventory_level.id().to_string(),
             location_id: inventory_level.location_id().to_string(),
@@ -44,16 +44,19 @@ impl From<&InventoryLevel> for InventoryLevelSchema {
     }
 }
 
-impl From<Inventory> for InventorySchema {
-    fn from(inventory: Inventory) -> Self {
+impl InventorySchema {
+    pub(super) fn to_schema(
+        inventory_item: InventoryItem,
+        inventory_level: Vec<InventoryLevel>,
+    ) -> Self {
         InventorySchema {
-            id: inventory.id().to_string(),
-            variant_id: inventory.variant_id().to_string(),
-            inventory_level: inventory.inventory_level().as_ref().map(|i| i.into()),
-            requires_shipping: *inventory.requires_shipping(),
-            tracked: *inventory.tracked(),
-            created_at: inventory.created_at().to_owned(),
-            updated_at: inventory.updated_at().to_owned(),
+            id: inventory_item.id().to_string(),
+            variant_id: inventory_item.variant_id().to_string(),
+            inventory_levels: inventory_level.into_iter().map(|l| l.into()).collect(),
+            requires_shipping: *inventory_item.requires_shipping(),
+            tracked: *inventory_item.tracked(),
+            created_at: inventory_item.created_at().to_owned(),
+            updated_at: inventory_item.updated_at().to_owned(),
         }
     }
 }

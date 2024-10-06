@@ -6,7 +6,6 @@ use crate::domain::{error::error::DomainError, product::product::Id as ProductId
 use crate::domain::media::media::Media;
 
 /// Interactor interface for media.
-
 #[automock]
 #[async_trait]
 pub trait MediaInteractor {

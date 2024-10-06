@@ -6,7 +6,8 @@ use crate::{
         ec::shopify::{
             client_impl::ShopifyGQLClient,
             repository::{
-                inventory::inventory_impl::InventoryRepositoryImpl,
+                inventory_item::inventory_item_impl::InventoryItemRepositoryImpl,
+                inventory_level::inventory_level_impl::InventoryLevelRepositoryImpl,
                 location::location_impl::LocationRepositoryImpl,
                 media::media_impl::MediaRepositoryImpl,
                 product::product_impl::ProductRepositoryImpl,
@@ -58,7 +59,10 @@ impl InteractProvider for InteractProviderImpl {
     /// Provide Interactor for inventory.
     async fn provide_inventory_interactor(&self) -> Box<dyn InventoryInteractor> {
         Box::new(InventoryInteractorImpl::new(
-            Box::new(InventoryRepositoryImpl::new(ShopifyGQLClient::new(
+            Box::new(InventoryItemRepositoryImpl::new(ShopifyGQLClient::new(
+                self.shopify_config.clone(),
+            ))),
+            Box::new(InventoryLevelRepositoryImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
             ))),
             Box::new(LocationRepositoryImpl::new(ShopifyGQLClient::new(
