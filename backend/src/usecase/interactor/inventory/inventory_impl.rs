@@ -7,8 +7,12 @@ use crate::{
         error::error::DomainError,
         inventory_item::inventory_item::{Id as InventoryItemId, InventoryItem},
         inventory_level::{
-            inventory_change::change::ledger_document_uri::ledger_document_uri::LedgerDocumentUri,
-            inventory_level::InventoryLevel, quantity::quantity::InventoryType,
+            inventory_change::{
+                change::ledger_document_uri::ledger_document_uri::LedgerDocumentUri,
+                inventory_change::InventoryChangeReason,
+            },
+            inventory_level::InventoryLevel,
+            quantity::quantity::InventoryType,
         },
         location::location::Id as LocationId,
         product::variant::sku::sku::Sku,
@@ -92,7 +96,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
         &self,
         sku: &Sku,
         name: &InventoryType,
-        reason: &str,
+        reason: &InventoryChangeReason,
         delta: i32,
         ledger_document_uri: &Option<LedgerDocumentUri>,
         location_id: &LocationId,

@@ -8,7 +8,10 @@ use crate::{
     domain::{
         error::error::DomainError,
         inventory_level::{
-            inventory_change::change::ledger_document_uri::ledger_document_uri::LedgerDocumentUri,
+            inventory_change::{
+                change::ledger_document_uri::ledger_document_uri::LedgerDocumentUri,
+                inventory_change::InventoryChangeReason,
+            },
             quantity::quantity::InventoryType,
         },
         product::variant::sku::sku::Sku,
@@ -31,7 +34,7 @@ pub struct PutInventoryQuantityBySkuRequest {
 }
 
 impl Controller {
-    /// Get detailed product information.
+    /// Update the inventory of the specified SKU.
     pub async fn put_inventory_quantity_by_sku(
         &self,
         path: Path<(String,)>,
@@ -59,6 +62,29 @@ impl Controller {
             }
         };
 
+        let reason = match body.reason.as_str() {
+            "correction" => InventoryChangeReason::Correction,
+            "cycle_count_available" => InventoryChangeReason::CycleCountAvailable,
+            "damaged" => InventoryChangeReason::Damaged,
+            "movement_created" => InventoryChangeReason::MovementCreated,
+            "movement_updated" => InventoryChangeReason::MovementUpdated,
+            "movement_received" => InventoryChangeReason::MovementReceived,
+            "movement_canceled" => InventoryChangeReason::MovementCanceled,
+            "other" => InventoryChangeReason::Other,
+            "promotion" => InventoryChangeReason::Promotion,
+            "quality_control" => InventoryChangeReason::QualityControl,
+            "received" => InventoryChangeReason::Received,
+            "reservation_created" => InventoryChangeReason::ReservationCreated,
+            "reservation_deleted" => InventoryChangeReason::ReservationDeleted,
+            "reservation_updated" => InventoryChangeReason::ReservationUpdated,
+            _ => {
+                log::error!("Invalid inventory change reason: {}", body.reason);
+                return presenter
+                    .present_put_inventory(Err(DomainError::InvalidRequest))
+                    .await;
+            }
+        };
+
         if let Some(ledger_document_uri_str) = body.ledger_document_uri.as_ref() {
             if let Err(err) = LedgerDocumentUri::new(ledger_document_uri_str.to_string()) {
                 return presenter.present_put_inventory(Err(err)).await;
@@ -75,7 +101,7 @@ impl Controller {
             .allocate_inventory_by_sku_with_location(
                 &sku,
                 &name,
-                &body.reason,
+                &reason,
                 body.delta,
                 &ledger_document_uri,
                 &body.location_id,

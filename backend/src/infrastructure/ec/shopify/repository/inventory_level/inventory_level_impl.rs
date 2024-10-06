@@ -171,7 +171,7 @@ mod tests {
                     change::{
                         change::Change, ledger_document_uri::ledger_document_uri::LedgerDocumentUri,
                     },
-                    inventory_change::InventoryChange,
+                    inventory_change::{InventoryChange, InventoryChangeReason},
                 },
                 quantity::quantity::InventoryType,
             },
@@ -259,7 +259,7 @@ mod tests {
     fn mock_inventory_change() -> InventoryChange {
         InventoryChange::new(
             InventoryType::Committed,
-            "by order".to_string(),
+            InventoryChangeReason::Correction,
             vec![Change::new(
                 10,
                 "inventory_item_123",

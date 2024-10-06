@@ -7,7 +7,7 @@ use derive_getters::Getters;
 use super::{
     inventory_change::{
         change::{change::Change, ledger_document_uri::ledger_document_uri::LedgerDocumentUri},
-        inventory_change::InventoryChange,
+        inventory_change::{InventoryChange, InventoryChangeReason},
     },
     quantity::quantity::{InventoryType, Quantity},
 };
@@ -46,7 +46,7 @@ impl InventoryLevel {
     pub fn create_inventory_change(
         &self,
         name: &InventoryType,
-        reason: &str,
+        reason: &InventoryChangeReason,
         delta: i32,
         ledger_document_uri: &Option<LedgerDocumentUri>,
     ) -> Result<InventoryChange, DomainError> {
@@ -57,7 +57,7 @@ impl InventoryLevel {
             self.location_id(),
         )?;
 
-        InventoryChange::new(name.to_owned(), reason.to_string(), vec![change])
+        InventoryChange::new(name.to_owned(), reason.to_owned(), vec![change])
     }
 
     pub fn update_quantity_by_delta(

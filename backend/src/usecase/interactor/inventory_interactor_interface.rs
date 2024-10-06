@@ -11,6 +11,7 @@ use crate::domain::product::product::Id as ProductId;
 use crate::domain::product::variant::sku::sku::Sku;
 use crate::domain::inventory_level::inventory_change::change::ledger_document_uri::ledger_document_uri::LedgerDocumentUri;
 use crate::domain::location::location::Id as LocationId;
+use crate::domain::inventory_level::inventory_change::inventory_change::InventoryChangeReason;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GetInventoriesQuery {
@@ -37,7 +38,7 @@ pub trait InventoryInteractor {
         &self,
         sku: &Sku,
         name: &InventoryType,
-        reason: &str,
+        reason: &InventoryChangeReason,
         delta: i32,
         ledger_document_uri: &Option<LedgerDocumentUri>,
         location_id: &LocationId,
