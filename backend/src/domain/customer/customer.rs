@@ -27,7 +27,7 @@ pub enum CustomerStatus {
 /// - `id` - A unique identifier for the customer.
 /// - `addresses` - A list of addresses associated with the customer.
 /// - `can_delete` - A flag indicating whether the customer can be deleted.
-/// - `default_address` - The default address for the customer, if applicable.
+/// - `default_address_id` - The default address id for the customer, if applicable.
 /// - `display_name` - The name displayed for the customer.
 /// - `email` - The customer's email address (optional).
 /// - `first_name` - The customer's first name (optional).
@@ -50,7 +50,7 @@ pub struct Customer {
     first_name: Option<String>,
     last_name: Option<String>,
     image: Option<Media>,
-    phone: Phone,
+    phone: Option<Phone>,
     note: Option<String>,
     status: CustomerStatus,
     verified_email: bool,
@@ -69,7 +69,7 @@ impl Customer {
         first_name: Option<impl Into<String>>,
         last_name: Option<impl Into<String>>,
         image: Option<Media>,
-        phone: Phone,
+        phone: Option<Phone>,
         note: Option<impl Into<String>>,
         status: CustomerStatus,
         verified_email: bool,
