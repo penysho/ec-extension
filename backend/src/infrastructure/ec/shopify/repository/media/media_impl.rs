@@ -14,7 +14,7 @@ use crate::{
                 query_helper::ShopifyGQLQueryHelper,
                 repository::schema::{
                     common::GraphQLResponse,
-                    media::{MediaData, MediaNode, MediaSchema},
+                    media::{MediaData, MediaNode},
                 },
             },
         },
@@ -69,17 +69,16 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
             return Err(DomainError::QueryError);
         }
 
-        let data = graphql_response.data.ok_or(DomainError::QueryError)?.files;
-
-        let media: Vec<MediaSchema> = data
+        let media_domains: Result<Vec<Media>, DomainError> = graphql_response
+            .data
+            .ok_or(DomainError::QueryError)?
+            .files
             .edges
             .into_iter()
-            .map(|node| MediaSchema::from(node.node))
-            .collect();
-
-        let media_domains: Result<Vec<Media>, DomainError> = media
-            .into_iter()
-            .map(|product| product.to_domain(Some(AssociatedId::Product(id.to_string()))))
+            .map(|node| {
+                node.node
+                    .to_domain(Some(AssociatedId::Product(id.to_string())))
+            })
             .collect();
 
         media_domains
@@ -133,7 +132,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
             return Err(DomainError::QueryError);
         }
 
-        let mut media_schemas = Vec::new();
+        let mut media_nodes = Vec::new();
         for (i, _) in product_ids.iter().enumerate() {
             let alias = format!("i{}", i);
 
@@ -144,8 +143,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                         let v: MediaNode = serde_json::from_value(node.clone()).map_err(|e| {
                             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
                         })?;
-                        let media_schema = MediaSchema::from(v);
-                        media_schemas.push(media_schema);
+                        media_nodes.push(v);
                     }
                 }
             } else {
@@ -153,8 +151,8 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
             }
         }
 
-        let media_domains: Result<Vec<Media>, DomainError> = MediaSchema::to_domains(
-            media_schemas,
+        let media_domains: Result<Vec<Media>, DomainError> = MediaNode::to_domains(
+            media_nodes,
             product_ids
                 .into_iter()
                 .map(|id| Some(AssociatedId::Product(id.to_string())))

@@ -5,17 +5,13 @@ use crate::domain::{
     customer::customer::{Customer, CustomerStatus},
     email::email::Email,
     error::error::DomainError,
-    media::{associated_id::associated_id::AssociatedId, media::Media},
+    media::associated_id::associated_id::AssociatedId,
     phone::phone::Phone,
 };
 
-use super::{
-    address::{AddressNode, AddressSchema},
-    common::Edges,
-    media::{MediaNode, MediaSchema},
-};
+use super::{address::AddressNode, common::Edges, media::MediaNode};
 
-impl CustomerSchema {
+impl CustomerNode {
     pub fn to_domain(self) -> Result<Customer, DomainError> {
         let id = self.id;
         let status = match self.status.as_str() {
@@ -47,47 +43,6 @@ impl CustomerSchema {
             self.updated_at,
         )
     }
-}
-
-impl From<CustomerNode> for CustomerSchema {
-    fn from(node: CustomerNode) -> Self {
-        Self {
-            id: node.id,
-            addresses: node.addresses.into_iter().map(Into::into).collect(),
-            can_delete: node.can_delete,
-            default_address: node.default_address.map(Into::into),
-            display_name: node.display_name,
-            email: node.email,
-            first_name: node.first_name,
-            last_name: node.last_name,
-            image: node.image.map(Into::into),
-            phone: node.phone,
-            note: node.note,
-            status: node.status,
-            verified_email: node.verified_email,
-            created_at: node.created_at,
-            updated_at: node.updated_at,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CustomerSchema {
-    pub id: String,
-    pub addresses: Vec<AddressSchema>,
-    pub can_delete: bool,
-    pub default_address: Option<AddressSchema>,
-    pub display_name: String,
-    pub email: Option<String>,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
-    pub image: Option<MediaSchema>,
-    pub phone: Option<String>,
-    pub note: Option<String>,
-    pub status: String,
-    pub verified_email: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]

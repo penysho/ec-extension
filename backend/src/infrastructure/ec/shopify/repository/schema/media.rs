@@ -15,39 +15,21 @@ use crate::{
     },
 };
 
-#[derive(Debug, Deserialize)]
-pub struct MediaSchema {
-    pub id: String,
-    pub status: String,
-    pub alt: Option<String>,
-    pub src: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-impl From<MediaNode> for MediaSchema {
-    fn from(node: MediaNode) -> Self {
-        MediaSchema {
-            id: node.id,
-            status: node.file_status,
-            alt: node.alt,
-            src: node.preview.and_then(|p| p.image).map(|i| i.url),
-            created_at: node.created_at,
-            updated_at: node.updated_at,
-        }
-    }
-}
-
-impl MediaSchema {
+impl MediaNode {
     pub fn to_domain(self, associated_id: Option<AssociatedId>) -> Result<Media, DomainError> {
-        let status = match self.status.as_str() {
+        let status = match self.file_status.as_str() {
             "UPLOADED" | "READY" => MediaStatus::Active,
             "FAILED" => MediaStatus::Inactive,
             "PROCESSING" => MediaStatus::InPreparation,
             _ => MediaStatus::Inactive,
         };
 
-        let published_src = self.src.map(Src::new).transpose()?;
+        let published_src = self
+            .preview
+            .and_then(|p| p.image)
+            .map(|i| i.url)
+            .map(Src::new)
+            .transpose()?;
 
         Media::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
@@ -63,7 +45,7 @@ impl MediaSchema {
     }
 
     pub fn to_domains(
-        schemas: Vec<MediaSchema>,
+        schemas: Vec<MediaNode>,
         associated_ids: Vec<Option<AssociatedId>>,
     ) -> Result<Vec<Media>, DomainError> {
         schemas
