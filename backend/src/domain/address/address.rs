@@ -15,7 +15,7 @@ pub type Id = String;
 /// * `country` - The country of the address.
 /// * `first_name` - The first name of the address.
 /// * `last_name` - The last name of the address.
-/// * `state` - The state of the address.
+/// * `province` - The province of the address.
 /// * `zip` - The zip code of the address.
 /// * `phone` - The phone number of the address.
 #[derive(Debug, Getters)]
@@ -28,7 +28,7 @@ pub struct Address {
     country: Option<String>,
     first_name: Option<String>,
     last_name: Option<String>,
-    state: Option<String>,
+    province: Option<String>,
     zip: Option<String>,
     phone: Option<String>,
 }
@@ -43,7 +43,7 @@ impl Address {
         country: impl Into<Option<String>>,
         first_name: impl Into<Option<String>>,
         last_name: impl Into<Option<String>>,
-        state: impl Into<Option<String>>,
+        province: impl Into<Option<String>>,
         zip: impl Into<Option<String>>,
         phone: impl Into<Option<String>>,
     ) -> Result<Self, DomainError> {
@@ -62,7 +62,7 @@ impl Address {
             country: country.into(),
             first_name: first_name.into(),
             last_name: last_name.into(),
-            state: state.into(),
+            province: province.into(),
             zip: zip.into(),
             phone: phone.into(),
         })

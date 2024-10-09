@@ -1,22 +1,25 @@
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
-use crate::domain::{
-    customer::customer::{Customer, CustomerStatus},
-    email::email::Email,
-    error::error::DomainError,
-    media::associated_id::associated_id::AssociatedId,
-    phone::phone::Phone,
+use crate::{
+    domain::{
+        customer::customer::{Customer, CustomerStatus},
+        email::email::Email,
+        error::error::DomainError,
+        media::associated_id::associated_id::AssociatedId,
+        phone::phone::Phone,
+    },
+    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
 use super::{address::AddressNode, common::Edges, media::MediaNode};
 
 impl CustomerNode {
     pub fn to_domain(self) -> Result<Customer, DomainError> {
-        let id = self.id;
+        let id = ShopifyGQLQueryHelper::remove_gid_prefix(&self.id);
         let status = match self.status.as_str() {
-            "active" => CustomerStatus::Active,
-            "inactive" => CustomerStatus::Inactive,
+            "ENABLED" => CustomerStatus::Active,
+            "DISABLED" => CustomerStatus::Inactive,
             _ => CustomerStatus::Inactive,
         };
 
@@ -27,7 +30,8 @@ impl CustomerNode {
                 .map(|address| address.to_domain())
                 .collect::<Result<Vec<_>, _>>()?,
             self.can_delete,
-            self.default_address.map(|address| address.id),
+            self.default_address
+                .map(|address| ShopifyGQLQueryHelper::remove_gid_prefix(&address.id)),
             self.display_name,
             self.email.map(|email| Email::new(email)).transpose()?,
             self.first_name,
@@ -43,10 +47,17 @@ impl CustomerNode {
             self.updated_at,
         )
     }
+
+    pub fn to_domains(schemas: Vec<Self>) -> Result<Vec<Customer>, DomainError> {
+        schemas
+            .into_iter()
+            .map(|schema| schema.to_domain())
+            .collect()
+    }
 }
 
 #[derive(Debug, Deserialize)]
-pub struct LocationsData {
+pub struct CustomersData {
     pub customers: Edges<CustomerNode>,
 }
 

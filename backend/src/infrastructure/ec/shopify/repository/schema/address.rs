@@ -16,7 +16,7 @@ impl AddressNode {
             self.country,
             self.first_name,
             self.last_name,
-            self.state,
+            self.province,
             self.zip,
             self.phone,
         )
@@ -34,7 +34,7 @@ pub struct AddressNode {
     pub country: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
-    pub state: Option<String>,
+    pub province: Option<String>,
     pub zip: Option<String>,
     pub phone: Option<String>,
 }
