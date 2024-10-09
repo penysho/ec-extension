@@ -32,6 +32,32 @@ impl<C: ECClient> MediaRepositoryImpl<C> {
     pub fn new(client: C) -> Self {
         Self { client }
     }
+
+    pub fn image_fields() -> String {
+        "altText
+        height
+        id
+        url
+        width"
+            .to_string()
+    }
+
+    fn media_fields() -> String {
+        let image_fields = Self::image_fields();
+
+        format!(
+            "id
+            fileStatus
+            alt
+            preview {{
+                image {{
+                    {image_fields}
+                }}
+            }}
+            createdAt
+            updatedAt"
+        )
+    }
 }
 
 #[async_trait]
@@ -40,22 +66,14 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
     async fn get_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
+        let media_fields = Self::media_fields();
 
         let query = format!(
             "query {{
                 files({first_query}, query: \"product_id:'{id}'\") {{
                     edges {{
                         node {{
-                            id
-                            fileStatus
-                            alt
-                            preview {{
-                                image {{
-                                    url
-                                }}
-                            }}
-                            createdAt
-                            updatedAt
+                            {media_fields}
                         }}
                     }}
                     {page_info}
@@ -90,6 +108,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         product_ids: Vec<&ProductId>,
     ) -> Result<Vec<Media>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
+        let media_fields = Self::media_fields();
 
         let mut query = String::from("query { ");
         for (i, id) in product_ids.iter().enumerate() {
@@ -98,16 +117,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                 "{}: files({}, query: \"product_id:'{}'\") {{
                     edges {{
                         node {{
-                            id
-                            fileStatus
-                            alt
-                            preview {{
-                                image {{
-                                    url
-                                }}
-                            }}
-                            createdAt
-                            updatedAt
+                            {media_fields}
                         }}
                     }}
                 }}",
@@ -192,7 +202,11 @@ mod tests {
                     alt: Some(format!("Alt text for media {i}")),
                     preview: Some(MediaPreviewImage {
                         image: Some(Image {
+                            id: format!("gid://shopify/MediaImage/{i}"),
+                            alt_text: Some(format!("Alt text for image {i}")),
                             url: format!("https://example.com/MediaImage/{i}.jpg"),
+                            height: Some(600),
+                            width: Some(500),
                         }),
                     }),
                     created_at: Utc::now(),

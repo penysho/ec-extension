@@ -165,7 +165,11 @@ mod tests {
             alt: Some(format!("Alt text for media {id}")),
             preview: Some(MediaPreviewImage {
                 image: Some(Image {
+                    id: format!("gid://shopify/MediaImage/{id}"),
+                    alt_text: Some(format!("Alt text for image {id}")),
                     url: format!("https://example.com/MediaImage/{id}.jpg"),
+                    height: Some(600),
+                    width: Some(500),
                 }),
             }),
             created_at: Utc::now(),

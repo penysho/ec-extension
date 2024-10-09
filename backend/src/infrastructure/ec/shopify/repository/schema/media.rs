@@ -58,6 +58,11 @@ impl MediaNode {
 
 #[derive(Debug, Deserialize)]
 pub struct Image {
+    pub id: String,
+    #[serde(rename = "altText")]
+    pub alt_text: Option<String>,
+    pub height: Option<i32>,
+    pub width: Option<i32>,
     pub url: String,
 }
 
