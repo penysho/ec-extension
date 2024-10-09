@@ -45,7 +45,7 @@ impl MediaNode {
     }
 
     pub fn to_domains(
-        schemas: Vec<MediaNode>,
+        schemas: Vec<Self>,
         associated_ids: Vec<Option<AssociatedId>>,
     ) -> Result<Vec<Media>, DomainError> {
         schemas

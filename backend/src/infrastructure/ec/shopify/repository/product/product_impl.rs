@@ -11,7 +11,7 @@ use crate::{
             query_helper::ShopifyGQLQueryHelper,
             repository::schema::{
                 common::GraphQLResponse,
-                product::{ProductsData, VariantSchema, VariantsData},
+                product::{ProductsData, VariantNode, VariantsData},
             },
         },
     },
@@ -74,16 +74,16 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             return Err(DomainError::QueryError);
         }
 
-        let products: Vec<VariantSchema> = graphql_response
+        let variant_nodes: Vec<VariantNode> = graphql_response
             .data
             .ok_or(DomainError::QueryError)?
             .product_variants
             .edges
             .into_iter()
-            .map(|node| VariantSchema::from(node.node))
+            .map(|node| node.node)
             .collect();
 
-        let domains = VariantSchema::to_product_domains(products)?;
+        let domains = VariantNode::to_product_domains(variant_nodes)?;
 
         if domains.is_empty() {
             log::error!("No product found for id: {}", id);
@@ -105,7 +105,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let limit = limit.unwrap_or(get_product_limit as u32) as usize;
 
         let mut products_cursor = None;
-        let mut all_variants: Vec<VariantSchema> = Vec::new();
+        let mut all_variants: Vec<VariantNode> = Vec::new();
 
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
@@ -231,10 +231,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                     .ok_or(DomainError::QueryError)?
                     .product_variants;
 
-                let variants: Vec<VariantSchema> = variants_data
+                let variants: Vec<VariantNode> = variants_data
                     .edges
                     .into_iter()
-                    .map(|node| VariantSchema::from(node.node))
+                    .map(|node| node.node)
                     .collect();
 
                 all_variants.extend(variants);
@@ -250,7 +250,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             }
         }
 
-        let product_domains = VariantSchema::to_product_domains(all_variants)?;
+        let product_domains = VariantNode::to_product_domains(all_variants)?;
         log::debug!("product_domains.len(): {}", product_domains.len());
 
         let start = offset % get_product_limit;

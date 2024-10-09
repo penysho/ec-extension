@@ -46,6 +46,11 @@ impl CustomerNode {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct LocationsData {
+    pub customers: Edges<CustomerNode>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CustomerNode {
     pub id: String,
     pub addresses: Vec<AddressNode>,
@@ -67,9 +72,4 @@ pub struct CustomerNode {
     pub verified_email: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct LocationsData {
-    pub customers: Edges<CustomerNode>,
 }

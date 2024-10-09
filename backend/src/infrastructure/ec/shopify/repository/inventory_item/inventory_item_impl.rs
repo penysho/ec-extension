@@ -12,9 +12,7 @@ use crate::{
             query_helper::ShopifyGQLQueryHelper,
             repository::schema::{
                 common::GraphQLResponse,
-                inventory_item::{
-                    InventoryItemSchema, InventoryItemsData, VariantsDataForInventory,
-                },
+                inventory_item::{InventoryItemNode, InventoryItemsData, VariantsDataForInventory},
             },
         },
     },
@@ -72,16 +70,14 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
             return Err(DomainError::QueryError);
         }
 
-        let inventories: Vec<InventoryItemSchema> = graphql_response
+        graphql_response
             .data
             .ok_or(DomainError::QueryError)?
             .product_variants
             .edges
             .into_iter()
-            .map(|node| InventoryItemSchema::from(node.node.inventory_item))
-            .collect();
-
-        InventoryItemSchema::to_domains(inventories)
+            .map(|node| node.node.inventory_item.to_domain())
+            .collect()
     }
 
     /// Get product inventory information by sku.
@@ -117,16 +113,16 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
             return Err(DomainError::QueryError);
         }
 
-        let inventories: Vec<InventoryItemSchema> = graphql_response
+        let nodes: Vec<InventoryItemNode> = graphql_response
             .data
             .ok_or(DomainError::QueryError)?
             .inventory_items
             .edges
             .into_iter()
-            .map(|node| InventoryItemSchema::from(node.node))
+            .map(|node| node.node)
             .collect();
 
-        let domains = InventoryItemSchema::to_domains(inventories)?;
+        let domains = InventoryItemNode::to_domains(nodes)?;
 
         if domains.is_empty() {
             log::error!("No inventory item found for sku: {}", sku);

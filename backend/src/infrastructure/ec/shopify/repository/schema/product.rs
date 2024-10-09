@@ -16,54 +16,8 @@ use crate::{
     },
 };
 
-#[derive(Debug, Deserialize)]
-pub struct ProductSchema {
-    pub id: String,
-    pub title: String,
-    pub description: String,
-    pub status: String,
-    pub category_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct VariantSchema {
-    pub id: String,
-
-    pub product: ProductSchema,
-
-    pub price: f32,
-    pub sku: Option<String>,
-    pub barcode: Option<String>,
-    pub inventory_quantity: Option<i32>,
-    pub position: i32,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-impl From<VariantNode> for VariantSchema {
-    fn from(node: VariantNode) -> Self {
-        VariantSchema {
-            product: ProductSchema {
-                id: node.product.id,
-                title: node.product.title,
-                description: node.product.description,
-                status: node.product.status,
-                category_id: node.product.category.map(|c| c.id),
-            },
-            id: node.id,
-            price: node.price.parse::<f32>().unwrap_or(0.0),
-            barcode: node.barcode,
-            inventory_quantity: node.inventory_quantity,
-            sku: node.sku,
-            position: node.position,
-            created_at: node.created_at,
-            updated_at: node.updated_at,
-        }
-    }
-}
-
-impl VariantSchema {
-    pub fn to_variant_domain(self) -> Result<Variant, DomainError> {
+impl VariantNode {
+    fn to_variant_domain(self) -> Result<Variant, DomainError> {
         let sku = self.sku.map(Sku::new).transpose()?;
         let barcode = self.barcode.map(Barcode::new).transpose()?;
         let inventory_quantity = self.inventory_quantity.map(|qty| qty as u32);
@@ -71,7 +25,7 @@ impl VariantSchema {
         Variant::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
             None::<String>,
-            self.price as u32,
+            self.price.parse::<f32>().unwrap_or(0.0) as u32,
             sku,
             barcode,
             inventory_quantity,
@@ -81,7 +35,7 @@ impl VariantSchema {
         )
     }
 
-    pub fn to_product_domain(self) -> Result<Product, DomainError> {
+    fn to_product_domain(self) -> Result<Product, DomainError> {
         let product_id = self.product.id.clone();
         let title = self.product.title.clone();
         let description = self.product.description.clone();
@@ -91,7 +45,7 @@ impl VariantSchema {
             "DRAFT" => ProductStatus::Draft,
             _ => ProductStatus::Inactive,
         };
-        let category_id = self.product.category_id.clone();
+        let category_id = self.product.category.as_ref().map(|c| c.id.clone());
         let variant_domain = self.to_variant_domain()?;
 
         Product::new(
@@ -104,9 +58,7 @@ impl VariantSchema {
         )
     }
 
-    pub fn to_product_domains(
-        variant_schemas: Vec<VariantSchema>,
-    ) -> Result<Vec<Product>, DomainError> {
+    pub fn to_product_domains(variant_schemas: Vec<Self>) -> Result<Vec<Product>, DomainError> {
         if variant_schemas.is_empty() {
             return Ok(Vec::new());
         }
@@ -138,32 +90,34 @@ impl VariantSchema {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct TaxonomyCategory {
-    pub id: String,
+pub struct ProductsData {
+    pub products: Edges<ProductNode>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct ProductNode {
     pub id: String,
-
     pub category: Option<TaxonomyCategory>,
-
     pub title: String,
     pub description: String,
     pub status: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ProductsData {
-    pub products: Edges<ProductNode>,
+pub struct TaxonomyCategory {
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VariantsData {
+    #[serde(rename = "productVariants")]
+    pub product_variants: Edges<VariantNode>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct VariantNode {
     pub id: String,
-
     pub product: ProductNode,
-
     pub barcode: Option<String>,
     #[serde(rename = "inventoryQuantity")]
     pub inventory_quantity: Option<i32>,
@@ -174,10 +128,4 @@ pub struct VariantNode {
     pub created_at: DateTime<Utc>,
     #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct VariantsData {
-    #[serde(rename = "productVariants")]
-    pub product_variants: Edges<VariantNode>,
 }

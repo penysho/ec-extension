@@ -8,11 +8,11 @@ use crate::{
 
 use super::{common::Edges, inventory_level::InventoryLevelNode};
 
-impl InventoryItemSchema {
+impl InventoryItemNode {
     pub fn to_domain(self) -> Result<InventoryItem, DomainError> {
         InventoryItem::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.variant_id),
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.variant.id),
             self.requires_shipping,
             self.tracked,
             self.created_at,
@@ -20,9 +20,7 @@ impl InventoryItemSchema {
         )
     }
 
-    pub fn to_domains(
-        schemas: Vec<InventoryItemSchema>,
-    ) -> Result<Vec<InventoryItem>, DomainError> {
+    pub fn to_domains(schemas: Vec<Self>) -> Result<Vec<InventoryItem>, DomainError> {
         schemas
             .into_iter()
             .map(|schema| schema.to_domain())
@@ -30,32 +28,22 @@ impl InventoryItemSchema {
     }
 }
 
-impl From<InventoryItemNode> for InventoryItemSchema {
-    fn from(node: InventoryItemNode) -> Self {
-        InventoryItemSchema {
-            id: node.id,
-            variant_id: node.variant.id,
-            requires_shipping: node.requires_shipping,
-            tracked: node.tracked,
-            created_at: node.created_at,
-            updated_at: node.updated_at,
-        }
-    }
+#[derive(Debug, Deserialize)]
+pub struct VariantsDataForInventory {
+    #[serde(rename = "productVariants")]
+    pub product_variants: Edges<VariantNodeForInventory>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct InventoryItemSchema {
-    pub id: String,
-    pub variant_id: String,
-    pub requires_shipping: bool,
-    pub tracked: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+pub struct InventoryItemsData {
+    #[serde(rename = "inventoryItems")]
+    pub inventory_items: Edges<InventoryItemNode>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct VariantIdNode {
-    pub id: String,
+pub struct VariantNodeForInventory {
+    #[serde(rename = "inventoryItem")]
+    pub inventory_item: InventoryItemNode,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,19 +62,6 @@ pub struct InventoryItemNode {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct VariantNodeForInventory {
-    #[serde(rename = "inventoryItem")]
-    pub inventory_item: InventoryItemNode,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct VariantsDataForInventory {
-    #[serde(rename = "productVariants")]
-    pub product_variants: Edges<VariantNodeForInventory>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct InventoryItemsData {
-    #[serde(rename = "inventoryItems")]
-    pub inventory_items: Edges<InventoryItemNode>,
+pub struct VariantIdNode {
+    pub id: String,
 }

@@ -14,7 +14,7 @@ use crate::{
 
 use super::{common::UserErrors, location::LocationNode};
 
-impl InventoryLevelSchema {
+impl InventoryLevelNode {
     pub fn to_domain(self) -> Result<InventoryLevel, DomainError> {
         let quantities: Result<Vec<Quantity>, DomainError> = self
             .quantities
@@ -24,15 +24,13 @@ impl InventoryLevelSchema {
 
         InventoryLevel::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.inventory_item_id),
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.location_id),
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.item.id),
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.location.id),
             quantities?,
         )
     }
 
-    pub fn to_domains(
-        schemas: Vec<InventoryLevelSchema>,
-    ) -> Result<Vec<InventoryLevel>, DomainError> {
+    pub fn to_domains(schemas: Vec<Self>) -> Result<Vec<InventoryLevel>, DomainError> {
         schemas
             .into_iter()
             .map(|schema| schema.to_domain())
@@ -40,9 +38,9 @@ impl InventoryLevelSchema {
     }
 }
 
-impl QuantitySchema {
+impl QuantityNode {
     pub fn to_domain(self) -> Result<Quantity, DomainError> {
-        let inventory_type = match self.inventory_type.as_str() {
+        let inventory_type = match self.name.as_str() {
             "available" => InventoryType::Available,
             "incoming" => InventoryType::Incoming,
             "committed" => InventoryType::Committed,
@@ -53,40 +51,6 @@ impl QuantitySchema {
         };
 
         Quantity::new(self.quantity, inventory_type)
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct InventoryLevelSchema {
-    pub id: String,
-    pub inventory_item_id: String,
-    pub location_id: String,
-    pub quantities: Vec<QuantitySchema>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct QuantitySchema {
-    pub quantity: i32,
-    pub inventory_type: String,
-}
-
-impl From<InventoryLevelNode> for InventoryLevelSchema {
-    fn from(node: InventoryLevelNode) -> Self {
-        InventoryLevelSchema {
-            id: node.id,
-            inventory_item_id: node.item.id,
-            location_id: node.location.id,
-            quantities: node.quantities.into_iter().map(|q| q.into()).collect(),
-        }
-    }
-}
-
-impl From<QuantityNode> for QuantitySchema {
-    fn from(node: QuantityNode) -> Self {
-        QuantitySchema {
-            quantity: node.quantity,
-            inventory_type: node.name,
-        }
     }
 }
 

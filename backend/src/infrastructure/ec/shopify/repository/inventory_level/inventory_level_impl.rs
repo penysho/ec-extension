@@ -19,7 +19,7 @@ use crate::{
                     inventory_item::InventoryItemsData,
                     inventory_level::{
                         InventoryAdjustQuantitiesData, InventoryAdjustQuantitiesInput,
-                        InventoryLevelSchema,
+                        InventoryLevelNode,
                     },
                 },
             },
@@ -97,20 +97,16 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             return Err(DomainError::QueryError);
         }
 
-        let inventories: Vec<InventoryLevelSchema> = graphql_response
+        let nodes: Vec<InventoryLevelNode> = graphql_response
             .data
             .ok_or(DomainError::QueryError)?
             .inventory_items
             .edges
             .into_iter()
-            .filter_map(|node| {
-                node.node
-                    .inventory_level
-                    .map(|level| InventoryLevelSchema::from(level))
-            })
+            .filter_map(|node| node.node.inventory_level)
             .collect();
 
-        let domains = InventoryLevelSchema::to_domains(inventories)?;
+        let domains = InventoryLevelNode::to_domains(nodes)?;
 
         if domains.is_empty() {
             log::info!("No inventory level found for sku: {sku}, location: {location_id}");
