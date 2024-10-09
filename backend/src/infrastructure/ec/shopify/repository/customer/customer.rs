@@ -32,6 +32,7 @@ impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C>
     async fn get_customer_by_email(&self, email: &Email) -> Result<Customer, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
+        let address_fields = ShopifyGQLQueryHelper::address_fields();
         let email = email.value();
 
         let query = format!(
@@ -41,86 +42,30 @@ impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C>
                         node {{
                             canDelete
                             createdAt
-                            dataSaleOptOut
                             displayName
                             email
                             firstName
-                            hasTimelineComment
                             id
                             lastName
-                            lifetimeDuration
-                            locale
-                            multipassIdentifier
                             note
-                            numberOfOrders
                             phone
-                            productSubscriberStatus
                             state
-                            tags
-                            taxExempt
-                            taxExemptions
-                            unsubscribeUrl
                             updatedAt
                             validEmailAddress
                             verifiedEmail
                             addresses({first_query}) {{
-                                address1
-                                address2
-                                city
-                                company
-                                coordinatesValidated
-                                country
-                                countryCode
-                                countryCodeV2
-                                firstName
-                                formatted
-                                formattedArea
-                                id
-                                lastName
-                                latitude
-                                longitude
-                                name
-                                phone
-                                province
-                                provinceCode
-                                timeZone
-                                validationResultSummary
-                                zip
+                                {address_fields}
                             }}
                             image {{
                                 altText
                                 height
                                 id
-                                originalSrc
-                                src
-                                transformedSrc
                                 url
                                 width
                             }}
                             defaultAddress {{
-                                address1
-                                address2
-                                city
-                                company
-                                coordinatesValidated
-                                country
-                                countryCode
-                                countryCodeV2
-                                firstName
-                                formatted
-                                formattedArea
-                                id
-                                lastName
-                                latitude
-                                longitude
-                                name
-                                phone
-                                province
-                                provinceCode
-                                timeZone
-                                validationResultSummary
-                                zip
-                        }}
+                                {address_fields}
+                            }}
                         }}
                     }}
                     {page_info}
