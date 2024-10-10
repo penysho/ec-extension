@@ -5,7 +5,7 @@ use crate::domain::{
     address::address::{Address, Id as AddressId},
     email::email::Email,
     error::error::DomainError,
-    media::media::Media,
+    media::media_content::image::image::Image,
     phone::phone::Phone,
 };
 
@@ -49,7 +49,7 @@ pub struct Customer {
     email: Option<Email>,
     first_name: Option<String>,
     last_name: Option<String>,
-    image: Option<Media>,
+    image: Option<Image>,
     phone: Option<Phone>,
     note: Option<String>,
     status: CustomerStatus,
@@ -68,7 +68,7 @@ impl Customer {
         email: Option<Email>,
         first_name: Option<impl Into<String>>,
         last_name: Option<impl Into<String>>,
-        image: Option<Media>,
+        image: Option<Image>,
         phone: Option<Phone>,
         note: Option<impl Into<String>>,
         status: CustomerStatus,

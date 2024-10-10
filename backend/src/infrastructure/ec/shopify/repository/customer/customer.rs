@@ -115,7 +115,7 @@ mod tests {
                     address::AddressNode,
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
                     customer::{CustomerNode, CustomersData},
-                    media::{ImageNode, MediaNode, MediaPreviewImage},
+                    media::ImageNode,
                 },
             },
         },
@@ -132,7 +132,7 @@ mod tests {
             email: Some("test@example.com".to_string()),
             first_name: Some("Test".to_string()),
             last_name: Some("Customer".to_string()),
-            image: Some(mock_media(id)),
+            image: Some(mock_image(id)),
             phone: Some("+1234567890".to_string()),
             note: Some("Test note".to_string()),
             status: "ENABLED".to_string(),
@@ -158,22 +158,13 @@ mod tests {
         }
     }
 
-    fn mock_media(id: u32) -> MediaNode {
-        MediaNode {
+    fn mock_image(id: u32) -> ImageNode {
+        ImageNode {
             id: format!("gid://shopify/MediaImage/{id}"),
-            file_status: "UPLOADED".to_string(),
-            alt: Some(format!("Alt text for media {id}")),
-            preview: Some(MediaPreviewImage {
-                image: Some(ImageNode {
-                    id: format!("gid://shopify/MediaImage/{id}"),
-                    alt_text: Some(format!("Alt text for image {id}")),
-                    url: format!("https://example.com/MediaImage/{id}.jpg"),
-                    height: Some(600),
-                    width: Some(500),
-                }),
-            }),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            alt_text: Some(format!("Alt text for image {id}")),
+            url: format!("https://example.com/MediaImage/{id}.jpg"),
+            height: Some(600),
+            width: Some(500),
         }
     }
 

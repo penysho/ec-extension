@@ -12,7 +12,7 @@ use crate::{
     infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
-use super::{address::AddressNode, common::Edges, media::MediaNode};
+use super::{address::AddressNode, common::Edges, media::ImageNode};
 
 impl CustomerNode {
     pub fn to_domain(self) -> Result<Customer, DomainError> {
@@ -75,7 +75,7 @@ pub struct CustomerNode {
     pub first_name: Option<String>,
     #[serde(rename = "lastName")]
     pub last_name: Option<String>,
-    pub image: Option<MediaNode>,
+    pub image: Option<ImageNode>,
     pub phone: Option<String>,
     pub note: Option<String>,
     pub status: String,
