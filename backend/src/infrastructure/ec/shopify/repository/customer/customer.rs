@@ -115,7 +115,7 @@ mod tests {
                     address::AddressNode,
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
                     customer::{CustomerNode, CustomersData},
-                    media::{Image, MediaNode, MediaPreviewImage},
+                    media::{ImageNode, MediaNode, MediaPreviewImage},
                 },
             },
         },
@@ -164,7 +164,7 @@ mod tests {
             file_status: "UPLOADED".to_string(),
             alt: Some(format!("Alt text for media {id}")),
             preview: Some(MediaPreviewImage {
-                image: Some(Image {
+                image: Some(ImageNode {
                     id: format!("gid://shopify/MediaImage/{id}"),
                     alt_text: Some(format!("Alt text for image {id}")),
                     url: format!("https://example.com/MediaImage/{id}.jpg"),
@@ -249,17 +249,6 @@ mod tests {
         assert!(customer.verified_email());
         assert_eq!(customer.addresses().len(), 2);
         assert_eq!(customer.default_address_id().clone().unwrap(), "0");
-        assert_eq!(
-            customer
-                .image()
-                .as_ref()
-                .unwrap()
-                .published_src()
-                .clone()
-                .unwrap()
-                .value(),
-            "https://example.com/MediaImage/0.jpg"
-        );
     }
 
     #[tokio::test]

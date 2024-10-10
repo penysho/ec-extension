@@ -7,6 +7,7 @@ use crate::{
         media::{
             associated_id::associated_id::AssociatedId,
             media::{Media, MediaStatus},
+            media_content::{image::image::Image, media_content::MediaContent},
             src::src::Src,
         },
     },
@@ -24,21 +25,16 @@ impl MediaNode {
             _ => MediaStatus::Inactive,
         };
 
-        let published_src = self
-            .preview
-            .and_then(|p| p.image)
-            .map(|i| i.url)
-            .map(Src::new)
-            .transpose()?;
+        let image = match self.preview.and_then(|p| p.image) {
+            Some(i) => Some(MediaContent::Image(i.to_domain(associated_id)?)),
+            None => None,
+        };
 
         Media::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            associated_id,
             None::<String>,
             status,
-            self.alt,
-            None,
-            published_src,
+            image,
             self.created_at,
             self.updated_at,
         )
@@ -56,19 +52,23 @@ impl MediaNode {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct Image {
-    pub id: String,
-    #[serde(rename = "altText")]
-    pub alt_text: Option<String>,
-    pub height: Option<i32>,
-    pub width: Option<i32>,
-    pub url: String,
+impl ImageNode {
+    pub fn to_domain(self, associated_id: Option<AssociatedId>) -> Result<Image, DomainError> {
+        let src = Src::new(self.url)?;
+
+        Image::new(
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
+            associated_id,
+            self.alt_text,
+            None,
+            Some(src),
+        )
+    }
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MediaPreviewImage {
-    pub image: Option<Image>,
+pub struct MediaData {
+    pub files: Edges<MediaNode>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -85,6 +85,16 @@ pub struct MediaNode {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MediaData {
-    pub files: Edges<MediaNode>,
+pub struct MediaPreviewImage {
+    pub image: Option<ImageNode>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ImageNode {
+    pub id: String,
+    #[serde(rename = "altText")]
+    pub alt_text: Option<String>,
+    pub height: Option<i32>,
+    pub width: Option<i32>,
+    pub url: String,
 }

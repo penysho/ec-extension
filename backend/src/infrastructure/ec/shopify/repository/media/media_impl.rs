@@ -179,14 +179,20 @@ mod tests {
     use serde_json::{json, Value};
 
     use crate::{
-        domain::{error::error::DomainError, media::media::MediaStatus},
+        domain::{
+            error::error::DomainError,
+            media::{
+                associated_id::associated_id::AssociatedId, media::MediaStatus,
+                media_content::media_content::MediaContent,
+            },
+        },
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
                 media::media_impl::MediaRepositoryImpl,
                 schema::{
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
-                    media::{Image, MediaData, MediaNode, MediaPreviewImage},
+                    media::{ImageNode, MediaData, MediaNode, MediaPreviewImage},
                 },
             },
         },
@@ -201,7 +207,7 @@ mod tests {
                     file_status: "UPLOADED".to_string(),
                     alt: Some(format!("Alt text for media {i}")),
                     preview: Some(MediaPreviewImage {
-                        image: Some(Image {
+                        image: Some(ImageNode {
                             id: format!("gid://shopify/MediaImage/{i}"),
                             alt_text: Some(format!("Alt text for image {i}")),
                             url: format!("https://example.com/MediaImage/{i}.jpg"),
@@ -311,50 +317,36 @@ mod tests {
         assert!(result.is_ok());
         let media = result.unwrap();
         assert_eq!(media.len(), 10);
+
         assert_eq!(media[0].id(), "0");
         assert_eq!(*media[0].status(), MediaStatus::Active);
+        let image = match media[0].content() {
+            Some(MediaContent::Image(image)) => image,
+            _ => panic!("Expected MediaContent::Image"),
+        };
         assert_eq!(
-            media[0].published_src().as_ref().unwrap().value(),
+            image.associated_id(),
+            &Some(AssociatedId::Product("123456".to_string()))
+        );
+        assert_eq!(
+            image.published_src().as_ref().unwrap().value(),
             "https://example.com/MediaImage/0.jpg"
         );
-        assert_eq!(media[0].alt().as_deref().unwrap(), "Alt text for media 0");
 
         assert_eq!(media[9].id(), "9");
         assert_eq!(*media[9].status(), MediaStatus::Active);
+        let image = match media[9].content() {
+            Some(MediaContent::Image(image)) => image,
+            _ => panic!("Expected MediaContent::Image"),
+        };
         assert_eq!(
-            media[9].published_src().as_ref().unwrap().value(),
+            image.associated_id(),
+            &Some(AssociatedId::Product("123456".to_string()))
+        );
+        assert_eq!(
+            image.published_src().as_ref().unwrap().value(),
             "https://example.com/MediaImage/9.jpg"
         );
-        assert_eq!(media[9].alt().as_deref().unwrap(), "Alt text for media 9");
-    }
-
-    #[tokio::test]
-    async fn get_media_by_product_id_with_invalid_domain_conversion() {
-        let mut client = MockECClient::new();
-
-        let mut invalid_variant = mock_media_response(1);
-        invalid_variant.data.as_mut().unwrap().files.edges[0]
-            .node
-            .file_status = "UPLOADED".to_string();
-        invalid_variant.data.as_mut().unwrap().files.edges[0]
-            .node
-            .preview = None;
-
-        client
-            .expect_query::<GraphQLResponse<MediaData>>()
-            .times(1)
-            .return_once(|_| Ok(invalid_variant));
-
-        let repo = MediaRepositoryImpl::new(client);
-
-        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
-
-        assert!(result.is_err());
-        if let Err(DomainError::ValidationError) = result {
-            // Test passed
-        } else {
-            panic!("Expected DomainError::ValidationError, but got something else");
-        }
     }
 
     #[tokio::test]

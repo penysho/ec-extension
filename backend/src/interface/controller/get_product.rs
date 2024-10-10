@@ -26,6 +26,8 @@ mod tests {
     use crate::domain::error::error::DomainError;
     use crate::domain::media::associated_id::associated_id::AssociatedId;
     use crate::domain::media::media::{Media, MediaStatus};
+    use crate::domain::media::media_content::image::image::Image;
+    use crate::domain::media::media_content::media_content::MediaContent;
     use crate::domain::media::src::src::Src;
     use crate::domain::product::product::{Product, ProductStatus};
     use crate::domain::product::variant::barcode::barcode::Barcode;
@@ -98,24 +100,48 @@ mod tests {
                     vec![
                         Media::new(
                             format!("0"),
-                            Some(AssociatedId::Product("0".to_string())),
                             Some(format!("Test Media 0")),
                             MediaStatus::Active,
-                            Some(format!("0")),
-                            Some(Src::new(format!("https://example.com/uploaded.jpg")).unwrap()),
-                            Some(Src::new(format!("https://example.com/published.jpg",)).unwrap()),
+                            Some(MediaContent::Image(
+                                Image::new(
+                                    format!("0"),
+                                    Some(AssociatedId::Product("0".to_string())),
+                                    Some(format!("Alt Text 0")),
+                                    Some(
+                                        Src::new(format!("https://example.com/uploaded.jpg"))
+                                            .unwrap(),
+                                    ),
+                                    Some(
+                                        Src::new(format!("https://example.com/published.jpg",))
+                                            .unwrap(),
+                                    ),
+                                )
+                                .unwrap(),
+                            )),
                             Utc::now(),
                             Utc::now(),
                         )
                         .unwrap(),
                         Media::new(
                             format!("1"),
-                            Some(AssociatedId::Product("0".to_string())),
                             Some(format!("Test Media 1")),
                             MediaStatus::Active,
-                            Some(format!("1")),
-                            Some(Src::new(format!("https://example.com/uploaded.jpg")).unwrap()),
-                            Some(Src::new(format!("https://example.com/published.jpg",)).unwrap()),
+                            Some(MediaContent::Image(
+                                Image::new(
+                                    format!("1"),
+                                    Some(AssociatedId::Product("0".to_string())),
+                                    Some(format!("Alt Text 1")),
+                                    Some(
+                                        Src::new(format!("https://example.com/uploaded.jpg"))
+                                            .unwrap(),
+                                    ),
+                                    Some(
+                                        Src::new(format!("https://example.com/published.jpg",))
+                                            .unwrap(),
+                                    ),
+                                )
+                                .unwrap(),
+                            )),
                             Utc::now(),
                             Utc::now(),
                         )
