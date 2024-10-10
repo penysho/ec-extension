@@ -26,7 +26,8 @@ pub struct Email {
 }
 
 impl Email {
-    pub fn new(value: String) -> Result<Self, DomainError> {
+    pub fn new(value: impl Into<String>) -> Result<Self, DomainError> {
+        let value = value.into();
         if value.contains('@') {
             Ok(Self { value })
         } else {

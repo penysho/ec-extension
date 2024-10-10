@@ -36,16 +36,16 @@ pub struct Address {
 impl Address {
     pub fn new(
         id: impl Into<String>,
-        address1: impl Into<Option<String>>,
-        address2: impl Into<Option<String>>,
-        city: impl Into<Option<String>>,
+        address1: Option<impl Into<String>>,
+        address2: Option<impl Into<String>>,
+        city: Option<impl Into<String>>,
         coordinates_validated: bool,
-        country: impl Into<Option<String>>,
-        first_name: impl Into<Option<String>>,
-        last_name: impl Into<Option<String>>,
-        province: impl Into<Option<String>>,
-        zip: impl Into<Option<String>>,
-        phone: impl Into<Option<String>>,
+        country: Option<impl Into<String>>,
+        first_name: Option<impl Into<String>>,
+        last_name: Option<impl Into<String>>,
+        province: Option<impl Into<String>>,
+        zip: Option<impl Into<String>>,
+        phone: Option<impl Into<String>>,
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
@@ -55,16 +55,72 @@ impl Address {
 
         Ok(Self {
             id: id.into(),
-            address1: address1.into(),
-            address2: address2.into(),
-            city: city.into(),
+            address1: address1.map(|a| a.into()),
+            address2: address2.map(|a| a.into()),
+            city: city.map(|a| a.into()),
             coordinates_validated,
-            country: country.into(),
-            first_name: first_name.into(),
-            last_name: last_name.into(),
-            province: province.into(),
-            zip: zip.into(),
-            phone: phone.into(),
+            country: country.map(|a| a.into()),
+            first_name: first_name.map(|a| a.into()),
+            last_name: last_name.map(|a| a.into()),
+            province: province.map(|a| a.into()),
+            zip: zip.map(|a| a.into()),
+            phone: phone.map(|a| a.into()),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_address_success() {
+        let address = Address::new(
+            "123",               // id
+            Some("123 Main St"), // address1
+            None::<String>,      // address2
+            Some("City"),        // city
+            true,                // coordinates_validated
+            Some("Country"),     // country
+            Some("John"),        // first_name
+            Some("Doe"),         // last_name
+            Some("Province"),    // province
+            Some("12345"),       // zip
+            Some("+1234567890"), // phone
+        );
+
+        assert!(address.is_ok());
+
+        let address = address.unwrap();
+        assert_eq!(address.id(), "123");
+        assert_eq!(address.address1().clone().unwrap(), "123 Main St");
+        assert_eq!(address.city().clone().unwrap(), "City");
+        assert_eq!(*address.coordinates_validated(), true);
+        assert_eq!(address.country().clone().unwrap(), "Country");
+        assert_eq!(address.first_name().clone().unwrap(), "John");
+        assert_eq!(address.last_name().clone().unwrap(), "Doe");
+        assert_eq!(address.province().clone().unwrap(), "Province");
+        assert_eq!(address.zip().clone().unwrap(), "12345");
+        assert_eq!(address.phone().clone().unwrap(), "+1234567890");
+    }
+
+    #[test]
+    fn test_create_address_error_empty_id() {
+        let address = Address::new(
+            "",                  // id is empty
+            Some("123 Main St"), // address1
+            None::<String>,      // address2
+            Some("City"),        // city
+            true,                // coordinates_validated
+            Some("Country"),     // country
+            Some("John"),        // first_name
+            Some("Doe"),         // last_name
+            Some("Province"),    // province
+            Some("12345"),       // zip
+            Some("+1234567890"), // phone
+        );
+
+        assert!(address.is_err());
+        assert_eq!(address.unwrap_err(), DomainError::ValidationError);
     }
 }

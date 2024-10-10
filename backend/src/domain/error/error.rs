@@ -13,7 +13,7 @@ use derive_more::{Display, Error};
 /// - `ValidationError` - Represents a domain logic validation failure.
 /// - `NotFound` - Indicates that the requested resource could not be found.
 /// - `InvalidRequest` - Represents an invalid request schema.
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Display, Error, PartialEq)]
 pub enum DomainError {
     /// Indicates an unexpected system error.
     #[display(fmt = "System error.")]

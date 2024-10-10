@@ -63,7 +63,7 @@ impl Customer {
         id: impl Into<String>,
         addresses: Vec<Address>,
         can_delete: bool,
-        default_address_id: Option<AddressId>,
+        default_address_id: Option<impl Into<AddressId>>,
         display_name: impl Into<String>,
         email: Option<Email>,
         first_name: Option<impl Into<String>>,
@@ -86,6 +86,7 @@ impl Customer {
             log::error!("Display name cannot be empty");
             return Err(DomainError::ValidationError);
         }
+        let default_address_id = default_address_id.map(|id| id.into());
         if let Some(default_address_id) = &default_address_id {
             if !addresses
                 .iter()
@@ -113,5 +114,150 @@ impl Customer {
             created_at,
             updated_at,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+
+    fn mock_address(id: &str) -> Address {
+        Address::new(
+            id,
+            Some("123 Main St"),
+            None::<String>,
+            Some("City"),
+            true,
+            Some("Country"),
+            Some("John"),
+            Some("Doe"),
+            Some("Province"),
+            Some("12345"),
+            Some("+1234567890"),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn test_create_customer_success() {
+        let address = mock_address("1");
+        let addresses = vec![address];
+
+        let customer = Customer::new(
+            "123",
+            addresses,
+            true,
+            Some("1"),
+            "John Doe",
+            Some(Email::new("john@example.com").unwrap()),
+            Some("John"),
+            Some("Doe"),
+            None,
+            Some(Phone::new("+1234567890").unwrap()),
+            Some("Note"),
+            CustomerStatus::Active,
+            true,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        assert!(customer.is_ok());
+
+        let customer = customer.unwrap();
+        assert_eq!(customer.id(), "123");
+        assert_eq!(customer.display_name(), "John Doe");
+        assert_eq!(
+            customer.email().as_ref().unwrap().value(),
+            "john@example.com"
+        );
+        assert_eq!(customer.first_name().as_ref().unwrap(), "John");
+        assert_eq!(customer.last_name().as_ref().unwrap(), "Doe");
+        assert_eq!(customer.phone().as_ref().unwrap().value(), "+1234567890");
+        assert_eq!(customer.note().as_ref().unwrap(), "Note");
+        assert!(customer.verified_email());
+        assert_eq!(customer.addresses().len(), 1);
+        assert_eq!(customer.default_address_id().as_ref().unwrap(), "1",);
+    }
+
+    #[test]
+    fn test_create_customer_error_empty_id() {
+        let address = mock_address("1");
+        let addresses = vec![address];
+
+        let customer = Customer::new(
+            "",
+            addresses,
+            true,
+            Some("1"),
+            "John Doe",
+            Some(Email::new("john@example.com").unwrap()),
+            Some("John"),
+            Some("Doe"),
+            None,
+            Some(Phone::new("+1234567890").unwrap()),
+            Some("Note"),
+            CustomerStatus::Active,
+            true,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        assert!(customer.is_err());
+        assert_eq!(customer.unwrap_err(), DomainError::ValidationError);
+    }
+
+    #[test]
+    fn test_create_customer_error_empty_display_name() {
+        let address = mock_address("1");
+        let addresses = vec![address];
+
+        let customer = Customer::new(
+            "123",
+            addresses,
+            true,
+            Some("1"),
+            "",
+            Some(Email::new("john@example.com").unwrap()),
+            Some("John"),
+            Some("Doe"),
+            None,
+            Some(Phone::new("+1234567890").unwrap()),
+            Some("Note"),
+            CustomerStatus::Active,
+            true,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        assert!(customer.is_err());
+        assert_eq!(customer.unwrap_err(), DomainError::ValidationError);
+    }
+
+    #[test]
+    fn test_create_customer_error_invalid_default_address() {
+        let address = mock_address("1");
+        let addresses = vec![address];
+
+        let customer = Customer::new(
+            "123",
+            addresses,
+            true,
+            Some("invalid"),
+            "John Doe",
+            Some(Email::new("john@example.com").unwrap()),
+            Some("John"),
+            Some("Doe"),
+            None,
+            Some(Phone::new("+1234567890").unwrap()),
+            Some("Note"),
+            CustomerStatus::Active,
+            true,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        assert!(customer.is_err());
+        assert_eq!(customer.unwrap_err(), DomainError::ValidationError);
     }
 }
