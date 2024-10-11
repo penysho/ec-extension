@@ -45,12 +45,6 @@ impl Quantity {
             inventory_type,
         })
     }
-
-    pub fn apply_delta(&mut self, delta: i32) -> Result<(), DomainError> {
-        self.quantity = self.quantity + delta;
-
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -62,26 +56,5 @@ mod tests {
         let quantity = Quantity::new(10, InventoryType::Available).unwrap();
         assert_eq!(quantity.quantity(), &10);
         assert_eq!(quantity.inventory_type(), &InventoryType::Available);
-    }
-
-    #[test]
-    fn test_quantity_apply_delta_positive() {
-        let mut quantity = Quantity::new(10, InventoryType::Available).unwrap();
-        quantity.apply_delta(5).unwrap();
-        assert_eq!(quantity.quantity(), &15);
-    }
-
-    #[test]
-    fn test_quantity_apply_delta_negative() {
-        let mut quantity = Quantity::new(10, InventoryType::Available).unwrap();
-        quantity.apply_delta(-3).unwrap();
-        assert_eq!(quantity.quantity(), &7);
-    }
-
-    #[test]
-    fn test_quantity_apply_delta_zero() {
-        let mut quantity = Quantity::new(10, InventoryType::Available).unwrap();
-        quantity.apply_delta(0).unwrap();
-        assert_eq!(quantity.quantity(), &10);
     }
 }

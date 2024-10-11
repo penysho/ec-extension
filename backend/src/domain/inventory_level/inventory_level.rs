@@ -83,7 +83,8 @@ impl InventoryLevel {
 
         match index {
             Some(index) => {
-                let _ = self.quantities[index].apply_delta(delta)?;
+                let quantity = self.quantities[index].quantity() + delta;
+                self.quantities[index] = Quantity::new(quantity, name.to_owned())?;
                 Ok(())
             }
             None => {
