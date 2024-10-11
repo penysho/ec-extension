@@ -1,10 +1,14 @@
 pub mod address;
 pub mod customer;
+pub mod draft_order;
 pub mod email;
 pub mod error;
 pub mod inventory_item;
 pub mod inventory_level;
+pub mod line_item;
 pub mod location;
 pub mod media;
+pub mod money;
+pub mod order;
 pub mod phone;
 pub mod product;

@@ -1,0 +1,109 @@
+use chrono::{DateTime, Utc};
+use derive_getters::Getters;
+
+use crate::domain::{
+    address::address::Address, customer::customer::Customer, error::error::DomainError,
+    line_item::line_item::LineItem, money::money::Money, order::order::Id as OrderId,
+};
+
+pub type Id = String;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum DraftOrderStatus {
+    Open,
+    Completed,
+    Canceled,
+}
+
+#[derive(Debug, Getters)]
+pub struct DraftOrder {
+    id: Id,
+    name: String,
+    status: DraftOrderStatus,
+
+    line_items: Vec<LineItem>,
+    line_items_subtotal_price: Money,
+
+    subtotal_price: Money,
+    total_price: Money,
+    taxes_included: bool,
+    tax_exempt: bool,
+    total_tax: Money,
+    total_discounts: Money,
+
+    customer: Option<Customer>,
+    billing_address: Address,
+    shipping_address: Address,
+    note: Option<String>,
+
+    order_id: Option<OrderId>,
+
+    completed_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+    update_at: DateTime<Utc>,
+}
+
+impl DraftOrder {
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        line_items: Vec<LineItem>,
+        subtotal_price: Money,
+        line_items_subtotal_price: Money,
+        taxes_included: bool,
+        tax_exempt: bool,
+        total_tax: Money,
+        total_discounts: Money,
+        total_price: Money,
+        customer: Option<Customer>,
+        billing_address: Address,
+        shipping_address: Address,
+        note: Option<String>,
+        order_id: Option<OrderId>,
+        completed_at: Option<DateTime<Utc>>,
+        created_at: DateTime<Utc>,
+        update_at: DateTime<Utc>,
+    ) -> Result<Self, DomainError> {
+        let id = id.into();
+        if id.is_empty() {
+            log::error!("Id cannot be empty");
+            return Err(DomainError::ValidationError);
+        }
+        let name = name.into();
+        if name.is_empty() {
+            log::error!("Name cannot be empty");
+            return Err(DomainError::ValidationError);
+        }
+
+        Ok(Self {
+            id,
+            name,
+            status: DraftOrderStatus::Open,
+            line_items,
+            line_items_subtotal_price,
+            subtotal_price,
+            total_price,
+            taxes_included,
+            tax_exempt,
+            total_tax,
+            total_discounts,
+            customer,
+            billing_address,
+            shipping_address,
+            note,
+            order_id,
+            completed_at,
+            created_at,
+            update_at,
+        })
+    }
+
+    pub fn complete(&mut self) {
+        self.status = DraftOrderStatus::Completed;
+        self.completed_at = Some(Utc::now());
+    }
+
+    pub fn cancel(&mut self) {
+        self.status = DraftOrderStatus::Canceled;
+    }
+}
