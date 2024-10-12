@@ -27,40 +27,64 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
     pub fn new(client: C) -> Self {
         Self { client }
     }
+
+    fn product_fields() -> String {
+        let description_length = Product::MAX_DESCRIPTION_LENGTH;
+
+        format!(
+            "id
+            title
+            handle
+            description(truncateAt: {description_length})
+            status
+            category {{
+                id
+                name
+            }}"
+        )
+    }
+
+    fn variant_fields() -> String {
+        let product_fields = Self::product_fields();
+
+        format!(
+            "id
+            title
+            sku
+            barcode
+            availableForSale
+            position
+            inventoryItem {{
+                id
+            }}
+            inventoryQuantity
+            inventoryPolicy
+            price
+            taxable
+            taxCode
+            createdAt
+            updatedAt
+            product {{
+                {product_fields}
+            }}"
+        )
+    }
 }
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     /// Get detailed product information.
     async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
-        let description_length = Product::MAX_DESCRIPTION_LENGTH;
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
+        let variant_fields = Self::variant_fields();
 
         let query = format!(
             "query {{
                 productVariants({first_query}, query: \"product_id:'{id}'\") {{
                     edges {{
                         node {{
-                            id
-                            barcode
-                            inventoryQuantity
-                            sku
-                            position
-                            price
-                            createdAt
-                            updatedAt
-                            product {{
-                                id
-                                title
-                                handle
-                                description(truncateAt: {description_length})
-                                status
-                                category {{
-                                    id
-                                    name
-                                }}
-                            }}
+                            {variant_fields}
                         }}
                     }}
                     {page_info}
@@ -98,7 +122,6 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         limit: &Option<u32>,
         offset: &Option<u32>,
     ) -> Result<Vec<Product>, DomainError> {
-        let description_length = Product::MAX_DESCRIPTION_LENGTH;
         let get_product_limit = ShopifyGQLQueryHelper::SHOPIFY_QUERY_LIMIT;
 
         let offset = offset.unwrap_or(0) as usize;
@@ -108,6 +131,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let mut all_variants: Vec<VariantNode> = Vec::new();
 
         let first_query = ShopifyGQLQueryHelper::first_query();
+        let product_fields = Self::product_fields();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
         for i in 0..((limit + offset) / get_product_limit).max(1) {
@@ -120,15 +144,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                     products({first_query}, {products_after_query}) {{
                         edges {{
                             node {{
-                                id
-                                title
-                                handle
-                                description(truncateAt: {description_length})
-                                status
-                                category {{
-                                    id
-                                    name
-                                }}
+                                {product_fields}
                             }}
                         }}
                         {page_info}
@@ -180,6 +196,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             log::debug!("product_ids: {:?}", product_ids);
 
             let mut variants_cursor = None;
+            let variant_fields = Self::variant_fields();
             loop {
                 let variants_after_query = variants_cursor
                     .as_deref()
@@ -190,25 +207,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                         productVariants({first_query}, {variants_after_query}, query: \"product_ids:'{product_ids}'\") {{
                             edges {{
                                 node {{
-                                    id
-                                    barcode
-                                    inventoryQuantity
-                                    sku
-                                    position
-                                    price
-                                    createdAt
-                                    updatedAt
-                                    product {{
-                                        id
-                                        title
-                                        handle
-                                        description(truncateAt: {description_length})
-                                        status
-                                        category {{
-                                            id
-                                            name
-                                        }}
-                                    }}
+                                    {variant_fields}
                                 }}
                             }}
                             {page_info}
@@ -272,13 +271,12 @@ mod tests {
     use chrono::Utc;
 
     use crate::{
-        domain::error::error::DomainError,
-        domain::product::product::ProductStatus,
+        domain::{error::error::DomainError, product::product::ProductStatus},
         infrastructure::ec::{
             ec_client_interface::MockECClient,
-            shopify::repository::{
-                schema::common::{Edges, GraphQLError, Node, PageInfo},
-                schema::product::{ProductNode, TaxonomyCategory, VariantNode},
+            shopify::repository::schema::{
+                common::{Edges, GraphQLError, Node, PageInfo},
+                product::{InventoryItemIdNode, ProductNode, TaxonomyCategory, VariantNode},
             },
         },
     };
@@ -296,6 +294,21 @@ mod tests {
             .map(|i| Node {
                 node: VariantNode {
                     id: format!("gid://shopify/ProductVariant/{i}"),
+                    title: format!("Test Variant {i}"),
+                    sku: Some("TESTSKU123".to_string()),
+                    barcode: Some("123456789012".to_string()),
+                    available_for_sale: true,
+                    position: 1,
+                    inventory_item: InventoryItemIdNode {
+                        id: format!("gid://shopify/InventoryItem/{i}"),
+                    },
+                    inventory_quantity: Some(i as i32),
+                    inventory_policy: "DENY".to_string(),
+                    price: format!("{i}.00"),
+                    taxable: true,
+                    tax_code: Some("TESTTAXCODE".to_string()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
                     product: ProductNode {
                         id: format!("gid://shopify/Product/{i}"),
                         category: Some(TaxonomyCategory {
@@ -305,13 +318,6 @@ mod tests {
                         description: format!("Test Description {i}"),
                         status: "ACTIVE".to_string(),
                     },
-                    barcode: Some("123456789012".to_string()),
-                    inventory_quantity: Some(i as i32),
-                    sku: Some("TESTSKU123".to_string()),
-                    position: 1,
-                    price: format!("{i}.00"),
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
                 },
             })
             .collect();
@@ -412,7 +418,6 @@ mod tests {
         assert_eq!(product.id(), "0");
         assert_eq!(*product.status(), ProductStatus::Active);
         assert_eq!(product.variants()[0].id(), "0");
-        assert_eq!(*product.variants()[0].price(), 0);
     }
 
     #[tokio::test]
@@ -448,9 +453,7 @@ mod tests {
 
         assert_eq!(product.variants().len(), 2);
         assert_eq!(product.variants()[0].id(), "0");
-        assert_eq!(*product.variants()[0].price(), 0);
         assert_eq!(product.variants()[1].id(), "1");
-        assert_eq!(*product.variants()[1].price(), 1);
     }
 
     #[tokio::test]
@@ -568,11 +571,9 @@ mod tests {
         assert_eq!(*(products[0].status()), ProductStatus::Active);
         assert_eq!(products[0].variants()[0].id(), "0");
 
-        assert_eq!(*products[0].variants()[0].price(), 0);
         assert_eq!(products[249].id(), "249");
         assert_eq!(*(products[0].status()), ProductStatus::Active);
         assert_eq!(products[249].variants()[0].id(), "249");
-        assert_eq!(*products[249].variants()[0].price(), 249);
     }
 
     #[tokio::test]

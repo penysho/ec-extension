@@ -1,6 +1,6 @@
 use derive_getters::Getters;
 
-use crate::domain::{error::error::DomainError, money::money::Money};
+use crate::domain::{error::error::DomainError, money::money_bag::MoneyBag};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum DiscountValueType {
@@ -14,7 +14,7 @@ pub struct Discount {
     description: Option<String>,
     value: f32,
     value_type: DiscountValueType,
-    amount: Money,
+    amount_set: MoneyBag,
 }
 
 impl Discount {
@@ -23,7 +23,7 @@ impl Discount {
         description: Option<impl Into<String>>,
         value: f32,
         value_type: DiscountValueType,
-        amount: Money,
+        amount_set: MoneyBag,
     ) -> Result<Self, DomainError> {
         if value < 0.0 {
             return Err(DomainError::ValidationError);
@@ -34,7 +34,7 @@ impl Discount {
             description: description.map(|d| d.into()),
             value,
             value_type,
-            amount,
+            amount_set,
         })
     }
 }

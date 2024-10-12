@@ -6,9 +6,14 @@ use serde::Deserialize;
 use crate::{
     domain::{
         error::error::DomainError,
+        money::money::money::Money,
         product::{
             product::{Product, ProductStatus},
-            variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
+            variant::{
+                barcode::barcode::Barcode,
+                sku::sku::Sku,
+                variant::{InventoryPolicy, Variant},
+            },
         },
     },
     infrastructure::ec::shopify::{
@@ -20,16 +25,29 @@ impl VariantNode {
     fn to_variant_domain(self) -> Result<Variant, DomainError> {
         let sku = self.sku.map(Sku::new).transpose()?;
         let barcode = self.barcode.map(Barcode::new).transpose()?;
+
         let inventory_quantity = self.inventory_quantity.map(|qty| qty as u32);
+        let inventory_policy = match self.inventory_policy.as_str() {
+            "DENY" => InventoryPolicy::Deny,
+            "CONTINUE" => InventoryPolicy::Continue,
+            _ => InventoryPolicy::Deny,
+        };
+
+        let price = Money::new(self.price.parse::<f64>().unwrap_or(0.0))?;
 
         Variant::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            None::<String>,
-            self.price.parse::<f32>().unwrap_or(0.0) as u32,
+            Some(self.title),
             sku,
             barcode,
-            inventory_quantity,
+            self.available_for_sale,
             self.position as u8,
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.inventory_item.id),
+            inventory_policy,
+            inventory_quantity,
+            price,
+            self.taxable,
+            self.tax_code,
             self.created_at,
             self.updated_at,
         )
@@ -117,15 +135,34 @@ pub struct VariantsData {
 #[derive(Debug, Deserialize)]
 pub struct VariantNode {
     pub id: String,
-    pub product: ProductNode,
+    pub title: String,
+    pub sku: Option<String>,
     pub barcode: Option<String>,
+    #[serde(rename = "availableForSale")]
+    pub available_for_sale: bool,
+    pub position: i32,
+
+    #[serde(rename = "inventoryItem")]
+    pub inventory_item: InventoryItemIdNode,
     #[serde(rename = "inventoryQuantity")]
     pub inventory_quantity: Option<i32>,
-    pub sku: Option<String>,
-    pub position: i32,
+    #[serde(rename = "inventoryPolicy")]
+    pub inventory_policy: String,
+
     pub price: String,
+    pub taxable: bool,
+    #[serde(rename = "taxCode")]
+    pub tax_code: Option<String>,
+
     #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
     #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
+
+    pub product: ProductNode,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InventoryItemIdNode {
+    pub id: String,
 }

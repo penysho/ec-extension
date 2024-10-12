@@ -35,15 +35,15 @@ pub struct VariantsDataForInventory {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct InventoryItemsData {
-    #[serde(rename = "inventoryItems")]
-    pub inventory_items: Edges<InventoryItemNode>,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct VariantNodeForInventory {
     #[serde(rename = "inventoryItem")]
     pub inventory_item: InventoryItemNode,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InventoryItemsData {
+    #[serde(rename = "inventoryItems")]
+    pub inventory_items: Edges<InventoryItemNode>,
 }
 
 #[derive(Debug, Deserialize)]

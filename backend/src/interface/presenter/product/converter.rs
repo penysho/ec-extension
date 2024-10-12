@@ -43,7 +43,7 @@ impl From<&Variant> for VariantSchema {
         VariantSchema {
             id: variant.id().to_string(),
             name: variant.name().to_owned(),
-            price: *(variant.price()),
+            price: *variant.price().value() as u32,
             sku: variant.sku().as_ref().map(|sku| sku.value().to_owned()),
             barcode: variant
                 .barcode()

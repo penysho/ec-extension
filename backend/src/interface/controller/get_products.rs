@@ -32,10 +32,11 @@ mod tests {
     use crate::domain::media::media_content::image::image::Image;
     use crate::domain::media::media_content::media_content::MediaContent;
     use crate::domain::media::src::src::Src;
+    use crate::domain::money::money::money::Money;
     use crate::domain::product::product::{Product, ProductStatus};
     use crate::domain::product::variant::barcode::barcode::Barcode;
     use crate::domain::product::variant::sku::sku::Sku;
-    use crate::domain::product::variant::variant::Variant;
+    use crate::domain::product::variant::variant::{InventoryPolicy, Variant};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::usecase::interactor::product_interactor_interface::{
@@ -85,11 +86,16 @@ mod tests {
                         vec![Variant::new(
                             "0",
                             Some("Test Variant 0"),
-                            100,
-                            Some(Sku::new("TESTSKU123").unwrap()),
-                            Some(Barcode::new("123456789012").unwrap()),
-                            Some(50),
+                            Some(Sku::new("ABC123").unwrap()),
+                            Some(Barcode::new("1234567890").unwrap()),
+                            true,
                             1,
+                            "test_inventory_id",
+                            InventoryPolicy::Continue,
+                            Some(1),
+                            Money::new(100.0).unwrap(),
+                            true,
+                            Some("tax_code".to_string()),
                             Utc::now(),
                             Utc::now(),
                         )
@@ -105,11 +111,16 @@ mod tests {
                         vec![Variant::new(
                             "1",
                             Some("Test Variant 1"),
-                            100,
-                            Some(Sku::new("TESTSKU123").unwrap()),
-                            Some(Barcode::new("123456789012").unwrap()),
-                            Some(50),
+                            Some(Sku::new("DEF456").unwrap()),
+                            Some(Barcode::new("1234567890").unwrap()),
+                            true,
                             1,
+                            "test_inventory_id",
+                            InventoryPolicy::Continue,
+                            Some(1),
+                            Money::new(100.0).unwrap(),
+                            true,
+                            Some("tax_code".to_string()),
                             Utc::now(),
                             Utc::now(),
                         )

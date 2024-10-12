@@ -6,6 +6,12 @@ use super::{category::category::Id as CategoryId, variant::variant::Variant};
 
 pub type Id = String;
 
+/// Represents the status of a product.
+///
+/// # Variants
+/// - `Active` - The product is available for purchase.
+/// - `Inactive` - The product is no longer available for purchase.
+/// - `Draft` - The product is in the process of being created or updated.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProductStatus {
     Active,

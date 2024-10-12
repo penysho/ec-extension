@@ -76,7 +76,6 @@ impl ProductInteractor for ProductInteractorImpl {
     /// # Errors
     ///
     /// Returns a domain error if the product or media repository fails.
-    #[allow(clippy::type_complexity)]
     async fn get_products(
         &self,
         limit: &Option<u32>,

@@ -126,9 +126,14 @@ mod tests {
             media_content::image::image::Image,
             src::src::Src,
         },
+        money::money::money::Money,
         product::{
             product::ProductStatus,
-            variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
+            variant::{
+                barcode::barcode::Barcode,
+                sku::sku::Sku,
+                variant::{InventoryPolicy, Variant},
+            },
         },
     };
 
@@ -145,11 +150,16 @@ mod tests {
                     vec![Variant::new(
                         format!("{i}"),
                         Some(format!("Test Variant {i}")),
-                        100,
-                        Some(Sku::new("TESTSKU123").unwrap()),
-                        Some(Barcode::new("123456789012").unwrap()),
-                        Some(50),
+                        Some(Sku::new("ABC123").unwrap()),
+                        Some(Barcode::new("1234567890").unwrap()),
+                        true,
                         1,
+                        "test_inventory_id",
+                        InventoryPolicy::Continue,
+                        Some(1),
+                        Money::new(100.0).unwrap(),
+                        true,
+                        Some("tax_code".to_string()),
                         Utc::now(),
                         Utc::now(),
                     )

@@ -1,7 +1,8 @@
 use derive_getters::Getters;
 
 use crate::domain::{
-    error::error::DomainError, money::money::Money, product::variant::variant::Id as VariantId,
+    error::error::DomainError, money::money_bag::MoneyBag,
+    product::variant::variant::Id as VariantId,
 };
 
 use super::discount::discount::Discount;
@@ -15,8 +16,8 @@ pub struct LineItem {
     variant_id: Option<VariantId>,
     quantity: u32,
     discount: Option<Discount>,
-    discounted_amount: Option<Money>,
-    original_total_amount: Option<Money>,
+    discounted_amount_set: Option<MoneyBag>,
+    original_total_amount_set: Option<MoneyBag>,
 }
 
 impl LineItem {
@@ -26,8 +27,8 @@ impl LineItem {
         variant_id: Option<impl Into<VariantId>>,
         quantity: u32,
         discount: Option<Discount>,
-        discounted_amount: Option<Money>,
-        original_total_amount: Option<Money>,
+        discounted_amount_set: Option<MoneyBag>,
+        original_total_amount_set: Option<MoneyBag>,
     ) -> Result<Self, DomainError> {
         Ok(Self {
             id,
@@ -35,8 +36,8 @@ impl LineItem {
             variant_id: variant_id.map(|id| id.into()),
             quantity,
             discount,
-            discounted_amount,
-            original_total_amount,
+            discounted_amount_set,
+            original_total_amount_set,
         })
     }
 }
