@@ -2,13 +2,28 @@ use derive_getters::Getters;
 
 use crate::domain::{error::error::DomainError, money::money_bag::MoneyBag};
 
+/// Represents the type of value applied by a discount.
+/// A discount can either have a fixed value or be a percentage-based value.
+///
+/// # Variants
+/// * `Fixed` - A fixed value discount.
+/// * `Percentage` - A percentage-based discount.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DiscountValueType {
     Fixed,
     Percentage,
 }
 
-#[derive(Debug, Getters)]
+/// Represents the type of value applied by a discount.
+/// A discount can either have a fixed value or be a percentage-based value.
+///
+/// # Fields
+/// * `title` - The title of the discount.
+/// * `description` - The description of the discount.
+/// * `value` - The value of the discount.
+/// * `value_type` - The type of value applied by the discount.
+/// * `amount_set` - The amount set for the discount.
+#[derive(Debug, Getters, Clone, PartialEq)]
 pub struct Discount {
     title: Option<String>,
     description: Option<String>,
