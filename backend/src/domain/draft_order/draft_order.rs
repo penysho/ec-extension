@@ -57,6 +57,7 @@ impl DraftOrder {
     pub fn new(
         id: impl Into<String>,
         name: impl Into<String>,
+        status: DraftOrderStatus,
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
         subtotal_price_set: MoneyBag,
@@ -89,9 +90,9 @@ impl DraftOrder {
         Ok(Self {
             id,
             name,
-            status: DraftOrderStatus::Open,
+            status,
             line_items,
-            reserve_inventory_until: None,
+            reserve_inventory_until,
             subtotal_price_set,
             taxes_included,
             tax_exempt,

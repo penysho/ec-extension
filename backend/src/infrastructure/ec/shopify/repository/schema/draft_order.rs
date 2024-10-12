@@ -1,7 +1,48 @@
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
+use crate::domain::{
+    draft_order::draft_order::DraftOrder, error::error::DomainError, line_item::line_item::LineItem,
+};
+
 use super::{address::AddressNode, line_item::LineItemNode, money::MoneyBagNode};
+
+impl DraftOrderNode {
+    pub fn to_domain(self) -> Result<DraftOrder, DomainError> {
+        let status = match self.status.as_str() {
+            "OPEN" => Ok(crate::domain::draft_order::draft_order::DraftOrderStatus::Open),
+            "COMPLETED" => Ok(crate::domain::draft_order::draft_order::DraftOrderStatus::Completed),
+            "CANCELED" => Ok(crate::domain::draft_order::draft_order::DraftOrderStatus::Canceled),
+            _ => Err(DomainError::ConversionError),
+        }?;
+
+        DraftOrder::new(
+            self.id,
+            self.name,
+            status,
+            self.line_items
+                .into_iter()
+                .map(|i| i.to_domain())
+                .collect::<Result<Vec<_>, _>>()?,
+            self.reserve_inventory_until,
+            self.subtotal_price_set.to_domain()?,
+            self.taxes_included,
+            self.tax_exempt,
+            self.total_tax_set.to_domain()?,
+            self.total_discounts_set.to_domain()?,
+            self.total_shipping_price_set.to_domain()?,
+            self.total_price_set.to_domain()?,
+            self.customer.map(|c| c.id),
+            self.billing_address.to_domain()?,
+            self.shipping_address.to_domain()?,
+            self.note,
+            self.order.map(|o| o.id),
+            self.completed_at,
+            self.created_at,
+            self.update_at,
+        )
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct DraftOrderNode {
@@ -11,6 +52,8 @@ pub struct DraftOrderNode {
 
     #[serde(rename = "lineItems")]
     pub line_items: Vec<LineItemNode>,
+    #[serde(rename = "reserveInventoryUntil")]
+    pub reserve_inventory_until: Option<DateTime<Utc>>,
 
     #[serde(rename = "subtotalPriceSet")]
     pub subtotal_price_set: MoneyBagNode,
@@ -34,7 +77,7 @@ pub struct DraftOrderNode {
     pub shipping_address: AddressNode,
     pub note: Option<String>,
 
-    pub order_id: Option<OrderIdNode>,
+    pub order: Option<OrderIdNode>,
 
     #[serde(rename = "completedAt")]
     pub completed_at: Option<DateTime<Utc>>,
