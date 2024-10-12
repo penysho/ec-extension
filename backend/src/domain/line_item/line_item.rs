@@ -21,8 +21,8 @@ pub type Id = String;
 /// - `variant_id` - The identifier of the variant of the product (if applicable).
 /// - `quantity` - The quantity of the line item.
 /// - `discount` - The discount applied to the line item (if any).
-/// - `discounted_amount_set` - The discounted amount for each currency.
-/// - `original_total_amount_set` - The original total amount for each currency.
+/// - `discounted_total_set` - The total price with discounts applied.
+/// - `original_total_set` - The total price excluding discounts, equal to the original unit price multiplied by quantity.
 #[derive(Debug, Getters)]
 pub struct LineItem {
     id: Id,
@@ -30,8 +30,8 @@ pub struct LineItem {
     variant_id: Option<VariantId>,
     quantity: u32,
     discount: Option<Discount>,
-    discounted_amount_set: Option<MoneyBag>,
-    original_total_amount_set: Option<MoneyBag>,
+    discounted_total_set: MoneyBag,
+    original_total_set: MoneyBag,
 }
 
 impl LineItem {
@@ -41,8 +41,8 @@ impl LineItem {
         variant_id: Option<impl Into<VariantId>>,
         quantity: u32,
         discount: Option<Discount>,
-        discounted_amount_set: Option<MoneyBag>,
-        original_total_amount_set: Option<MoneyBag>,
+        discounted_total_set: MoneyBag,
+        original_total_set: MoneyBag,
     ) -> Result<Self, DomainError> {
         Ok(Self {
             id,
@@ -50,8 +50,8 @@ impl LineItem {
             variant_id: variant_id.map(|id| id.into()),
             quantity,
             discount,
-            discounted_amount_set,
-            original_total_amount_set,
+            discounted_total_set,
+            original_total_set,
         })
     }
 }
