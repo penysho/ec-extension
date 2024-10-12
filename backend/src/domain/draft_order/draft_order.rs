@@ -21,15 +21,25 @@ pub struct DraftOrder {
     name: String,
     status: DraftOrderStatus,
 
+    /// The list of the line items in the draft order.
     line_items: Vec<LineItem>,
-    line_items_subtotal_price_set: MoneyBag,
+    /// The time after which inventory will automatically be restocked.
+    reserve_inventory_until: Option<DateTime<Utc>>,
 
+    /// The subtotal, of the line items and their discounts, excluding shipping charges, shipping discounts, and taxes.
     subtotal_price_set: MoneyBag,
-    total_price_set: MoneyBag,
+    /// Whether the line item prices include taxes.
     taxes_included: bool,
+    /// Whether the draft order is tax exempt.
     tax_exempt: bool,
+    /// The total tax.
     total_tax_set: MoneyBag,
+    /// Total discounts.
     total_discounts_set: MoneyBag,
+    /// The total shipping price.
+    total_shipping_price_set: MoneyBag,
+    /// The total price, includes taxes, shipping charges, and discounts.
+    total_price_set: MoneyBag,
 
     customer: Option<CustomerId>,
     billing_address: Address,
@@ -48,12 +58,13 @@ impl DraftOrder {
         id: impl Into<String>,
         name: impl Into<String>,
         line_items: Vec<LineItem>,
+        reserve_inventory_until: Option<DateTime<Utc>>,
         subtotal_price_set: MoneyBag,
-        line_items_subtotal_price_set: MoneyBag,
         taxes_included: bool,
         tax_exempt: bool,
         total_tax_set: MoneyBag,
         total_discounts_set: MoneyBag,
+        total_shipping_price_set: MoneyBag,
         total_price_set: MoneyBag,
         customer: Option<CustomerId>,
         billing_address: Address,
@@ -80,13 +91,14 @@ impl DraftOrder {
             name,
             status: DraftOrderStatus::Open,
             line_items,
-            line_items_subtotal_price_set,
+            reserve_inventory_until: None,
             subtotal_price_set,
-            total_price_set,
-            total_tax_set,
-            total_discounts_set,
             taxes_included,
             tax_exempt,
+            total_tax_set,
+            total_discounts_set,
+            total_shipping_price_set,
+            total_price_set,
             customer,
             billing_address,
             shipping_address,
