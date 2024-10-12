@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use crate::domain::{
-    address::address::Address, customer::customer::Customer, error::error::DomainError,
+    address::address::Address, customer::customer::Id as CustomerId, error::error::DomainError,
     line_item::line_item::LineItem, money::money_bag::MoneyBag, order::order::Id as OrderId,
 };
 
@@ -31,7 +31,7 @@ pub struct DraftOrder {
     total_tax_set: MoneyBag,
     total_discounts_set: MoneyBag,
 
-    customer: Option<Customer>,
+    customer: Option<CustomerId>,
     billing_address: Address,
     shipping_address: Address,
     note: Option<String>,
@@ -55,7 +55,7 @@ impl DraftOrder {
         total_tax_set: MoneyBag,
         total_discounts_set: MoneyBag,
         total_price_set: MoneyBag,
-        customer: Option<Customer>,
+        customer: Option<CustomerId>,
         billing_address: Address,
         shipping_address: Address,
         note: Option<String>,
