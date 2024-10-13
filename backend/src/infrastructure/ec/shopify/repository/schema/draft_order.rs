@@ -22,8 +22,9 @@ impl DraftOrderNode {
             self.name,
             status,
             self.line_items
+                .edges
                 .into_iter()
-                .map(|i| i.to_domain())
+                .map(|node| node.node.to_domain())
                 .collect::<Result<Vec<_>, _>>()?,
             self.reserve_inventory_until,
             self.subtotal_price_set.to_domain()?,
@@ -67,7 +68,7 @@ pub struct DraftOrderNode {
     pub status: String,
 
     #[serde(rename = "lineItems")]
-    pub line_items: Vec<LineItemNode>,
+    pub line_items: Edges<LineItemNode>,
     #[serde(rename = "reserveInventoryUntil")]
     pub reserve_inventory_until: Option<DateTime<Utc>>,
 

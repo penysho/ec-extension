@@ -41,6 +41,8 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         let address_fields = ShopifyGQLQueryHelper::address_fields();
         let money_bag_fields = ShopifyGQLQueryHelper::money_bag_fields();
 
+        // TODO: Handling draft orders exceeding 250 for a customer.
+        // The lineItem in the draft order shall not exceed 250.
         let query = format!(
             "query {{
                 draftOrders({first_query}, query: \"customer_id:{customer_id}\") {{
@@ -49,7 +51,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                             id
                             name
                             status
-                            lineItems {{
+                            lineItems({first_query}) {{
                                 id
                                 isCustom
                                 variant {{
@@ -159,7 +161,17 @@ mod tests {
             id: format!("gid://shopify/DraftOrder/{id}"),
             name: "Test Order".to_string(),
             status: "OPEN".to_string(),
-            line_items: vec![mock_line_item(id)],
+            line_items: Edges {
+                edges: vec![Node {
+                    node: mock_line_item(id),
+                }],
+                page_info: PageInfo {
+                    has_previous_page: false,
+                    has_next_page: false,
+                    start_cursor: None,
+                    end_cursor: None,
+                },
+            },
             reserve_inventory_until: Some(Utc::now()),
             subtotal_price_set: mock_money_bag("100.00", "USD"),
             taxes_included: true,

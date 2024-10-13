@@ -68,6 +68,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         let page_info = ShopifyGQLQueryHelper::page_info();
         let media_fields = Self::media_fields();
 
+        // The number of media associated with a single product shall not exceed 250.
         let query = format!(
             "query {{
                 files({first_query}, query: \"product_id:'{id}'\") {{
