@@ -97,7 +97,7 @@ mod tests {
                     mock_money_bag(),
                     mock_money_bag(),
                 )
-                .expect("Failed to create valid line item")
+                .expect("Failed to create mock line item")
             })
             .collect()
     }
@@ -144,7 +144,7 @@ mod tests {
                     Utc::now(),
                     Utc::now(),
                 )
-                .expect("Failed to create valid draft order")
+                .expect("Failed to create mock draft order")
             })
             .collect()
     }

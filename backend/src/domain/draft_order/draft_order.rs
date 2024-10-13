@@ -160,7 +160,7 @@ mod tests {
                     mock_money_bag(),
                     mock_money_bag(),
                 )
-                .expect("Failed to create valid line item")
+                .expect("Failed to create mock line item")
             })
             .collect()
     }
@@ -185,7 +185,7 @@ mod tests {
     /// Helper to create a valid `DraftOrder` for testing.
     fn mock_draft_order() -> DraftOrder {
         DraftOrder::new(
-            "valid_id",
+            "0",
             "Test Order",
             DraftOrderStatus::Open,
             mock_line_items(2),
@@ -206,7 +206,7 @@ mod tests {
             Utc::now(),
             Utc::now(),
         )
-        .expect("Failed to create valid draft order")
+        .expect("Failed to create mock draft order")
     }
 
     #[test]

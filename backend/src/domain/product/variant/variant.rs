@@ -110,7 +110,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_variant() {
+    fn test_new() {
         let variant = Variant::new(
             "1",
             Some("Test Variant"),
@@ -131,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn test_new_variant_invalid_id() {
+    fn test_new_invalid_id() {
         let variant = Variant::new(
             "",
             Some("Test Variant"),
@@ -152,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn test_new_variant_invalid_name() {
+    fn test_new_invalid_name() {
         let variant = Variant::new(
             "1",
             Some(""),

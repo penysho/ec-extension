@@ -92,7 +92,7 @@ mod tests {
             mock_money_bag(),
             mock_money_bag(),
         )
-        .expect("Failed to create valid line item");
+        .expect("Failed to create mock line item");
 
         assert_eq!(line_item.id().to_string(), "valid_id");
         assert_eq!(line_item.quantity(), &5);
@@ -112,7 +112,7 @@ mod tests {
             mock_money_bag(),
             mock_money_bag(),
         )
-        .expect("Failed to create valid line item");
+        .expect("Failed to create mock line item");
 
         assert_eq!(line_item.variant_id(), &None);
         assert_eq!(line_item.discount(), &None);

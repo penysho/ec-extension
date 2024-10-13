@@ -140,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_customer_success() {
+    fn test_new_success() {
         let address = mock_address("1");
         let addresses = vec![address];
 
@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_customer_error_empty_id() {
+    fn test_new_error_empty_id() {
         let address = mock_address("1");
         let addresses = vec![address];
 
@@ -208,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_customer_error_empty_display_name() {
+    fn test_new_error_empty_display_name() {
         let address = mock_address("1");
         let addresses = vec![address];
 
@@ -235,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_customer_error_invalid_default_address() {
+    fn test_new_error_invalid_default_address() {
         let address = mock_address("1");
         let addresses = vec![address];
 

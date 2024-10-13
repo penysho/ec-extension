@@ -74,7 +74,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_create_address_success() {
+    fn test_new_success() {
         let address = Address::new(
             "123",               // id
             Some("123 Main St"), // address1
@@ -105,7 +105,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_address_error_empty_id() {
+    fn test_new_error_empty_id() {
         let address = Address::new(
             "",                  // id is empty
             Some("123 Main St"), // address1
