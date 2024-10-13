@@ -135,7 +135,7 @@ mod tests {
             image: Some(mock_image(id)),
             phone: Some("+1234567890".to_string()),
             note: Some("Test note".to_string()),
-            status: "ENABLED".to_string(),
+            state: "ENABLED".to_string(),
             verified_email: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -238,6 +238,34 @@ mod tests {
         assert!(customer.verified_email());
         assert_eq!(customer.addresses().len(), 2);
         assert_eq!(customer.default_address_id().clone().unwrap(), "0");
+    }
+
+    #[tokio::test]
+    async fn test_get_customer_by_email_with_invalid_state() {
+        let mut client = MockECClient::new();
+
+        let mut invalid_response = mock_customers_response(1);
+        invalid_response.data.as_mut().unwrap().customers.edges[0]
+            .node
+            .state = "INVALID_STATE".to_string();
+
+        client
+            .expect_query::<GraphQLResponse<CustomersData>>()
+            .times(1)
+            .return_once(|_| Ok(invalid_response));
+
+        let repo = CustomerRepositoryImpl::new(client);
+
+        let result = repo
+            .get_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::ConversionError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ConversionError, but got something else");
+        }
     }
 
     #[tokio::test]

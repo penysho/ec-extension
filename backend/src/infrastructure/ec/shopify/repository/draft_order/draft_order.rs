@@ -280,7 +280,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_draft_order_by_customer_id_success() {
+    async fn test_get_draft_order_by_customer_id_success() {
         let mut client = MockECClient::new();
 
         client
@@ -317,7 +317,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_draft_order_by_customer_id_with_invalid_status() {
+    async fn test_get_draft_order_by_customer_id_with_invalid_status() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_draft_orders_response(1);
@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_draft_order_by_customer_id_with_graphql_error() {
+    async fn test_get_draft_order_by_customer_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -364,7 +364,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_draft_order_by_customer_id_with_missing_data() {
+    async fn test_get_draft_order_by_customer_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         client

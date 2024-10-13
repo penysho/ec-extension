@@ -17,11 +17,11 @@ use super::{address::AddressNode, common::Edges, media::ImageNode};
 impl CustomerNode {
     pub fn to_domain(self) -> Result<Customer, DomainError> {
         let id = ShopifyGQLQueryHelper::remove_gid_prefix(&self.id);
-        let status = match self.status.as_str() {
-            "ENABLED" => CustomerStatus::Active,
-            "DISABLED" => CustomerStatus::Inactive,
-            _ => CustomerStatus::Inactive,
-        };
+        let status = match self.state.as_str() {
+            "ENABLED" => Ok(CustomerStatus::Active),
+            "DISABLED" => Ok(CustomerStatus::Inactive),
+            _ => Err(DomainError::ConversionError),
+        }?;
 
         Customer::new(
             id.clone(),
@@ -78,7 +78,7 @@ pub struct CustomerNode {
     pub image: Option<ImageNode>,
     pub phone: Option<String>,
     pub note: Option<String>,
-    pub status: String,
+    pub state: String,
     #[serde(rename = "verifiedEmail")]
     pub verified_email: bool,
     pub created_at: DateTime<Utc>,
