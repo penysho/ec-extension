@@ -493,6 +493,77 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_get_product_with_invalid_status() {
+        let mut client = MockECClient::new();
+
+        let mut invalid_response = mock_variants_response(PageOption {
+            start: 0,
+            end: 1,
+            has_next_page: false,
+        });
+        invalid_response
+            .data
+            .as_mut()
+            .unwrap()
+            .product_variants
+            .edges[0]
+            .node
+            .product
+            .status = "INVALID_STATUS".to_string();
+
+        client
+            .expect_query::<GraphQLResponse<VariantsData>>()
+            .times(1)
+            .return_once(|_| Ok(invalid_response));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_product(&("0".to_string())).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::ConversionError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ConversionError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_product_with_invalid_inventory_policy() {
+        let mut client = MockECClient::new();
+
+        let mut invalid_response = mock_variants_response(PageOption {
+            start: 0,
+            end: 1,
+            has_next_page: false,
+        });
+        invalid_response
+            .data
+            .as_mut()
+            .unwrap()
+            .product_variants
+            .edges[0]
+            .node
+            .inventory_policy = "INVALID_POLICY".to_string();
+
+        client
+            .expect_query::<GraphQLResponse<VariantsData>>()
+            .times(1)
+            .return_once(|_| Ok(invalid_response));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.get_product(&("0".to_string())).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::ConversionError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ConversionError, but got something else");
+        }
+    }
+
+    #[tokio::test]
     async fn test_get_product_with_graphql_error() {
         let mut client = MockECClient::new();
 

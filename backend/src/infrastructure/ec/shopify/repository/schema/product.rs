@@ -28,10 +28,10 @@ impl VariantNode {
 
         let inventory_quantity = self.inventory_quantity.map(|qty| qty as u32);
         let inventory_policy = match self.inventory_policy.as_str() {
-            "DENY" => InventoryPolicy::Deny,
-            "CONTINUE" => InventoryPolicy::Continue,
-            _ => InventoryPolicy::Deny,
-        };
+            "DENY" => Ok(InventoryPolicy::Deny),
+            "CONTINUE" => Ok(InventoryPolicy::Continue),
+            _ => Err(DomainError::ConversionError),
+        }?;
 
         let price = Money::new(self.price.parse::<f64>().unwrap_or(0.0))?;
 
@@ -58,11 +58,11 @@ impl VariantNode {
         let title = self.product.title.clone();
         let description = self.product.description.clone();
         let status = match self.product.status.as_str() {
-            "ACTIVE" => ProductStatus::Active,
-            "ARCHIVED" => ProductStatus::Inactive,
-            "DRAFT" => ProductStatus::Draft,
-            _ => ProductStatus::Inactive,
-        };
+            "ACTIVE" => Ok(ProductStatus::Active),
+            "ARCHIVED" => Ok(ProductStatus::Inactive),
+            "DRAFT" => Ok(ProductStatus::Draft),
+            _ => Err(DomainError::ConversionError),
+        }?;
         let category_id = self.product.category.as_ref().map(|c| c.id.clone());
         let variant_domain = self.to_variant_domain()?;
 

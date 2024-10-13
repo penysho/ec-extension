@@ -302,7 +302,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_id_success() {
+    async fn test_get_media_by_product_id_success() {
         let mut client = MockECClient::new();
 
         client
@@ -350,7 +350,33 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_id_with_graphql_error() {
+    async fn test_get_media_by_product_id_with_invalid_file_status() {
+        let mut client = MockECClient::new();
+
+        let mut invalid_response = mock_media_response(1);
+        invalid_response.data.as_mut().unwrap().files.edges[0]
+            .node
+            .file_status = "INVALID_STATUS".to_string();
+
+        client
+            .expect_query::<GraphQLResponse<MediaData>>()
+            .times(1)
+            .return_once(|_| Ok(invalid_response));
+
+        let repo = MediaRepositoryImpl::new(client);
+
+        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::ConversionError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ConversionError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_media_by_product_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_error = mock_with_error();
@@ -373,7 +399,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_id_with_missing_data() {
+    async fn test_get_media_by_product_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_no_data = mock_with_no_data();
@@ -396,7 +422,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_ids_success() {
+    async fn test_get_media_by_product_ids_success() {
         let mut client = MockECClient::new();
 
         client
@@ -418,7 +444,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_ids_with_graphql_error() {
+    async fn test_get_media_by_product_ids_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -441,7 +467,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_ids_with_missing_data() {
+    async fn test_get_media_by_product_ids_with_missing_data() {
         let mut client = MockECClient::new();
 
         client

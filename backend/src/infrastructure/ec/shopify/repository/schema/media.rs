@@ -19,11 +19,11 @@ use crate::{
 impl MediaNode {
     pub fn to_domain(self, associated_id: Option<AssociatedId>) -> Result<Media, DomainError> {
         let status = match self.file_status.as_str() {
-            "UPLOADED" | "READY" => MediaStatus::Active,
-            "FAILED" => MediaStatus::Inactive,
-            "PROCESSING" => MediaStatus::InPreparation,
-            _ => MediaStatus::Inactive,
-        };
+            "UPLOADED" | "READY" => Ok(MediaStatus::Active),
+            "FAILED" => Ok(MediaStatus::Inactive),
+            "PROCESSING" => Ok(MediaStatus::InPreparation),
+            _ => Err(DomainError::ConversionError),
+        }?;
 
         let image = match self.preview.and_then(|p| p.image) {
             Some(i) => Some(MediaContent::Image(i.to_domain(associated_id)?)),
@@ -71,6 +71,7 @@ pub struct MediaData {
     pub files: Edges<MediaNode>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct MediaNode {
     pub id: String,
@@ -89,6 +90,7 @@ pub struct MediaPreviewImage {
     pub image: Option<ImageNode>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct ImageNode {
     pub id: String,

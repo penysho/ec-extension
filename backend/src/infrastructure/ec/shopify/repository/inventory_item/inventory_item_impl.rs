@@ -299,7 +299,6 @@ mod tests {
             .edges[0]
             .node
             .inventory_item
-            .variant
             .id = "".to_string();
 
         client
