@@ -6,6 +6,8 @@ use crate::{
         ec::shopify::{
             client_impl::ShopifyGQLClient,
             repository::{
+                customer::customer::CustomerRepositoryImpl,
+                draft_order::draft_order::DraftOrderRepositoryImpl,
                 inventory_item::inventory_item_impl::InventoryItemRepositoryImpl,
                 inventory_level::inventory_level_impl::InventoryLevelRepositoryImpl,
                 location::location_impl::LocationRepositoryImpl,
@@ -16,6 +18,8 @@ use crate::{
     },
     interface::controller::interact_provider_interface::InteractProvider,
     usecase::interactor::{
+        draft_order::draft_order_impl::DraftOrderInteractorImpl,
+        draft_order_interactor_interface::DraftOrderInteractor,
         inventory::inventory_impl::InventoryInteractorImpl,
         inventory_interactor_interface::InventoryInteractor,
         media::media_impl::MediaInteractorImpl, media_interactor_interface::MediaInteractor,
@@ -66,6 +70,18 @@ impl InteractProvider for InteractProviderImpl {
                 self.shopify_config.clone(),
             ))),
             Box::new(LocationRepositoryImpl::new(ShopifyGQLClient::new(
+                self.shopify_config.clone(),
+            ))),
+        ))
+    }
+
+    /// Provide Interactor for draft order.
+    async fn provide_draft_order_interactor(&self) -> Box<dyn DraftOrderInteractor> {
+        Box::new(DraftOrderInteractorImpl::new(
+            Box::new(DraftOrderRepositoryImpl::new(ShopifyGQLClient::new(
+                self.shopify_config.clone(),
+            ))),
+            Box::new(CustomerRepositoryImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
             ))),
         ))

@@ -13,18 +13,18 @@ use crate::{
 
 /// Draft order Interactor.
 pub struct DraftOrderInteractorImpl {
-    customer_repository: Box<dyn CustomerRepository>,
     draft_order_repository: Box<dyn DraftOrderRepository>,
+    customer_repository: Box<dyn CustomerRepository>,
 }
 
 impl DraftOrderInteractorImpl {
     pub fn new(
-        customer_repository: Box<dyn CustomerRepository>,
         draft_order_repository: Box<dyn DraftOrderRepository>,
+        customer_repository: Box<dyn CustomerRepository>,
     ) -> Self {
         Self {
-            customer_repository: customer_repository,
             draft_order_repository: draft_order_repository,
+            customer_repository: customer_repository,
         }
     }
 }
