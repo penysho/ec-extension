@@ -14,7 +14,7 @@ use crate::interface::presenter::{
 pub struct DraftOrderSchema {
     pub(super) id: String,
     pub(super) name: String,
-    pub(super) status: String,
+    pub(super) status: DraftOrderStatusSchema,
     pub(super) line_items: Vec<LineItemSchema>,
     pub(super) reserve_inventory_until: Option<DateTime<Utc>>,
     pub(super) subtotal_price_set: MoneyBagSchema,
@@ -32,6 +32,13 @@ pub struct DraftOrderSchema {
     pub(super) completed_at: Option<DateTime<Utc>>,
     pub(super) created_at: DateTime<Utc>,
     pub(super) update_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum DraftOrderStatusSchema {
+    Open,
+    Completed,
+    Canceled,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
