@@ -21,7 +21,7 @@ use crate::{
     },
 };
 
-/// Generate a response schema for the product
+/// Generate a response schema for the product.
 pub struct ProductPresenterImpl;
 impl ProductPresenterImpl {
     pub fn new() -> Self {

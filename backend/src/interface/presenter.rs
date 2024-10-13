@@ -1,6 +1,7 @@
 pub mod address;
 mod common;
 pub mod draft_order;
+pub mod draft_order_presenter_interface;
 pub mod inventory;
 pub mod inventory_presenter_interface;
 pub mod line_item;

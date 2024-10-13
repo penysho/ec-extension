@@ -166,9 +166,6 @@ mod tests {
     }
 
     fn mock_address() -> Address {
-        fn count(x: &str) -> usize {
-            x.len()
-        }
         Address::new(
             "123",
             Some("123 Main St"),
