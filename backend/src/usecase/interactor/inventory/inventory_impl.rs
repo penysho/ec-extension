@@ -63,7 +63,6 @@ impl InventoryInteractor for InventoryInteractorImpl {
     /// # Errors
     ///
     /// Returns a domain error if the media repository fails.
-    #[allow(unused_variables)]
     async fn get_inventories_from_all_locations(
         &self,
         query: &GetInventoriesQuery,
