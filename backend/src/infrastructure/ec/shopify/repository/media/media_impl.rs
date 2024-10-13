@@ -63,7 +63,7 @@ impl<C: ECClient> MediaRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
     /// Obtain media associated with a single product ID.
-    async fn get_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
+    async fn find_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
         let media_fields = Self::media_fields();
@@ -104,7 +104,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
     }
 
     /// Obtain media associated with multiple product IDs.
-    async fn get_media_by_product_ids(
+    async fn find_media_by_product_ids(
         &self,
         product_ids: Vec<&ProductId>,
     ) -> Result<Vec<Media>, DomainError> {
@@ -303,7 +303,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_media_by_product_id_success() {
+    async fn test_find_media_by_product_id_success() {
         let mut client = MockECClient::new();
 
         client
@@ -313,7 +313,7 @@ mod tests {
 
         let repo = MediaRepositoryImpl::new(client);
 
-        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+        let result = repo.find_media_by_product_id(&"123456".to_string()).await;
 
         assert!(result.is_ok());
         let media = result.unwrap();
@@ -351,7 +351,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_media_by_product_id_with_invalid_file_status() {
+    async fn test_find_media_by_product_id_with_invalid_file_status() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_media_response(1);
@@ -366,7 +366,7 @@ mod tests {
 
         let repo = MediaRepositoryImpl::new(client);
 
-        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+        let result = repo.find_media_by_product_id(&"123456".to_string()).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ConversionError) = result {
@@ -377,7 +377,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_media_by_product_id_with_graphql_error() {
+    async fn test_find_media_by_product_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_error = mock_with_error();
@@ -389,7 +389,7 @@ mod tests {
 
         let repo = MediaRepositoryImpl::new(client);
 
-        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+        let result = repo.find_media_by_product_id(&"123456".to_string()).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -400,7 +400,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_media_by_product_id_with_missing_data() {
+    async fn test_find_media_by_product_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_no_data = mock_with_no_data();
@@ -412,7 +412,7 @@ mod tests {
 
         let repo = MediaRepositoryImpl::new(client);
 
-        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+        let result = repo.find_media_by_product_id(&"123456".to_string()).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -423,7 +423,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_media_by_product_ids_success() {
+    async fn test_find_media_by_product_ids_success() {
         let mut client = MockECClient::new();
 
         client
@@ -434,7 +434,7 @@ mod tests {
         let repo = MediaRepositoryImpl::new(client);
 
         let result = repo
-            .get_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
+            .find_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
             .await;
 
         assert!(result.is_ok());
@@ -445,7 +445,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_media_by_product_ids_with_graphql_error() {
+    async fn test_find_media_by_product_ids_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -456,7 +456,7 @@ mod tests {
         let repo = MediaRepositoryImpl::new(client);
 
         let result = repo
-            .get_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
+            .find_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
             .await;
 
         assert!(result.is_err());
@@ -468,7 +468,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_media_by_product_ids_with_missing_data() {
+    async fn test_find_media_by_product_ids_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -479,7 +479,7 @@ mod tests {
         let repo = MediaRepositoryImpl::new(client);
 
         let result = repo
-            .get_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
+            .find_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
             .await;
 
         assert!(result.is_err());

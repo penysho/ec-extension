@@ -4,5 +4,5 @@ use crate::domain::{customer::customer::Customer, email::email::Email, error::er
 
 #[async_trait]
 pub trait CustomerRepository: Send + Sync {
-    async fn get_customer_by_email(&self, email: &Email) -> Result<Customer, DomainError>;
+    async fn find_customer_by_email(&self, email: &Email) -> Result<Customer, DomainError>;
 }

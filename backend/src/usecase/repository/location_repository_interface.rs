@@ -4,5 +4,5 @@ use crate::domain::{error::error::DomainError, location::location::Id as Locatio
 
 #[async_trait]
 pub trait LocationRepository: Send + Sync {
-    async fn get_all_location_ids(&self) -> Result<Vec<LocationId>, DomainError>;
+    async fn find_all_location_ids(&self) -> Result<Vec<LocationId>, DomainError>;
 }

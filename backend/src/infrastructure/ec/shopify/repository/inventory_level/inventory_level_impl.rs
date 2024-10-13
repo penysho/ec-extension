@@ -46,7 +46,7 @@ impl<C: ECClient> InventoryLevelRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepositoryImpl<C> {
     /// Get inventory level information by sku.
-    async fn get_inventory_level_by_sku(
+    async fn find_inventory_level_by_sku(
         &self,
         sku: &Sku,
         location_id: &LocationId,
@@ -314,7 +314,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_level_by_sku_success() {
+    async fn test_find_inventory_level_by_sku_success() {
         let mut client = MockECClient::new();
 
         client
@@ -325,7 +325,7 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
             .await;
 
         assert!(result.is_ok());
@@ -347,7 +347,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_level_by_sku_with_invalid_inventory_type() {
+    async fn test_find_inventory_level_by_sku_with_invalid_inventory_type() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_inventory_items_response(1);
@@ -373,7 +373,7 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
             .await;
 
         assert!(result.is_err());
@@ -385,7 +385,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_level_by_sku_with_graphql_error() {
+    async fn test_find_inventory_level_by_sku_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -396,7 +396,7 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
             .await;
 
         assert!(result.is_err());
@@ -408,7 +408,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_level_by_sku_with_missing_data() {
+    async fn test_find_inventory_level_by_sku_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -419,7 +419,7 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
             .await;
 
         assert!(result.is_err());

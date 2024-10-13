@@ -41,7 +41,7 @@ impl MediaInteractor for MediaInteractorImpl {
         product_id: &ProductId,
     ) -> Result<Vec<Media>, DomainError> {
         self.media_repository
-            .get_media_by_product_id(product_id)
+            .find_media_by_product_id(product_id)
             .await
     }
 }

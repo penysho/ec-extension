@@ -32,7 +32,7 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImpl<C> {
     /// Retrieve draft order information by customer id.
-    async fn get_draft_orders_by_customer_id(
+    async fn find_draft_orders_by_customer_id(
         &self,
         customer_id: &CustomerId,
     ) -> Result<Vec<DraftOrder>, DomainError> {
@@ -285,7 +285,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_draft_orders_by_customer_id_success() {
+    async fn test_find_draft_orders_by_customer_id_success() {
         let mut client = MockECClient::new();
 
         client
@@ -295,7 +295,9 @@ mod tests {
 
         let repo = DraftOrderRepositoryImpl::new(client);
 
-        let result = repo.get_draft_orders_by_customer_id(&"1".to_string()).await;
+        let result = repo
+            .find_draft_orders_by_customer_id(&"1".to_string())
+            .await;
 
         assert!(result.is_ok());
         let draft_order = result.unwrap().into_iter().next().unwrap();
@@ -322,7 +324,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_draft_orders_by_customer_id_with_invalid_status() {
+    async fn test_find_draft_orders_by_customer_id_with_invalid_status() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_draft_orders_response(1);
@@ -337,7 +339,9 @@ mod tests {
 
         let repo = DraftOrderRepositoryImpl::new(client);
 
-        let result = repo.get_draft_orders_by_customer_id(&"1".to_string()).await;
+        let result = repo
+            .find_draft_orders_by_customer_id(&"1".to_string())
+            .await;
 
         assert!(result.is_err());
         if let Err(DomainError::ConversionError) = result {
@@ -348,7 +352,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_draft_orders_by_customer_id_with_graphql_error() {
+    async fn test_find_draft_orders_by_customer_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -358,7 +362,9 @@ mod tests {
 
         let repo = DraftOrderRepositoryImpl::new(client);
 
-        let result = repo.get_draft_orders_by_customer_id(&"1".to_string()).await;
+        let result = repo
+            .find_draft_orders_by_customer_id(&"1".to_string())
+            .await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -369,7 +375,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_draft_orders_by_customer_id_with_missing_data() {
+    async fn test_find_draft_orders_by_customer_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -379,7 +385,9 @@ mod tests {
 
         let repo = DraftOrderRepositoryImpl::new(client);
 
-        let result = repo.get_draft_orders_by_customer_id(&"1".to_string()).await;
+        let result = repo
+            .find_draft_orders_by_customer_id(&"1".to_string())
+            .await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {

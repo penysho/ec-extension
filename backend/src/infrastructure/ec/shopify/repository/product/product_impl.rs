@@ -74,7 +74,7 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     /// Get detailed product information.
-    async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
+    async fn find_product(&self, id: &ProductId) -> Result<Product, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
         let variant_fields = Self::variant_fields();
@@ -117,7 +117,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     }
 
     /// Retrieve multiple products.
-    async fn get_products(
+    async fn find_products(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,
@@ -395,7 +395,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_success() {
+    async fn test_find_product_success() {
         let mut client = MockECClient::new();
 
         client
@@ -411,7 +411,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("0".to_string())).await;
+        let result = repo.find_product(&("0".to_string())).await;
 
         assert!(result.is_ok());
         let product = result.unwrap();
@@ -421,7 +421,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_multiple_variants_success() {
+    async fn test_find_product_multiple_variants_success() {
         let mut client = MockECClient::new();
 
         client
@@ -444,7 +444,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("0".to_string())).await;
+        let result = repo.find_product(&("0".to_string())).await;
 
         assert!(result.is_ok());
         let product = result.unwrap();
@@ -457,7 +457,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_with_invalid_domain_conversion() {
+    async fn test_find_product_with_invalid_domain_conversion() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_variants_response(PageOption {
@@ -482,7 +482,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("0".to_string())).await;
+        let result = repo.find_product(&("0".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ValidationError) = result {
@@ -493,7 +493,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_with_invalid_status() {
+    async fn test_find_product_with_invalid_status() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_variants_response(PageOption {
@@ -518,7 +518,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("0".to_string())).await;
+        let result = repo.find_product(&("0".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ConversionError) = result {
@@ -529,7 +529,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_with_invalid_inventory_policy() {
+    async fn test_find_product_with_invalid_inventory_policy() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_variants_response(PageOption {
@@ -553,7 +553,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("0".to_string())).await;
+        let result = repo.find_product(&("0".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ConversionError) = result {
@@ -564,7 +564,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_with_graphql_error() {
+    async fn test_find_product_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -574,7 +574,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("123456".to_string())).await;
+        let result = repo.find_product(&("123456".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -585,7 +585,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_with_missing_data() {
+    async fn test_find_product_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -595,7 +595,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("123456".to_string())).await;
+        let result = repo.find_product(&("123456".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -606,7 +606,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_no_pagination_success() {
+    async fn test_find_products_no_pagination_success() {
         let mut client = MockECClient::new();
 
         client
@@ -632,7 +632,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_products(&None, &None).await;
+        let result = repo.find_products(&None, &None).await;
 
         assert!(result.is_ok());
         let products = result.unwrap();
@@ -648,7 +648,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_pagination_success() {
+    async fn test_find_products_pagination_success() {
         let mut client = MockECClient::new();
 
         client
@@ -676,7 +676,7 @@ mod tests {
 
         let limit = Some(10);
         let offset = Some(20);
-        let result = repo.get_products(&limit, &offset).await;
+        let result = repo.find_products(&limit, &offset).await;
 
         assert!(result.is_ok());
         let products = result.unwrap();
@@ -690,7 +690,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_multiple_retrievals_success() {
+    async fn test_find_products_multiple_retrievals_success() {
         let mut client = MockECClient::new();
 
         client
@@ -738,7 +738,7 @@ mod tests {
 
         let limit = Some(480);
         let offset = Some(20);
-        let result = repo.get_products(&limit, &offset).await;
+        let result = repo.find_products(&limit, &offset).await;
 
         assert!(result.is_ok());
         let products = result.unwrap();
@@ -752,7 +752,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_empty_success() {
+    async fn test_find_products_empty_success() {
         let mut client = MockECClient::new();
 
         client
@@ -770,7 +770,7 @@ mod tests {
 
         let limit = Some(10);
         let offset = Some(20);
-        let result = repo.get_products(&limit, &offset).await;
+        let result = repo.find_products(&limit, &offset).await;
 
         assert!(result.is_ok());
         let products = result.unwrap();
@@ -778,7 +778,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_with_graphql_error() {
+    async fn test_find_products_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -788,7 +788,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_products(&None, &None).await;
+        let result = repo.find_products(&None, &None).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -799,7 +799,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_with_missing_data() {
+    async fn test_find_products_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -809,7 +809,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_products(&None, &None).await;
+        let result = repo.find_products(&None, &None).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {

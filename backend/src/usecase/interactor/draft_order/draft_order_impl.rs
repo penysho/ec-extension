@@ -39,10 +39,10 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
             GetDraftOrdersQuery::Email(email) => {
                 let customer = self
                     .customer_repository
-                    .get_customer_by_email(&email)
+                    .find_customer_by_email(&email)
                     .await?;
                 self.draft_order_repository
-                    .get_draft_orders_by_customer_id(customer.id())
+                    .find_draft_orders_by_customer_id(customer.id())
                     .await
             }
         }

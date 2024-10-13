@@ -29,7 +29,7 @@ impl<C: ECClient> CustomerRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C> {
     /// Retrieve customer information by email.
-    async fn get_customer_by_email(&self, email: &Email) -> Result<Customer, DomainError> {
+    async fn find_customer_by_email(&self, email: &Email) -> Result<Customer, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
         let address_fields = ShopifyGQLQueryHelper::address_fields();
@@ -209,7 +209,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_customer_by_email_success() {
+    async fn test_find_customer_by_email_success() {
         let mut client = MockECClient::new();
 
         client
@@ -220,7 +220,7 @@ mod tests {
         let repo = CustomerRepositoryImpl::new(client);
 
         let result = repo
-            .get_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
+            .find_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
             .await;
 
         assert!(result.is_ok());
@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_customer_by_email_with_invalid_state() {
+    async fn test_find_customer_by_email_with_invalid_state() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_customers_response(1);
@@ -257,7 +257,7 @@ mod tests {
         let repo = CustomerRepositoryImpl::new(client);
 
         let result = repo
-            .get_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
+            .find_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
             .await;
 
         assert!(result.is_err());
@@ -269,7 +269,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_customer_by_email_with_graphql_error() {
+    async fn test_find_customer_by_email_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -280,7 +280,7 @@ mod tests {
         let repo = CustomerRepositoryImpl::new(client);
 
         let result = repo
-            .get_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
+            .find_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
             .await;
 
         assert!(result.is_err());
@@ -292,7 +292,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_customer_by_email_with_missing_data() {
+    async fn test_find_customer_by_email_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -303,7 +303,7 @@ mod tests {
         let repo = CustomerRepositoryImpl::new(client);
 
         let result = repo
-            .get_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
+            .find_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
             .await;
 
         assert!(result.is_err());

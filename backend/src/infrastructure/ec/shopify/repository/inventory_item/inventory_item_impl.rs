@@ -33,7 +33,7 @@ impl<C: ECClient> InventoryItemRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemRepositoryImpl<C> {
     /// Get product inventory information by product id.
-    async fn get_inventory_items_by_product_id(
+    async fn find_inventory_items_by_product_id(
         &self,
         product_id: &ProductId,
     ) -> Result<Vec<InventoryItem>, DomainError> {
@@ -81,7 +81,7 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
     }
 
     /// Get product inventory information by sku.
-    async fn get_inventory_item_by_sku(&self, sku: &Sku) -> Result<InventoryItem, DomainError> {
+    async fn find_inventory_item_by_sku(&self, sku: &Sku) -> Result<InventoryItem, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
         let sku = sku.value();
@@ -262,7 +262,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_items_by_product_id_success() {
+    async fn test_find_inventory_items_by_product_id_success() {
         let mut client = MockECClient::new();
 
         client
@@ -273,7 +273,7 @@ mod tests {
         let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_items_by_product_id(&"0".to_string())
+            .find_inventory_items_by_product_id(&"0".to_string())
             .await;
 
         assert!(result.is_ok());
@@ -287,7 +287,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_items_by_product_id_with_invalid_domain_conversion() {
+    async fn test_find_inventory_items_by_product_id_with_invalid_domain_conversion() {
         let mut client = MockECClient::new();
 
         let mut invalid_variant = mock_inventories_response_for_variant_data(1);
@@ -309,7 +309,7 @@ mod tests {
         let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_items_by_product_id(&"0".to_string())
+            .find_inventory_items_by_product_id(&"0".to_string())
             .await;
 
         assert!(result.is_err());
@@ -321,7 +321,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_items_by_product_id_with_graphql_error() {
+    async fn test_find_inventory_items_by_product_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -332,7 +332,7 @@ mod tests {
         let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_items_by_product_id(&"0".to_string())
+            .find_inventory_items_by_product_id(&"0".to_string())
             .await;
 
         assert!(result.is_err());
@@ -344,7 +344,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_items_by_product_id_with_missing_data() {
+    async fn test_find_inventory_items_by_product_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -355,7 +355,7 @@ mod tests {
         let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_items_by_product_id(&"0".to_string())
+            .find_inventory_items_by_product_id(&"0".to_string())
             .await;
 
         assert!(result.is_err());
@@ -367,7 +367,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_item_by_sku_success() {
+    async fn test_find_inventory_item_by_sku_success() {
         let mut client = MockECClient::new();
 
         client
@@ -378,7 +378,7 @@ mod tests {
         let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_item_by_sku(&Sku::new("0".to_string()).unwrap())
+            .find_inventory_item_by_sku(&Sku::new("0".to_string()).unwrap())
             .await;
 
         assert!(result.is_ok());
@@ -388,7 +388,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_item_by_sku_with_graphql_error() {
+    async fn test_find_inventory_item_by_sku_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -399,7 +399,7 @@ mod tests {
         let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_item_by_sku(&Sku::new("0".to_string()).unwrap())
+            .find_inventory_item_by_sku(&Sku::new("0".to_string()).unwrap())
             .await;
 
         assert!(result.is_err());
@@ -411,7 +411,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_inventory_item_by_sku_with_missing_data() {
+    async fn test_find_inventory_item_by_sku_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -422,7 +422,7 @@ mod tests {
         let repo = InventoryItemRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_item_by_sku(&Sku::new("0".to_string()).unwrap())
+            .find_inventory_item_by_sku(&Sku::new("0".to_string()).unwrap())
             .await;
 
         assert!(result.is_err());
