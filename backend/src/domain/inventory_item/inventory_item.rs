@@ -58,7 +58,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_inventory_item_new() {
+    fn test_new() {
         let inventory_item = InventoryItem::new(
             "inventory_item_1",
             "variat_1",
@@ -72,7 +72,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inventory_item_new_invalid_id() {
+    fn test_new_invalid_id() {
         let inventory_item = InventoryItem::new("", "variat_1", true, true, Utc::now(), Utc::now());
 
         assert!(inventory_item.is_err());

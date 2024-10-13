@@ -55,3 +55,66 @@ impl LineItem {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::{
+        line_item::discount::discount::DiscountValueType,
+        money::{money::money::Money, money_bag::CurrencyCode},
+    };
+
+    use super::*;
+
+    fn mock_money_bag() -> MoneyBag {
+        let money = Money::new(100.0).unwrap();
+        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+    }
+
+    fn mock_discount() -> Discount {
+        Discount::new(
+            Some("Test Discount".to_string()),
+            Some("Test description".to_string()),
+            10.0,
+            DiscountValueType::Percentage,
+            mock_money_bag(),
+        )
+        .expect("Failed to create mock discount")
+    }
+
+    #[test]
+    fn test_new() {
+        let line_item = LineItem::new(
+            "valid_id".into(),
+            false,
+            Some("variant_id"),
+            5,
+            Some(mock_discount()),
+            mock_money_bag(),
+            mock_money_bag(),
+        )
+        .expect("Failed to create valid line item");
+
+        assert_eq!(line_item.id().to_string(), "valid_id");
+        assert_eq!(line_item.quantity(), &5);
+        assert_eq!(line_item.is_custom(), &false);
+        assert!(line_item.variant_id().is_some());
+        assert!(line_item.discount().is_some());
+    }
+
+    #[test]
+    fn test_new_without_variant() {
+        let line_item = LineItem::new(
+            "valid_id".into(),
+            true,
+            None::<String>,
+            1,
+            None,
+            mock_money_bag(),
+            mock_money_bag(),
+        )
+        .expect("Failed to create valid line item");
+
+        assert_eq!(line_item.variant_id(), &None);
+        assert_eq!(line_item.discount(), &None);
+    }
+}

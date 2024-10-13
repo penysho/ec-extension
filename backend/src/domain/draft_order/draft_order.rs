@@ -120,3 +120,177 @@ impl DraftOrder {
         self.status = DraftOrderStatus::Canceled;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::{
+        address::address::Address,
+        line_item::discount::discount::{Discount, DiscountValueType},
+        money::{money::money::Money, money_bag::CurrencyCode},
+    };
+
+    use super::*;
+    use chrono::Utc;
+
+    fn mock_discount() -> Discount {
+        Discount::new(
+            Some("Test Discount".to_string()),
+            Some("Test description".to_string()),
+            10.0,
+            DiscountValueType::Percentage,
+            mock_money_bag(),
+        )
+        .expect("Failed to create mock discount")
+    }
+
+    fn mock_money_bag() -> MoneyBag {
+        let money = Money::new(100.0).unwrap();
+        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+    }
+
+    fn mock_line_items(count: usize) -> Vec<LineItem> {
+        (0..count)
+            .map(|i| {
+                LineItem::new(
+                    format!("{i}"),
+                    false,
+                    Some("variant_id"),
+                    5,
+                    Some(mock_discount()),
+                    mock_money_bag(),
+                    mock_money_bag(),
+                )
+                .expect("Failed to create valid line item")
+            })
+            .collect()
+    }
+
+    fn mock_address() -> Address {
+        fn count(x: &str) -> usize {
+            x.len()
+        }
+        Address::new(
+            "123",
+            Some("123 Main St"),
+            None::<String>,
+            Some("City"),
+            true,
+            Some("Country"),
+            Some("John"),
+            Some("Doe"),
+            Some("Province"),
+            Some("12345"),
+            Some("+1234567890"),
+        )
+        .expect("Failed to create mock address")
+    }
+
+    /// Helper to create a valid `DraftOrder` for testing.
+    fn mock_draft_order() -> DraftOrder {
+        DraftOrder::new(
+            "valid_id",
+            "Test Order",
+            DraftOrderStatus::Open,
+            mock_line_items(2),
+            None,
+            mock_money_bag(),
+            true,
+            false,
+            mock_money_bag(),
+            mock_money_bag(),
+            mock_money_bag(),
+            mock_money_bag(),
+            None,
+            mock_address(),
+            mock_address(),
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        )
+        .expect("Failed to create valid draft order")
+    }
+
+    #[test]
+    fn test_new() {
+        let draft_order = mock_draft_order();
+        assert_eq!(draft_order.name(), "Test Order");
+        assert_eq!(draft_order.status(), &DraftOrderStatus::Open);
+    }
+
+    #[test]
+    fn test_new_with_empty_id_should_fail() {
+        let result = DraftOrder::new(
+            "",
+            "Test Order",
+            DraftOrderStatus::Open,
+            mock_line_items(1),
+            None,
+            mock_money_bag(),
+            true,
+            false,
+            mock_money_bag(),
+            mock_money_bag(),
+            mock_money_bag(),
+            mock_money_bag(),
+            None,
+            mock_address(),
+            mock_address(),
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_new_with_empty_name_should_fail() {
+        let result = DraftOrder::new(
+            "valid_id",
+            "",
+            DraftOrderStatus::Open,
+            mock_line_items(1),
+            None,
+            mock_money_bag(),
+            true,
+            false,
+            mock_money_bag(),
+            mock_money_bag(),
+            mock_money_bag(),
+            mock_money_bag(),
+            None,
+            mock_address(),
+            mock_address(),
+            None,
+            None,
+            None,
+            Utc::now(),
+            Utc::now(),
+        );
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_complete() {
+        let mut draft_order = mock_draft_order();
+        assert_eq!(draft_order.status(), &DraftOrderStatus::Open);
+
+        draft_order.complete();
+        assert_eq!(draft_order.status(), &DraftOrderStatus::Completed);
+        assert!(draft_order.completed_at().is_some());
+    }
+
+    #[test]
+    fn test_cancel() {
+        let mut draft_order = mock_draft_order();
+        assert_eq!(draft_order.status(), &DraftOrderStatus::Open);
+
+        draft_order.cancel();
+        assert_eq!(draft_order.status(), &DraftOrderStatus::Canceled);
+    }
+}

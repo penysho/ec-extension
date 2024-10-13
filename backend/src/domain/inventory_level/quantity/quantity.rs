@@ -52,7 +52,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_quantity_new() {
+    fn test_new() {
         let quantity = Quantity::new(10, InventoryType::Available).unwrap();
         assert_eq!(quantity.quantity(), &10);
         assert_eq!(quantity.inventory_type(), &InventoryType::Available);
