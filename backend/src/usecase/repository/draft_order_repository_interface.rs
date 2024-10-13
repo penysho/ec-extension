@@ -7,8 +7,8 @@ use crate::domain::{
 
 #[async_trait]
 pub trait DraftOrderRepository: Send + Sync {
-    async fn get_draft_order_by_customer_id(
+    async fn get_draft_orders_by_customer_id(
         &self,
         customer_id: &CustomerId,
-    ) -> Result<DraftOrder, DomainError>;
+    ) -> Result<Vec<DraftOrder>, DomainError>;
 }
