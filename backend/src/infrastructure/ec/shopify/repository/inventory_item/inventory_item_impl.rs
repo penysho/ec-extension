@@ -262,7 +262,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_items_by_product_id_success() {
+    async fn test_get_inventory_items_by_product_id_success() {
         let mut client = MockECClient::new();
 
         client
@@ -287,7 +287,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_items_by_product_id_with_invalid_domain_conversion() {
+    async fn test_get_inventory_items_by_product_id_with_invalid_domain_conversion() {
         let mut client = MockECClient::new();
 
         let mut invalid_variant = mock_inventories_response_for_variant_data(1);
@@ -322,7 +322,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_items_by_product_id_with_graphql_error() {
+    async fn test_get_inventory_items_by_product_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -345,7 +345,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_items_by_product_id_with_missing_data() {
+    async fn test_get_inventory_items_by_product_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -368,7 +368,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_item_by_sku_success() {
+    async fn test_get_inventory_item_by_sku_success() {
         let mut client = MockECClient::new();
 
         client
@@ -389,7 +389,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_item_by_sku_with_graphql_error() {
+    async fn test_get_inventory_item_by_sku_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -412,7 +412,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_item_by_sku_with_missing_data() {
+    async fn test_get_inventory_item_by_sku_with_missing_data() {
         let mut client = MockECClient::new();
 
         client

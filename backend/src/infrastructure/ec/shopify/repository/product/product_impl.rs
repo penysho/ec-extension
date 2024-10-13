@@ -460,12 +460,12 @@ mod tests {
     async fn test_get_product_with_invalid_domain_conversion() {
         let mut client = MockECClient::new();
 
-        let mut invalid_variant = mock_variants_response(PageOption {
+        let mut invalid_response = mock_variants_response(PageOption {
             start: 0,
             end: 1,
             has_next_page: false,
         });
-        invalid_variant
+        invalid_response
             .data
             .as_mut()
             .unwrap()
@@ -478,7 +478,7 @@ mod tests {
         client
             .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(invalid_variant));
+            .return_once(|_| Ok(invalid_response));
 
         let repo = ProductRepositoryImpl::new(client);
 

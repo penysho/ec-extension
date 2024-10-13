@@ -209,7 +209,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_customer_by_email_success() {
+    async fn test_get_customer_by_email_success() {
         let mut client = MockECClient::new();
 
         client
@@ -269,7 +269,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_customer_by_email_with_graphql_error() {
+    async fn test_get_customer_by_email_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -292,7 +292,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_customer_by_email_with_missing_data() {
+    async fn test_get_customer_by_email_with_missing_data() {
         let mut client = MockECClient::new();
 
         client

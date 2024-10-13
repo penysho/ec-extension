@@ -314,7 +314,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_level_by_sku_success() {
+    async fn test_get_inventory_level_by_sku_success() {
         let mut client = MockECClient::new();
 
         client
@@ -347,7 +347,45 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_level_by_sku_with_graphql_error() {
+    async fn test_get_inventory_level_by_sku_with_invalid_inventory_type() {
+        let mut client = MockECClient::new();
+
+        let mut invalid_response = mock_inventory_items_response(1);
+
+        invalid_response
+            .data
+            .as_mut()
+            .unwrap()
+            .inventory_items
+            .edges[0]
+            .node
+            .inventory_level
+            .as_mut()
+            .unwrap()
+            .quantities[0]
+            .name = "invalid".to_string();
+
+        client
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| Ok(invalid_response));
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo
+            .get_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::ConversionError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ConversionError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_inventory_level_by_sku_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -370,7 +408,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_level_by_sku_with_missing_data() {
+    async fn test_get_inventory_level_by_sku_with_missing_data() {
         let mut client = MockECClient::new();
 
         client

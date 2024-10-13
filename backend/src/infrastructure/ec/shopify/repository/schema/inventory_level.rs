@@ -47,7 +47,7 @@ impl QuantityNode {
             "damaged" => InventoryType::Damaged,
             "safety_stock" => InventoryType::SafetyStock,
             "reserved" => InventoryType::Reserved,
-            _ => return Err(DomainError::ValidationError),
+            _ => return Err(DomainError::ConversionError),
         };
 
         Quantity::new(self.quantity, inventory_type)
