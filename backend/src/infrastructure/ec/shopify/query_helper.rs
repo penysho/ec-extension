@@ -51,6 +51,14 @@ impl ShopifyGQLQueryHelper {
         .to_string()
     }
 
+    pub fn money_bag_fields() -> String {
+        "shopMoney {
+            amount
+            currencyCode
+        }"
+        .to_string()
+    }
+
     /// Add Shopify gid prefix for InventoryItem.
     pub fn add_inventory_item_gid_prefix(id: &str) -> String {
         if id.contains(Self::SHOPIFY_INVENTORY_ITEM_GID_PREFIX) {

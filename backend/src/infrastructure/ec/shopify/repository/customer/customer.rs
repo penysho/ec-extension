@@ -223,8 +223,6 @@ mod tests {
             .get_customer_by_email(&Email::new("test@example.com".to_string()).unwrap())
             .await;
 
-        dbg!(&result);
-
         assert!(result.is_ok());
         let customer = result.unwrap();
         assert_eq!(customer.id(), "0");

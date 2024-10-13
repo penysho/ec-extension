@@ -41,7 +41,7 @@ pub struct DraftOrder {
     /// The total price, includes taxes, shipping charges, and discounts.
     total_price_set: MoneyBag,
 
-    customer: Option<CustomerId>,
+    customer_id: Option<CustomerId>,
     billing_address: Address,
     shipping_address: Address,
     note: Option<String>,
@@ -67,7 +67,7 @@ impl DraftOrder {
         total_discounts_set: MoneyBag,
         total_shipping_price_set: MoneyBag,
         total_price_set: MoneyBag,
-        customer: Option<CustomerId>,
+        customer_id: Option<CustomerId>,
         billing_address: Address,
         shipping_address: Address,
         note: Option<String>,
@@ -100,7 +100,7 @@ impl DraftOrder {
             total_discounts_set,
             total_shipping_price_set,
             total_price_set,
-            customer,
+            customer_id,
             billing_address,
             shipping_address,
             note,

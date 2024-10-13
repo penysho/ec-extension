@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
-use crate::domain::{
-    draft_order::draft_order::DraftOrder, error::error::DomainError, line_item::line_item::LineItem,
+use crate::{
+    domain::{draft_order::draft_order::DraftOrder, error::error::DomainError},
+    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
-use super::{address::AddressNode, line_item::LineItemNode, money::MoneyBagNode};
+use super::{address::AddressNode, common::Edges, line_item::LineItemNode, money::MoneyBagNode};
 
 impl DraftOrderNode {
     pub fn to_domain(self) -> Result<DraftOrder, DomainError> {
@@ -17,7 +18,7 @@ impl DraftOrderNode {
         }?;
 
         DraftOrder::new(
-            self.id,
+            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
             self.name,
             status,
             self.line_items
@@ -32,16 +33,31 @@ impl DraftOrderNode {
             self.total_discounts_set.to_domain()?,
             self.total_shipping_price_set.to_domain()?,
             self.total_price_set.to_domain()?,
-            self.customer.map(|c| c.id),
+            self.customer
+                .map(|c| ShopifyGQLQueryHelper::remove_gid_prefix(&c.id)),
             self.billing_address.to_domain()?,
             self.shipping_address.to_domain()?,
             self.note,
-            self.order.map(|o| o.id),
+            self.order
+                .map(|o| ShopifyGQLQueryHelper::remove_gid_prefix(&o.id)),
             self.completed_at,
             self.created_at,
             self.update_at,
         )
     }
+
+    pub fn to_domains(schemas: Vec<Self>) -> Result<Vec<DraftOrder>, DomainError> {
+        schemas
+            .into_iter()
+            .map(|schema| schema.to_domain())
+            .collect()
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DraftOrdersData {
+    #[serde(rename = "draftOrders")]
+    pub draft_orders: Edges<DraftOrderNode>,
 }
 
 #[derive(Debug, Deserialize)]
