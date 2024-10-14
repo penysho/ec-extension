@@ -124,9 +124,10 @@ impl DraftOrder {
         note: Option<impl Into<String>>,
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
-        tax_exempt: bool,
+        tax_exempt: Option<bool>,
     ) -> Result<Self, DomainError> {
         let now = Utc::now();
+        let tax_exempt = tax_exempt.unwrap_or(false);
 
         Ok(Self {
             id: String::new(),
@@ -314,7 +315,7 @@ mod tests {
             Some("note"),
             mock_line_items(2),
             None,
-            false,
+            Some(false),
         )
         .expect("Failed to create draft order");
 
