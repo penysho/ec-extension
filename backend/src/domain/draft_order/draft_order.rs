@@ -76,21 +76,14 @@ impl DraftOrder {
         created_at: DateTime<Utc>,
         update_at: DateTime<Utc>,
     ) -> Result<Self, DomainError> {
-        let id = id.into();
-        if id.is_empty() {
-            log::error!("Id cannot be empty");
-            return Err(DomainError::ValidationError);
-        }
-        let name = name.into();
-        if name.is_empty() {
-            log::error!("Name cannot be empty");
-            return Err(DomainError::ValidationError);
-        }
-
-        Ok(Self {
-            id,
-            name,
+        let instance = Self {
+            id: id.into(),
+            name: name.into(),
             status,
+            customer_id,
+            billing_address,
+            shipping_address,
+            note,
             line_items,
             reserve_inventory_until,
             subtotal_price_set,
@@ -100,24 +93,60 @@ impl DraftOrder {
             total_discounts_set,
             total_shipping_price_set,
             total_price_set,
-            customer_id,
-            billing_address,
-            shipping_address,
-            note,
             order_id,
             completed_at,
             created_at,
             update_at,
+        };
+
+        instance.validate()?;
+        Ok(instance)
+    }
+
+    fn validate(&self) -> Result<(), DomainError> {
+        if self.id.is_empty() {
+            log::error!("Id cannot be empty");
+            return Err(DomainError::ValidationError);
+        }
+        if self.name.is_empty() {
+            log::error!("Name cannot be empty");
+            return Err(DomainError::ValidationError);
+        }
+        Ok(())
+    }
+
+    pub fn create(
+        customer_id: Option<CustomerId>,
+        billing_address: Address,
+        shipping_address: Address,
+        line_items: Vec<LineItem>,
+        reserve_inventory_until: Option<DateTime<Utc>>,
+        tax_exempt: bool,
+    ) -> Result<Self, DomainError> {
+        let now = Utc::now();
+
+        Ok(Self {
+            id: "".to_string(),
+            name: "".to_string(),
+            status: DraftOrderStatus::Open,
+            customer_id,
+            billing_address,
+            shipping_address,
+            note: None,
+            line_items,
+            reserve_inventory_until,
+            subtotal_price_set: MoneyBag::zero(),
+            taxes_included: false,
+            tax_exempt,
+            total_tax_set: MoneyBag::zero(),
+            total_discounts_set: MoneyBag::zero(),
+            total_shipping_price_set: MoneyBag::zero(),
+            total_price_set: MoneyBag::zero(),
+            order_id: None,
+            completed_at: None,
+            created_at: now,
+            update_at: now,
         })
-    }
-
-    pub fn complete(&mut self) {
-        self.status = DraftOrderStatus::Completed;
-        self.completed_at = Some(Utc::now());
-    }
-
-    pub fn cancel(&mut self) {
-        self.status = DraftOrderStatus::Canceled;
     }
 }
 
@@ -273,21 +302,18 @@ mod tests {
     }
 
     #[test]
-    fn test_complete() {
-        let mut draft_order = mock_draft_order();
-        assert_eq!(draft_order.status(), &DraftOrderStatus::Open);
+    fn test_create() {
+        let draft_order = DraftOrder::create(
+            None,
+            mock_address(),
+            mock_address(),
+            mock_line_items(2),
+            None,
+            false,
+        )
+        .expect("Failed to create draft order");
 
-        draft_order.complete();
-        assert_eq!(draft_order.status(), &DraftOrderStatus::Completed);
-        assert!(draft_order.completed_at().is_some());
-    }
-
-    #[test]
-    fn test_cancel() {
-        let mut draft_order = mock_draft_order();
-        assert_eq!(draft_order.status(), &DraftOrderStatus::Open);
-
-        draft_order.cancel();
-        assert_eq!(draft_order.status(), &DraftOrderStatus::Canceled);
+        assert_eq!(draft_order.id(), "");
+        assert_eq!(draft_order.name(), "");
     }
 }

@@ -39,4 +39,11 @@ impl MoneyBag {
             amount,
         })
     }
+
+    pub fn zero() -> Self {
+        Self {
+            currency_code: CurrencyCode::JPY,
+            amount: Money::zero(),
+        }
+    }
 }
