@@ -9,6 +9,7 @@ impl ShopifyGQLQueryHelper {
     pub const SHOPIFY_MEDIA_IMAGE_GID_PREFIX: &'static str = "gid://shopify/MediaImage/";
     pub const SHOPIFY_INVENTORY_ITEM_GID_PREFIX: &'static str = "gid://shopify/InventoryItem/";
     pub const SHOPIFY_LOCATION_GID_PREFIX: &'static str = "gid://shopify/Location/";
+    pub const SHOPIFY_DRAFT_ORDER_GID_PREFIX: &'static str = "gid://shopify/DraftOrder/";
 
     /// Return first query with max limit.
     pub fn first_query() -> String {
@@ -73,6 +74,14 @@ impl ShopifyGQLQueryHelper {
             return id.to_string();
         }
         format!("{}{}", Self::SHOPIFY_LOCATION_GID_PREFIX, id)
+    }
+
+    // Add Shopify gid prefix for DraftOrder.
+    pub fn add_draft_order_gid_prefix(id: &str) -> String {
+        if id.contains(Self::SHOPIFY_DRAFT_ORDER_GID_PREFIX) {
+            return id.to_string();
+        }
+        format!("{}{}", Self::SHOPIFY_DRAFT_ORDER_GID_PREFIX, id)
     }
 
     /// Remove Shopify gid prefix.

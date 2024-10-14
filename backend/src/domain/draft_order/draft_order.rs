@@ -54,6 +54,7 @@ pub struct DraftOrder {
 }
 
 impl DraftOrder {
+    /// Constructor to be used from the repository.
     pub fn new(
         id: impl Into<String>,
         name: impl Into<String>,
@@ -120,6 +121,7 @@ impl DraftOrder {
         customer_id: Option<CustomerId>,
         billing_address: Address,
         shipping_address: Address,
+        note: Option<impl Into<String>>,
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
         tax_exempt: bool,
@@ -133,7 +135,7 @@ impl DraftOrder {
             customer_id,
             billing_address,
             shipping_address,
-            note: None,
+            note: note.map(|n| n.into()),
             line_items,
             reserve_inventory_until,
             subtotal_price_set: MoneyBag::zero(),
@@ -307,6 +309,7 @@ mod tests {
             None,
             mock_address(),
             mock_address(),
+            Some("note"),
             mock_line_items(2),
             None,
             false,

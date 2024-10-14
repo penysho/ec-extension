@@ -67,6 +67,13 @@ pub struct DraftOrderNode {
     pub name: String,
     pub status: String,
 
+    pub customer: Option<CustomerIdNode>,
+    #[serde(rename = "billingAddress")]
+    pub billing_address: AddressNode,
+    #[serde(rename = "shippingAddress")]
+    pub shipping_address: AddressNode,
+    pub note2: Option<String>,
+
     #[serde(rename = "lineItems")]
     pub line_items: Edges<LineItemNode>,
     #[serde(rename = "reserveInventoryUntil")]
@@ -86,13 +93,6 @@ pub struct DraftOrderNode {
     pub total_shipping_price_set: MoneyBagNode,
     #[serde(rename = "totalPriceSet")]
     pub total_price_set: MoneyBagNode,
-
-    pub customer: Option<CustomerIdNode>,
-    #[serde(rename = "billingAddress")]
-    pub billing_address: AddressNode,
-    #[serde(rename = "shippingAddress")]
-    pub shipping_address: AddressNode,
-    pub note2: Option<String>,
 
     pub order: Option<OrderIdNode>,
 

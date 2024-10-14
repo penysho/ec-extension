@@ -27,7 +27,9 @@ pub struct AddressNode {
     #[serde(rename = "coordinatesValidated")]
     pub coordinates_validated: bool,
     pub country: Option<String>,
+    #[serde(rename = "firstName")]
     pub first_name: Option<String>,
+    #[serde(rename = "lastName")]
     pub last_name: Option<String>,
     pub province: Option<String>,
     pub zip: Option<String>,

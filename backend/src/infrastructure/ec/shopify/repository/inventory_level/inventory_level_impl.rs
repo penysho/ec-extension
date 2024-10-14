@@ -16,11 +16,11 @@ use crate::{
                 query_helper::ShopifyGQLQueryHelper,
                 repository::schema::{
                     common::GraphQLResponse,
-                    inventory_item::InventoryItemsData,
-                    inventory_level::{
+                    inventory_change::{
                         InventoryAdjustQuantitiesData, InventoryAdjustQuantitiesInput,
-                        InventoryLevelNode,
                     },
+                    inventory_item::InventoryItemsData,
+                    inventory_level::InventoryLevelNode,
                 },
             },
         },
@@ -182,11 +182,9 @@ mod tests {
                     common::{
                         Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError, UserErrors,
                     },
+                    inventory_change::InventoryAdjustQuantitiesData,
                     inventory_item::{InventoryItemNode, InventoryItemsData, VariantIdNode},
-                    inventory_level::{
-                        InventoryAdjustQuantitiesData, InventoryItemIdNode, InventoryLevelNode,
-                        QuantityNode,
-                    },
+                    inventory_level::{InventoryItemIdNode, InventoryLevelNode, QuantityNode},
                     location::LocationNode,
                 },
             },
