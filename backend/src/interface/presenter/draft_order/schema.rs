@@ -75,3 +75,35 @@ impl ResponseError for GetDraftOrdersResponseError {
         <Self as GenericResponseError>::status_code(self)
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PostDraftOrderResponse {
+    pub draft_order: DraftOrderSchema,
+}
+
+#[derive(Debug, Display, Error)]
+pub enum PostDraftOrderResponseError {
+    #[display(fmt = "Bad request.")]
+    BadRequest,
+    #[display(fmt = "Service unavailable. Give it some time and try again.")]
+    ServiceUnavailable,
+}
+
+impl GenericResponseError for PostDraftOrderResponseError {
+    fn status_code(&self) -> StatusCode {
+        match *self {
+            PostDraftOrderResponseError::BadRequest => StatusCode::BAD_REQUEST,
+            PostDraftOrderResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+        }
+    }
+}
+
+impl ResponseError for PostDraftOrderResponseError {
+    fn error_response(&self) -> HttpResponse {
+        <Self as GenericResponseError>::error_response(self)
+    }
+
+    fn status_code(&self) -> StatusCode {
+        <Self as GenericResponseError>::status_code(self)
+    }
+}

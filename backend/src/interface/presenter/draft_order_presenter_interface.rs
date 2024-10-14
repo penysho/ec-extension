@@ -11,4 +11,11 @@ pub trait DraftOrderPresenter {
         &self,
         result: Result<Vec<DraftOrder>, DomainError>,
     ) -> Result<Self::GetDraftOrdersResponse, Self::GetDraftOrdersResponseError>;
+
+    type PostDraftOrderResponse;
+    type PostDraftOrderResponseError;
+    async fn present_post_draft_order(
+        &self,
+        result: Result<DraftOrder, DomainError>,
+    ) -> Result<Self::PostDraftOrderResponse, Self::PostDraftOrderResponseError>;
 }
