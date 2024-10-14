@@ -21,6 +21,11 @@ impl DraftOrderNode {
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
             self.name,
             status,
+            self.customer
+                .map(|c| ShopifyGQLQueryHelper::remove_gid_prefix(&c.id)),
+            self.billing_address.to_domain()?,
+            self.shipping_address.to_domain()?,
+            self.note2,
             self.line_items
                 .edges
                 .into_iter()
@@ -34,11 +39,6 @@ impl DraftOrderNode {
             self.total_discounts_set.to_domain()?,
             self.total_shipping_price_set.to_domain()?,
             self.total_price_set.to_domain()?,
-            self.customer
-                .map(|c| ShopifyGQLQueryHelper::remove_gid_prefix(&c.id)),
-            self.billing_address.to_domain()?,
-            self.shipping_address.to_domain()?,
-            self.note2,
             self.order
                 .map(|o| ShopifyGQLQueryHelper::remove_gid_prefix(&o.id)),
             self.completed_at,
