@@ -104,7 +104,6 @@ mod tests {
 
     fn mock_address() -> Address {
         Address::new(
-            "123",
             Some("123 Main St"),
             None::<String>,
             Some("City"),

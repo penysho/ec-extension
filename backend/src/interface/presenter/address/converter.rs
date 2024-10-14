@@ -5,7 +5,6 @@ use super::schema::AddressSchema;
 impl From<&Address> for AddressSchema {
     fn from(address: &Address) -> Self {
         Self {
-            id: address.id().to_string(),
             address1: address.address1().to_owned(),
             address2: address.address2().to_owned(),
             city: address.city().to_owned(),

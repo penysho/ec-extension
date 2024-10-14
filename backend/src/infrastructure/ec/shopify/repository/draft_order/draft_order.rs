@@ -188,8 +188,8 @@ mod tests {
             customer: Some(CustomerIdNode {
                 id: format!("gid://shopify/Customer/{id}"),
             }),
-            billing_address: mock_address(id),
-            shipping_address: mock_address(id),
+            billing_address: mock_address(Some("123")),
+            shipping_address: mock_address(Some("123")),
             note2: Some("Test note".to_string()),
             order: Some(OrderIdNode {
                 id: format!("gid://shopify/Order/{id}"),
@@ -233,11 +233,11 @@ mod tests {
         }
     }
 
-    fn mock_address(id: u32) -> AddressNode {
+    fn mock_address(address1: Option<impl Into<String>>) -> AddressNode {
+        let address1 = address1.map(|a| a.into());
         AddressNode {
-            id: format!("gid://shopify/Address/{id}"),
-            address1: Some("123 Test Street".to_string()),
-            address2: Some("Apt 456".to_string()),
+            address1: address1,
+            address2: Some("Apt 123".to_string()),
             city: Some("Test City".to_string()),
             coordinates_validated: true,
             country: Some("Test Country".to_string()),
@@ -321,8 +321,6 @@ mod tests {
         );
         assert_eq!(draft_order.total_price_set().amount().value(), &110.0);
         assert_eq!(draft_order.customer_id(), &Some("0".to_string()));
-        assert_eq!(draft_order.billing_address().id(), "0");
-        assert_eq!(draft_order.shipping_address().id(), "0");
         assert_eq!(draft_order.note(), &Some("Test note".to_string()));
         assert_eq!(draft_order.order_id(), &Some("0".to_string()));
         assert_eq!(draft_order.completed_at(), &None);

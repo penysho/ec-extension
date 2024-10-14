@@ -1,14 +1,10 @@
 use serde::Deserialize;
 
-use crate::{
-    domain::{address::address::Address, error::error::DomainError},
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
-};
+use crate::domain::{address::address::Address, error::error::DomainError};
 
 impl AddressNode {
     pub fn to_domain(self) -> Result<Address, DomainError> {
         Address::new(
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
             self.address1,
             self.address2,
             self.city,
@@ -25,7 +21,6 @@ impl AddressNode {
 
 #[derive(Debug, Deserialize)]
 pub struct AddressNode {
-    pub id: String,
     pub address1: Option<String>,
     pub address2: Option<String>,
     pub city: Option<String>,

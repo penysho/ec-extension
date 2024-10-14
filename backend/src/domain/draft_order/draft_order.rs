@@ -115,6 +115,7 @@ impl DraftOrder {
         Ok(())
     }
 
+    /// Create an entity in its initial state.
     pub fn create(
         customer_id: Option<CustomerId>,
         billing_address: Address,
@@ -126,8 +127,8 @@ impl DraftOrder {
         let now = Utc::now();
 
         Ok(Self {
-            id: "".to_string(),
-            name: "".to_string(),
+            id: String::new(),
+            name: String::new(),
             status: DraftOrderStatus::Open,
             customer_id,
             billing_address,
@@ -196,7 +197,6 @@ mod tests {
 
     fn mock_address() -> Address {
         Address::new(
-            "123",
             Some("123 Main St"),
             None::<String>,
             Some("City"),

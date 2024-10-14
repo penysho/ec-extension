@@ -38,7 +38,8 @@ impl CustomerNode {
                 .collect::<Result<Vec<_>, _>>()?,
             self.can_delete,
             self.default_address
-                .map(|address| ShopifyGQLQueryHelper::remove_gid_prefix(&address.id)),
+                .map(|address| address.to_domain())
+                .transpose()?,
             self.display_name,
             self.email.map(|email| Email::new(email)).transpose()?,
             self.first_name,
