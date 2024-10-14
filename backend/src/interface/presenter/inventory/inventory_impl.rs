@@ -17,7 +17,7 @@ use super::schema::{
     PutInventoryResponseError,
 };
 
-/// Generate a response schema for the inventory
+/// Generate a response schema for the inventory.
 pub struct InventoryPresenterImpl;
 impl InventoryPresenterImpl {
     pub fn new() -> Self {
@@ -69,6 +69,7 @@ impl InventoryPresenter for InventoryPresenterImpl {
 
     type PutInventoryResponse = Json<PutInventoryResponse>;
     type PutInventoryResponseError = PutInventoryResponseError;
+    /// Generate an update response for inventory information.
     async fn present_put_inventory(
         &self,
         result: Result<InventoryLevel, DomainError>,

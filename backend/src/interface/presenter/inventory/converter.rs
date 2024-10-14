@@ -23,7 +23,7 @@ impl From<&InventoryType> for InventoryTypeEnum {
 
 impl From<&Quantity> for QuantitySchema {
     fn from(quantity: &Quantity) -> Self {
-        QuantitySchema {
+        Self {
             inventory_type: quantity.inventory_type().into(),
             quantity: *quantity.quantity(),
         }
@@ -32,7 +32,7 @@ impl From<&Quantity> for QuantitySchema {
 
 impl From<InventoryLevel> for InventoryLevelSchema {
     fn from(inventory_level: InventoryLevel) -> Self {
-        InventoryLevelSchema {
+        Self {
             id: inventory_level.id().to_string(),
             location_id: inventory_level.location_id().to_string(),
             quantities: inventory_level
@@ -49,7 +49,7 @@ impl InventorySchema {
         inventory_item: InventoryItem,
         inventory_level: Vec<InventoryLevel>,
     ) -> Self {
-        InventorySchema {
+        Self {
             id: inventory_item.id().to_string(),
             variant_id: inventory_item.variant_id().to_string(),
             inventory_levels: inventory_level.into_iter().map(|l| l.into()).collect(),

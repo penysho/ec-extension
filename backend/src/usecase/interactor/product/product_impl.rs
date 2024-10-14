@@ -52,8 +52,8 @@ impl ProductInteractor for ProductInteractorImpl {
         &self,
         id: &ProductId,
     ) -> Result<(Product, Vec<Media>), DomainError> {
-        let product_result = self.product_repository.get_product(id).await;
-        let media_result = self.media_repository.get_media_by_product_id(id).await;
+        let product_result = self.product_repository.find_product(id).await;
+        let media_result = self.media_repository.find_media_by_product_id(id).await;
 
         match (product_result, media_result) {
             (Ok(product), Ok(media)) => Ok((product, media)),
@@ -76,13 +76,12 @@ impl ProductInteractor for ProductInteractorImpl {
     /// # Errors
     ///
     /// Returns a domain error if the product or media repository fails.
-    #[allow(clippy::type_complexity)]
     async fn get_products(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,
     ) -> Result<(Vec<Product>, Vec<Media>), DomainError> {
-        let products_result = self.product_repository.get_products(limit, offset).await;
+        let products_result = self.product_repository.find_products(limit, offset).await;
         if let Err(e) = products_result {
             return Err(e);
         }
@@ -96,7 +95,7 @@ impl ProductInteractor for ProductInteractorImpl {
 
         let media_result = self
             .media_repository
-            .get_media_by_product_ids(product_ids)
+            .find_media_by_product_ids(product_ids)
             .await;
 
         match (products_result, media_result) {

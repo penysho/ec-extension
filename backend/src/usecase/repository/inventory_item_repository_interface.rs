@@ -8,10 +8,10 @@ use crate::domain::{
 
 #[async_trait]
 pub trait InventoryItemRepository: Send + Sync {
-    async fn get_inventory_items_by_product_id(
+    async fn find_inventory_items_by_product_id(
         &self,
         product_id: &ProductId,
     ) -> Result<Vec<InventoryItem>, DomainError>;
 
-    async fn get_inventory_item_by_sku(&self, sku: &Sku) -> Result<InventoryItem, DomainError>;
+    async fn find_inventory_item_by_sku(&self, sku: &Sku) -> Result<InventoryItem, DomainError>;
 }

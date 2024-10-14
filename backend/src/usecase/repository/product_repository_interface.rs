@@ -7,8 +7,8 @@ use crate::domain::{
 
 #[async_trait]
 pub trait ProductRepository: Send + Sync {
-    async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError>;
-    async fn get_products(
+    async fn find_product(&self, id: &ProductId) -> Result<Product, DomainError>;
+    async fn find_products(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,

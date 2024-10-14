@@ -11,7 +11,7 @@ use crate::{
             query_helper::ShopifyGQLQueryHelper,
             repository::schema::{
                 common::GraphQLResponse,
-                product::{ProductsData, VariantSchema, VariantsData},
+                product::{ProductsData, VariantNode, VariantsData},
             },
         },
     },
@@ -27,40 +27,64 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
     pub fn new(client: C) -> Self {
         Self { client }
     }
+
+    fn product_fields() -> String {
+        let description_length = Product::MAX_DESCRIPTION_LENGTH;
+
+        format!(
+            "id
+            title
+            handle
+            description(truncateAt: {description_length})
+            status
+            category {{
+                id
+                name
+            }}"
+        )
+    }
+
+    fn variant_fields() -> String {
+        let product_fields = Self::product_fields();
+
+        format!(
+            "id
+            title
+            sku
+            barcode
+            availableForSale
+            position
+            inventoryItem {{
+                id
+            }}
+            inventoryQuantity
+            inventoryPolicy
+            price
+            taxable
+            taxCode
+            createdAt
+            updatedAt
+            product {{
+                {product_fields}
+            }}"
+        )
+    }
 }
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     /// Get detailed product information.
-    async fn get_product(&self, id: &ProductId) -> Result<Product, DomainError> {
-        let description_length = Product::MAX_DESCRIPTION_LENGTH;
+    async fn find_product(&self, id: &ProductId) -> Result<Product, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
+        let variant_fields = Self::variant_fields();
 
         let query = format!(
             "query {{
                 productVariants({first_query}, query: \"product_id:'{id}'\") {{
                     edges {{
                         node {{
-                            id
-                            barcode
-                            inventoryQuantity
-                            sku
-                            position
-                            price
-                            createdAt
-                            updatedAt
-                            product {{
-                                id
-                                title
-                                handle
-                                description(truncateAt: {description_length})
-                                status
-                                category {{
-                                    id
-                                    name
-                                }}
-                            }}
+                            {variant_fields}
                         }}
                     }}
                     {page_info}
@@ -74,16 +98,16 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             return Err(DomainError::QueryError);
         }
 
-        let products: Vec<VariantSchema> = graphql_response
+        let variant_nodes: Vec<VariantNode> = graphql_response
             .data
             .ok_or(DomainError::QueryError)?
             .product_variants
             .edges
             .into_iter()
-            .map(|node| VariantSchema::from(node.node))
+            .map(|node| node.node)
             .collect();
 
-        let domains = VariantSchema::to_product_domains(products)?;
+        let domains = VariantNode::to_product_domains(variant_nodes)?;
 
         if domains.is_empty() {
             log::error!("No product found for id: {}", id);
@@ -93,21 +117,21 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     }
 
     /// Retrieve multiple products.
-    async fn get_products(
+    async fn find_products(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,
     ) -> Result<Vec<Product>, DomainError> {
-        let description_length = Product::MAX_DESCRIPTION_LENGTH;
         let get_product_limit = ShopifyGQLQueryHelper::SHOPIFY_QUERY_LIMIT;
 
         let offset = offset.unwrap_or(0) as usize;
         let limit = limit.unwrap_or(get_product_limit as u32) as usize;
 
         let mut products_cursor = None;
-        let mut all_variants: Vec<VariantSchema> = Vec::new();
+        let mut all_variants: Vec<VariantNode> = Vec::new();
 
         let first_query = ShopifyGQLQueryHelper::first_query();
+        let product_fields = Self::product_fields();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
         for i in 0..((limit + offset) / get_product_limit).max(1) {
@@ -120,15 +144,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                     products({first_query}, {products_after_query}) {{
                         edges {{
                             node {{
-                                id
-                                title
-                                handle
-                                description(truncateAt: {description_length})
-                                status
-                                category {{
-                                    id
-                                    name
-                                }}
+                                {product_fields}
                             }}
                         }}
                         {page_info}
@@ -180,6 +196,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             log::debug!("product_ids: {:?}", product_ids);
 
             let mut variants_cursor = None;
+            let variant_fields = Self::variant_fields();
             loop {
                 let variants_after_query = variants_cursor
                     .as_deref()
@@ -190,25 +207,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                         productVariants({first_query}, {variants_after_query}, query: \"product_ids:'{product_ids}'\") {{
                             edges {{
                                 node {{
-                                    id
-                                    barcode
-                                    inventoryQuantity
-                                    sku
-                                    position
-                                    price
-                                    createdAt
-                                    updatedAt
-                                    product {{
-                                        id
-                                        title
-                                        handle
-                                        description(truncateAt: {description_length})
-                                        status
-                                        category {{
-                                            id
-                                            name
-                                        }}
-                                    }}
+                                    {variant_fields}
                                 }}
                             }}
                             {page_info}
@@ -231,10 +230,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                     .ok_or(DomainError::QueryError)?
                     .product_variants;
 
-                let variants: Vec<VariantSchema> = variants_data
+                let variants: Vec<VariantNode> = variants_data
                     .edges
                     .into_iter()
-                    .map(|node| VariantSchema::from(node.node))
+                    .map(|node| node.node)
                     .collect();
 
                 all_variants.extend(variants);
@@ -250,7 +249,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             }
         }
 
-        let product_domains = VariantSchema::to_product_domains(all_variants)?;
+        let product_domains = VariantNode::to_product_domains(all_variants)?;
         log::debug!("product_domains.len(): {}", product_domains.len());
 
         let start = offset % get_product_limit;
@@ -272,13 +271,12 @@ mod tests {
     use chrono::Utc;
 
     use crate::{
-        domain::error::error::DomainError,
-        domain::product::product::ProductStatus,
+        domain::{error::error::DomainError, product::product::ProductStatus},
         infrastructure::ec::{
             ec_client_interface::MockECClient,
-            shopify::repository::{
-                schema::common::{Edges, GraphQLError, Node, PageInfo},
-                schema::product::{ProductNode, TaxonomyCategory, VariantNode},
+            shopify::repository::schema::{
+                common::{Edges, GraphQLError, Node, PageInfo},
+                product::{InventoryItemIdNode, ProductNode, TaxonomyCategory, VariantNode},
             },
         },
     };
@@ -296,6 +294,21 @@ mod tests {
             .map(|i| Node {
                 node: VariantNode {
                     id: format!("gid://shopify/ProductVariant/{i}"),
+                    title: format!("Test Variant {i}"),
+                    sku: Some("TESTSKU123".to_string()),
+                    barcode: Some("123456789012".to_string()),
+                    available_for_sale: true,
+                    position: 1,
+                    inventory_item: InventoryItemIdNode {
+                        id: format!("gid://shopify/InventoryItem/{i}"),
+                    },
+                    inventory_quantity: Some(i as i32),
+                    inventory_policy: "DENY".to_string(),
+                    price: format!("{i}.00"),
+                    taxable: true,
+                    tax_code: Some("TESTTAXCODE".to_string()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
                     product: ProductNode {
                         id: format!("gid://shopify/Product/{i}"),
                         category: Some(TaxonomyCategory {
@@ -305,13 +318,6 @@ mod tests {
                         description: format!("Test Description {i}"),
                         status: "ACTIVE".to_string(),
                     },
-                    barcode: Some("123456789012".to_string()),
-                    inventory_quantity: Some(i as i32),
-                    sku: Some("TESTSKU123".to_string()),
-                    position: 1,
-                    price: format!("{i}.00"),
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
                 },
             })
             .collect();
@@ -389,7 +395,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_success() {
+    async fn test_find_product_success() {
         let mut client = MockECClient::new();
 
         client
@@ -405,18 +411,17 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("0".to_string())).await;
+        let result = repo.find_product(&("0".to_string())).await;
 
         assert!(result.is_ok());
         let product = result.unwrap();
         assert_eq!(product.id(), "0");
         assert_eq!(*product.status(), ProductStatus::Active);
         assert_eq!(product.variants()[0].id(), "0");
-        assert_eq!(*product.variants()[0].price(), 0);
     }
 
     #[tokio::test]
-    async fn test_get_product_multiple_variants_success() {
+    async fn test_find_product_multiple_variants_success() {
         let mut client = MockECClient::new();
 
         client
@@ -439,7 +444,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("0".to_string())).await;
+        let result = repo.find_product(&("0".to_string())).await;
 
         assert!(result.is_ok());
         let product = result.unwrap();
@@ -448,21 +453,19 @@ mod tests {
 
         assert_eq!(product.variants().len(), 2);
         assert_eq!(product.variants()[0].id(), "0");
-        assert_eq!(*product.variants()[0].price(), 0);
         assert_eq!(product.variants()[1].id(), "1");
-        assert_eq!(*product.variants()[1].price(), 1);
     }
 
     #[tokio::test]
-    async fn test_get_product_with_invalid_domain_conversion() {
+    async fn test_find_product_with_invalid_domain_conversion() {
         let mut client = MockECClient::new();
 
-        let mut invalid_variant = mock_variants_response(PageOption {
+        let mut invalid_response = mock_variants_response(PageOption {
             start: 0,
             end: 1,
             has_next_page: false,
         });
-        invalid_variant
+        invalid_response
             .data
             .as_mut()
             .unwrap()
@@ -475,11 +478,11 @@ mod tests {
         client
             .expect_query::<GraphQLResponse<VariantsData>>()
             .times(1)
-            .return_once(|_| Ok(invalid_variant));
+            .return_once(|_| Ok(invalid_response));
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("0".to_string())).await;
+        let result = repo.find_product(&("0".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ValidationError) = result {
@@ -490,7 +493,78 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_with_graphql_error() {
+    async fn test_find_product_with_invalid_status() {
+        let mut client = MockECClient::new();
+
+        let mut invalid_response = mock_variants_response(PageOption {
+            start: 0,
+            end: 1,
+            has_next_page: false,
+        });
+        invalid_response
+            .data
+            .as_mut()
+            .unwrap()
+            .product_variants
+            .edges[0]
+            .node
+            .product
+            .status = "INVALID_STATUS".to_string();
+
+        client
+            .expect_query::<GraphQLResponse<VariantsData>>()
+            .times(1)
+            .return_once(|_| Ok(invalid_response));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.find_product(&("0".to_string())).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::ConversionError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ConversionError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_find_product_with_invalid_inventory_policy() {
+        let mut client = MockECClient::new();
+
+        let mut invalid_response = mock_variants_response(PageOption {
+            start: 0,
+            end: 1,
+            has_next_page: false,
+        });
+        invalid_response
+            .data
+            .as_mut()
+            .unwrap()
+            .product_variants
+            .edges[0]
+            .node
+            .inventory_policy = "INVALID_POLICY".to_string();
+
+        client
+            .expect_query::<GraphQLResponse<VariantsData>>()
+            .times(1)
+            .return_once(|_| Ok(invalid_response));
+
+        let repo = ProductRepositoryImpl::new(client);
+
+        let result = repo.find_product(&("0".to_string())).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::ConversionError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ConversionError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_find_product_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -500,7 +574,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("123456".to_string())).await;
+        let result = repo.find_product(&("123456".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -511,7 +585,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_product_with_missing_data() {
+    async fn test_find_product_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -521,7 +595,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_product(&("123456".to_string())).await;
+        let result = repo.find_product(&("123456".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -532,7 +606,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_no_pagination_success() {
+    async fn test_find_products_no_pagination_success() {
         let mut client = MockECClient::new();
 
         client
@@ -558,7 +632,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_products(&None, &None).await;
+        let result = repo.find_products(&None, &None).await;
 
         assert!(result.is_ok());
         let products = result.unwrap();
@@ -568,15 +642,13 @@ mod tests {
         assert_eq!(*(products[0].status()), ProductStatus::Active);
         assert_eq!(products[0].variants()[0].id(), "0");
 
-        assert_eq!(*products[0].variants()[0].price(), 0);
         assert_eq!(products[249].id(), "249");
         assert_eq!(*(products[0].status()), ProductStatus::Active);
         assert_eq!(products[249].variants()[0].id(), "249");
-        assert_eq!(*products[249].variants()[0].price(), 249);
     }
 
     #[tokio::test]
-    async fn test_get_products_pagination_success() {
+    async fn test_find_products_pagination_success() {
         let mut client = MockECClient::new();
 
         client
@@ -604,7 +676,7 @@ mod tests {
 
         let limit = Some(10);
         let offset = Some(20);
-        let result = repo.get_products(&limit, &offset).await;
+        let result = repo.find_products(&limit, &offset).await;
 
         assert!(result.is_ok());
         let products = result.unwrap();
@@ -618,7 +690,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_multiple_retrievals_success() {
+    async fn test_find_products_multiple_retrievals_success() {
         let mut client = MockECClient::new();
 
         client
@@ -666,7 +738,7 @@ mod tests {
 
         let limit = Some(480);
         let offset = Some(20);
-        let result = repo.get_products(&limit, &offset).await;
+        let result = repo.find_products(&limit, &offset).await;
 
         assert!(result.is_ok());
         let products = result.unwrap();
@@ -680,7 +752,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_empty_success() {
+    async fn test_find_products_empty_success() {
         let mut client = MockECClient::new();
 
         client
@@ -698,7 +770,7 @@ mod tests {
 
         let limit = Some(10);
         let offset = Some(20);
-        let result = repo.get_products(&limit, &offset).await;
+        let result = repo.find_products(&limit, &offset).await;
 
         assert!(result.is_ok());
         let products = result.unwrap();
@@ -706,7 +778,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_with_graphql_error() {
+    async fn test_find_products_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -716,7 +788,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_products(&None, &None).await;
+        let result = repo.find_products(&None, &None).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -727,7 +799,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_products_with_missing_data() {
+    async fn test_find_products_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -737,7 +809,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.get_products(&None, &None).await;
+        let result = repo.find_products(&None, &None).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {

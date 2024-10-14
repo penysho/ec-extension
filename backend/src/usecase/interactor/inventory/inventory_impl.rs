@@ -63,7 +63,6 @@ impl InventoryInteractor for InventoryInteractorImpl {
     /// # Errors
     ///
     /// Returns a domain error if the media repository fails.
-    #[allow(unused_variables)]
     async fn get_inventories_from_all_locations(
         &self,
         query: &GetInventoriesQuery,
@@ -74,21 +73,21 @@ impl InventoryInteractor for InventoryInteractorImpl {
         ),
         DomainError,
     > {
-        let location_ids = self.location_repository.get_all_location_ids().await?;
+        let location_ids = self.location_repository.find_all_location_ids().await?;
 
         // TODO: GetInventoriesQuery::ProductId
         match query {
             GetInventoriesQuery::Sku(sku) => {
                 let inventory_items = self
                     .inventory_item_repository
-                    .get_inventory_item_by_sku(sku)
+                    .find_inventory_item_by_sku(sku)
                     .await?;
 
                 let mut inventory_levels: Vec<InventoryLevel> = Vec::new();
                 for location_id in location_ids {
                     let inventory_level = self
                         .inventory_level_repository
-                        .get_inventory_level_by_sku(sku, &location_id)
+                        .find_inventory_level_by_sku(sku, &location_id)
                         .await?;
 
                     if let Some(inventory_level) = inventory_level {
@@ -134,7 +133,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
     ) -> Result<InventoryLevel, DomainError> {
         let mut inventory_level = self
             .inventory_level_repository
-            .get_inventory_level_by_sku(sku, location_id)
+            .find_inventory_level_by_sku(sku, location_id)
             .await?
             .ok_or_else(|| {
                 log::error!(

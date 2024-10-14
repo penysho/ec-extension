@@ -6,12 +6,12 @@ use crate::domain::{
 
 #[async_trait]
 pub trait MediaRepository: Send + Sync {
-    async fn get_media_by_product_id(
+    async fn find_media_by_product_id(
         &self,
         product_id: &ProductId,
     ) -> Result<Vec<Media>, DomainError>;
 
-    async fn get_media_by_product_ids(
+    async fn find_media_by_product_ids(
         &self,
         product_ids: Vec<&ProductId>,
     ) -> Result<Vec<Media>, DomainError>;

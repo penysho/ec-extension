@@ -119,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inventory_change_with_available_and_invalid_ledger_document_uri() {
+    fn test_new_with_available_and_invalid_ledger_document_uri() {
         let change_with_ledger_uri = mock_change(
             10,
             Some(LedgerDocumentUri::new("https://example.com/document").unwrap()),
@@ -140,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inventory_change_with_available_and_no_ledger_document_uri() {
+    fn test_new_with_available_and_no_ledger_document_uri() {
         let change_without_ledger_uri = mock_change(10, None);
 
         let result = InventoryChange::new(
@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inventory_change_with_non_available_and_missing_ledger_document_uri() {
+    fn test_new_with_non_available_and_missing_ledger_document_uri() {
         let change_without_ledger_uri = mock_change(10, None);
 
         let result = InventoryChange::new(
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn test_inventory_change_with_non_available_and_valid_ledger_document_uri() {
+    fn test_new_with_non_available_and_valid_ledger_document_uri() {
         let change_with_ledger_uri = mock_change(
             10,
             Some(LedgerDocumentUri::new("https://example.com/document").unwrap()),

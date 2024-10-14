@@ -14,7 +14,7 @@ use crate::{
                 query_helper::ShopifyGQLQueryHelper,
                 repository::schema::{
                     common::GraphQLResponse,
-                    media::{MediaData, MediaNode, MediaSchema},
+                    media::{MediaData, MediaNode},
                 },
             },
         },
@@ -32,30 +32,49 @@ impl<C: ECClient> MediaRepositoryImpl<C> {
     pub fn new(client: C) -> Self {
         Self { client }
     }
+
+    pub fn image_fields() -> String {
+        "altText
+        height
+        id
+        url
+        width"
+            .to_string()
+    }
+
+    fn media_fields() -> String {
+        let image_fields = Self::image_fields();
+
+        format!(
+            "id
+            fileStatus
+            alt
+            preview {{
+                image {{
+                    {image_fields}
+                }}
+            }}
+            createdAt
+            updatedAt"
+        )
+    }
 }
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
     /// Obtain media associated with a single product ID.
-    async fn get_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
+    async fn find_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
+        let media_fields = Self::media_fields();
 
+        // The number of media associated with a single product shall not exceed 250.
         let query = format!(
             "query {{
                 files({first_query}, query: \"product_id:'{id}'\") {{
                     edges {{
                         node {{
-                            id
-                            fileStatus
-                            alt
-                            preview {{
-                                image {{
-                                    url
-                                }}
-                            }}
-                            createdAt
-                            updatedAt
+                            {media_fields}
                         }}
                     }}
                     {page_info}
@@ -69,28 +88,28 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
             return Err(DomainError::QueryError);
         }
 
-        let data = graphql_response.data.ok_or(DomainError::QueryError)?.files;
-
-        let media: Vec<MediaSchema> = data
+        let media_domains: Result<Vec<Media>, DomainError> = graphql_response
+            .data
+            .ok_or(DomainError::QueryError)?
+            .files
             .edges
             .into_iter()
-            .map(|node| MediaSchema::from(node.node))
-            .collect();
-
-        let media_domains: Result<Vec<Media>, DomainError> = media
-            .into_iter()
-            .map(|product| product.to_domain(Some(AssociatedId::Product(id.to_string()))))
+            .map(|node| {
+                node.node
+                    .to_domain(Some(AssociatedId::Product(id.to_string())))
+            })
             .collect();
 
         media_domains
     }
 
     /// Obtain media associated with multiple product IDs.
-    async fn get_media_by_product_ids(
+    async fn find_media_by_product_ids(
         &self,
         product_ids: Vec<&ProductId>,
     ) -> Result<Vec<Media>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
+        let media_fields = Self::media_fields();
 
         let mut query = String::from("query { ");
         for (i, id) in product_ids.iter().enumerate() {
@@ -99,16 +118,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                 "{}: files({}, query: \"product_id:'{}'\") {{
                     edges {{
                         node {{
-                            id
-                            fileStatus
-                            alt
-                            preview {{
-                                image {{
-                                    url
-                                }}
-                            }}
-                            createdAt
-                            updatedAt
+                            {media_fields}
                         }}
                     }}
                 }}",
@@ -133,7 +143,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
             return Err(DomainError::QueryError);
         }
 
-        let mut media_schemas = Vec::new();
+        let mut media_nodes = Vec::new();
         for (i, _) in product_ids.iter().enumerate() {
             let alias = format!("i{}", i);
 
@@ -144,8 +154,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                         let v: MediaNode = serde_json::from_value(node.clone()).map_err(|e| {
                             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
                         })?;
-                        let media_schema = MediaSchema::from(v);
-                        media_schemas.push(media_schema);
+                        media_nodes.push(v);
                     }
                 }
             } else {
@@ -153,8 +162,8 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
             }
         }
 
-        let media_domains: Result<Vec<Media>, DomainError> = MediaSchema::to_domains(
-            media_schemas,
+        let media_domains: Result<Vec<Media>, DomainError> = MediaNode::to_domains(
+            media_nodes,
             product_ids
                 .into_iter()
                 .map(|id| Some(AssociatedId::Product(id.to_string())))
@@ -171,14 +180,20 @@ mod tests {
     use serde_json::{json, Value};
 
     use crate::{
-        domain::{error::error::DomainError, media::media::MediaStatus},
+        domain::{
+            error::error::DomainError,
+            media::{
+                associated_id::associated_id::AssociatedId, media::MediaStatus,
+                media_content::media_content::MediaContent,
+            },
+        },
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
                 media::media_impl::MediaRepositoryImpl,
                 schema::{
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
-                    media::{Image, MediaData, MediaNode, MediaPreviewImage},
+                    media::{ImageNode, MediaData, MediaNode, MediaPreviewImage},
                 },
             },
         },
@@ -193,8 +208,12 @@ mod tests {
                     file_status: "UPLOADED".to_string(),
                     alt: Some(format!("Alt text for media {i}")),
                     preview: Some(MediaPreviewImage {
-                        image: Some(Image {
+                        image: Some(ImageNode {
+                            id: Some(format!("gid://shopify/MediaImage/{i}")),
+                            alt_text: Some(format!("Alt text for image {i}")),
                             url: format!("https://example.com/MediaImage/{i}.jpg"),
+                            height: Some(600),
+                            width: Some(500),
                         }),
                     }),
                     created_at: Utc::now(),
@@ -284,7 +303,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_id_success() {
+    async fn test_find_media_by_product_id_success() {
         let mut client = MockECClient::new();
 
         client
@@ -294,59 +313,71 @@ mod tests {
 
         let repo = MediaRepositoryImpl::new(client);
 
-        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+        let result = repo.find_media_by_product_id(&"123456".to_string()).await;
 
         assert!(result.is_ok());
         let media = result.unwrap();
         assert_eq!(media.len(), 10);
+
         assert_eq!(media[0].id(), "0");
         assert_eq!(*media[0].status(), MediaStatus::Active);
+        let image = match media[0].content() {
+            Some(MediaContent::Image(image)) => image,
+            _ => panic!("Expected MediaContent::Image"),
+        };
         assert_eq!(
-            media[0].published_src().as_ref().unwrap().value(),
+            image.associated_id(),
+            &Some(AssociatedId::Product("123456".to_string()))
+        );
+        assert_eq!(
+            image.published_src().as_ref().unwrap().value(),
             "https://example.com/MediaImage/0.jpg"
         );
-        assert_eq!(media[0].alt().as_deref().unwrap(), "Alt text for media 0");
 
         assert_eq!(media[9].id(), "9");
         assert_eq!(*media[9].status(), MediaStatus::Active);
+        let image = match media[9].content() {
+            Some(MediaContent::Image(image)) => image,
+            _ => panic!("Expected MediaContent::Image"),
+        };
         assert_eq!(
-            media[9].published_src().as_ref().unwrap().value(),
+            image.associated_id(),
+            &Some(AssociatedId::Product("123456".to_string()))
+        );
+        assert_eq!(
+            image.published_src().as_ref().unwrap().value(),
             "https://example.com/MediaImage/9.jpg"
         );
-        assert_eq!(media[9].alt().as_deref().unwrap(), "Alt text for media 9");
     }
 
     #[tokio::test]
-    async fn get_media_by_product_id_with_invalid_domain_conversion() {
+    async fn test_find_media_by_product_id_with_invalid_file_status() {
         let mut client = MockECClient::new();
 
-        let mut invalid_variant = mock_media_response(1);
-        invalid_variant.data.as_mut().unwrap().files.edges[0]
+        let mut invalid_response = mock_media_response(1);
+        invalid_response.data.as_mut().unwrap().files.edges[0]
             .node
-            .file_status = "UPLOADED".to_string();
-        invalid_variant.data.as_mut().unwrap().files.edges[0]
-            .node
-            .preview = None;
+            .file_status = "INVALID_STATUS".to_string();
 
         client
             .expect_query::<GraphQLResponse<MediaData>>()
             .times(1)
-            .return_once(|_| Ok(invalid_variant));
+            .return_once(|_| Ok(invalid_response));
 
         let repo = MediaRepositoryImpl::new(client);
 
-        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+        let result = repo.find_media_by_product_id(&"123456".to_string()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::ValidationError) = result {
+        if let Err(DomainError::ConversionError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::ValidationError, but got something else");
+            panic!("Expected DomainError::ConversionError, but got something else");
         }
     }
 
     #[tokio::test]
-    async fn get_media_by_product_id_with_graphql_error() {
+    async fn test_find_media_by_product_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_error = mock_with_error();
@@ -358,7 +389,7 @@ mod tests {
 
         let repo = MediaRepositoryImpl::new(client);
 
-        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+        let result = repo.find_media_by_product_id(&"123456".to_string()).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -369,7 +400,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_id_with_missing_data() {
+    async fn test_find_media_by_product_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         let graphql_response_with_no_data = mock_with_no_data();
@@ -381,7 +412,7 @@ mod tests {
 
         let repo = MediaRepositoryImpl::new(client);
 
-        let result = repo.get_media_by_product_id(&"123456".to_string()).await;
+        let result = repo.find_media_by_product_id(&"123456".to_string()).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -392,7 +423,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_ids_success() {
+    async fn test_find_media_by_product_ids_success() {
         let mut client = MockECClient::new();
 
         client
@@ -403,7 +434,7 @@ mod tests {
         let repo = MediaRepositoryImpl::new(client);
 
         let result = repo
-            .get_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
+            .find_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
             .await;
 
         assert!(result.is_ok());
@@ -414,7 +445,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_ids_with_graphql_error() {
+    async fn test_find_media_by_product_ids_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -425,7 +456,7 @@ mod tests {
         let repo = MediaRepositoryImpl::new(client);
 
         let result = repo
-            .get_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
+            .find_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
             .await;
 
         assert!(result.is_err());
@@ -437,7 +468,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_media_by_product_ids_with_missing_data() {
+    async fn test_find_media_by_product_ids_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -448,7 +479,7 @@ mod tests {
         let repo = MediaRepositoryImpl::new(client);
 
         let result = repo
-            .get_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
+            .find_media_by_product_ids(vec![&"1".to_string(), &"2".to_string()])
             .await;
 
         assert!(result.is_err());

@@ -19,7 +19,7 @@ use crate::{
                     inventory_item::InventoryItemsData,
                     inventory_level::{
                         InventoryAdjustQuantitiesData, InventoryAdjustQuantitiesInput,
-                        InventoryLevelSchema,
+                        InventoryLevelNode,
                     },
                 },
             },
@@ -46,7 +46,7 @@ impl<C: ECClient> InventoryLevelRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepositoryImpl<C> {
     /// Get inventory level information by sku.
-    async fn get_inventory_level_by_sku(
+    async fn find_inventory_level_by_sku(
         &self,
         sku: &Sku,
         location_id: &LocationId,
@@ -97,20 +97,16 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             return Err(DomainError::QueryError);
         }
 
-        let inventories: Vec<InventoryLevelSchema> = graphql_response
+        let nodes: Vec<InventoryLevelNode> = graphql_response
             .data
             .ok_or(DomainError::QueryError)?
             .inventory_items
             .edges
             .into_iter()
-            .filter_map(|node| {
-                node.node
-                    .inventory_level
-                    .map(|level| InventoryLevelSchema::from(level))
-            })
+            .filter_map(|node| node.node.inventory_level)
             .collect();
 
-        let domains = InventoryLevelSchema::to_domains(inventories)?;
+        let domains = InventoryLevelNode::to_domains(nodes)?;
 
         if domains.is_empty() {
             log::info!("No inventory level found for sku: {sku}, location: {location_id}");
@@ -198,7 +194,7 @@ mod tests {
         usecase::repository::inventory_level_repository_interface::InventoryLevelRepository,
     };
 
-    fn mock_inventory(id: u32) -> InventoryItemNode {
+    fn mock_inventory_item(id: u32) -> InventoryItemNode {
         InventoryItemNode {
             id: format!("gid://shopify/InventoryItem/{id}"),
             variant: VariantIdNode {
@@ -237,7 +233,7 @@ mod tests {
     fn mock_inventory_items_response(count: usize) -> GraphQLResponse<InventoryItemsData> {
         let nodes: Vec<Node<InventoryItemNode>> = (0..count)
             .map(|i: usize| Node {
-                node: mock_inventory(i as u32),
+                node: mock_inventory_item(i as u32),
             })
             .collect();
 
@@ -318,7 +314,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_level_by_sku_success() {
+    async fn test_find_inventory_level_by_sku_success() {
         let mut client = MockECClient::new();
 
         client
@@ -329,7 +325,7 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
             .await;
 
         assert!(result.is_ok());
@@ -351,7 +347,45 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_level_by_sku_with_graphql_error() {
+    async fn test_find_inventory_level_by_sku_with_invalid_inventory_type() {
+        let mut client = MockECClient::new();
+
+        let mut invalid_response = mock_inventory_items_response(1);
+
+        invalid_response
+            .data
+            .as_mut()
+            .unwrap()
+            .inventory_items
+            .edges[0]
+            .node
+            .inventory_level
+            .as_mut()
+            .unwrap()
+            .quantities[0]
+            .name = "invalid".to_string();
+
+        client
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| Ok(invalid_response));
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo
+            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::ConversionError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::ConversionError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_find_inventory_level_by_sku_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -362,7 +396,7 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
             .await;
 
         assert!(result.is_err());
@@ -374,7 +408,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_inventory_level_by_sku_with_missing_data() {
+    async fn test_find_inventory_level_by_sku_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -385,7 +419,7 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .get_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
             .await;
 
         assert!(result.is_err());

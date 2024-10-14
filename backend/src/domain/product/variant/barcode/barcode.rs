@@ -19,8 +19,8 @@ pub struct Barcode {
 }
 
 impl Barcode {
-    pub fn new(value: impl Into<String>) -> Result<Barcode, DomainError> {
-        Ok(Barcode {
+    pub fn new(value: impl Into<String>) -> Result<Self, DomainError> {
+        Ok(Self {
             value: value.into(),
         })
     }

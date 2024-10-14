@@ -13,7 +13,17 @@ use derive_more::{Display, Error};
 /// - `ValidationError` - Represents a domain logic validation failure.
 /// - `NotFound` - Indicates that the requested resource could not be found.
 /// - `InvalidRequest` - Represents an invalid request schema.
-#[derive(Debug, Display, Error)]
+/// - `ConversionError` - Conversion to entity failed.
+///
+/// # Example
+/// ```
+/// use backend::domain::error::error::DomainError;
+///
+/// let error = DomainError::ValidationError;
+/// println!("Error: {}", error); // Output: Error: Validation error in domain logic.
+/// ```
+///
+#[derive(Debug, Display, Error, PartialEq)]
 pub enum DomainError {
     /// Indicates an unexpected system error.
     #[display(fmt = "System error.")]
@@ -38,4 +48,8 @@ pub enum DomainError {
     /// Represents an invalid request schema.
     #[display(fmt = "Invalid request schema.")]
     InvalidRequest,
+
+    /// Conversion to entity failed.
+    #[display(fmt = "Failed to convert to entity.")]
+    ConversionError,
 }

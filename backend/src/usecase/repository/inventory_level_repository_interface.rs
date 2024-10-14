@@ -11,7 +11,7 @@ use crate::domain::{
 
 #[async_trait]
 pub trait InventoryLevelRepository: Send + Sync {
-    async fn get_inventory_level_by_sku(
+    async fn find_inventory_level_by_sku(
         &self,
         sku: &Sku,
         location_id: &LocationId,

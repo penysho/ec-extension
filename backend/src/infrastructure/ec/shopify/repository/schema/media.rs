@@ -7,6 +7,7 @@ use crate::{
         media::{
             associated_id::associated_id::AssociatedId,
             media::{Media, MediaStatus},
+            media_content::{image::image::Image, media_content::MediaContent},
             src::src::Src,
         },
     },
@@ -15,55 +16,32 @@ use crate::{
     },
 };
 
-#[derive(Debug, Deserialize)]
-pub struct MediaSchema {
-    pub id: String,
-    pub status: String,
-    pub alt: Option<String>,
-    pub src: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-impl From<MediaNode> for MediaSchema {
-    fn from(node: MediaNode) -> Self {
-        MediaSchema {
-            id: node.id,
-            status: node.file_status,
-            alt: node.alt,
-            src: node.preview.and_then(|p| p.image).map(|i| i.url),
-            created_at: node.created_at,
-            updated_at: node.updated_at,
-        }
-    }
-}
-
-impl MediaSchema {
+impl MediaNode {
     pub fn to_domain(self, associated_id: Option<AssociatedId>) -> Result<Media, DomainError> {
-        let status = match self.status.as_str() {
-            "UPLOADED" | "READY" => MediaStatus::Active,
-            "FAILED" => MediaStatus::Inactive,
-            "PROCESSING" => MediaStatus::InPreparation,
-            _ => MediaStatus::Inactive,
-        };
+        let status = match self.file_status.as_str() {
+            "UPLOADED" | "READY" => Ok(MediaStatus::Active),
+            "FAILED" => Ok(MediaStatus::Inactive),
+            "PROCESSING" => Ok(MediaStatus::InPreparation),
+            _ => Err(DomainError::ConversionError),
+        }?;
 
-        let published_src = self.src.map(Src::new).transpose()?;
+        let image = match self.preview.and_then(|p| p.image) {
+            Some(i) => Some(MediaContent::Image(i.to_domain(associated_id)?)),
+            None => None,
+        };
 
         Media::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            associated_id,
             None::<String>,
             status,
-            self.alt,
-            None,
-            published_src,
+            image,
             self.created_at,
             self.updated_at,
         )
     }
 
     pub fn to_domains(
-        schemas: Vec<MediaSchema>,
+        schemas: Vec<Self>,
         associated_ids: Vec<Option<AssociatedId>>,
     ) -> Result<Vec<Media>, DomainError> {
         schemas
@@ -74,16 +52,24 @@ impl MediaSchema {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct Image {
-    pub url: String,
+impl ImageNode {
+    pub fn to_domain(self, associated_id: Option<AssociatedId>) -> Result<Image, DomainError> {
+        let id = match self.id {
+            Some(id) => ShopifyGQLQueryHelper::remove_gid_prefix(&id),
+            None => return Err(DomainError::ConversionError),
+        };
+        let src = Src::new(self.url)?;
+
+        Image::new(id, associated_id, self.alt_text, None, Some(src))
+    }
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MediaPreviewImage {
-    pub image: Option<Image>,
+pub struct MediaData {
+    pub files: Edges<MediaNode>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct MediaNode {
     pub id: String,
@@ -98,6 +84,17 @@ pub struct MediaNode {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MediaData {
-    pub files: Edges<MediaNode>,
+pub struct MediaPreviewImage {
+    pub image: Option<ImageNode>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+pub struct ImageNode {
+    pub id: Option<String>,
+    #[serde(rename = "altText")]
+    pub alt_text: Option<String>,
+    pub height: Option<i32>,
+    pub width: Option<i32>,
+    pub url: String,
 }

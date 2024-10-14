@@ -19,8 +19,8 @@ pub struct Sku {
 }
 
 impl Sku {
-    pub fn new(value: impl Into<String>) -> Result<Sku, DomainError> {
-        Ok(Sku {
+    pub fn new(value: impl Into<String>) -> Result<Self, DomainError> {
+        Ok(Self {
             value: value.into(),
         })
     }

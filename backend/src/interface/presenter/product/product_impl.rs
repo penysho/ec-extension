@@ -6,7 +6,10 @@ use async_trait::async_trait;
 use crate::{
     domain::{
         error::error::DomainError,
-        media::{associated_id::associated_id::AssociatedId, media::Media},
+        media::{
+            associated_id::associated_id::AssociatedId, media::Media,
+            media_content::media_content::MediaContent,
+        },
         product::product::Product,
     },
     interface::presenter::{
@@ -18,7 +21,7 @@ use crate::{
     },
 };
 
-/// Generate a response schema for the product
+/// Generate a response schema for the product.
 pub struct ProductPresenterImpl;
 impl ProductPresenterImpl {
     pub fn new() -> Self {
@@ -42,13 +45,20 @@ impl ProductPresenter for ProductPresenterImpl {
             Err(_) => return Err(GetProductResponseError::ServiceUnavailable),
         };
 
-        let _ = media.iter().map(|m| match m.associated_id() {
-            Some(id) if id.clone() != AssociatedId::Product(product.id().clone()) => {
-                Err(DomainError::SystemError)
-            }
-            None => Err(DomainError::SystemError),
-            _ => Ok(m),
-        });
+        for medium in media.iter() {
+            let image = match medium.content() {
+                Some(MediaContent::Image(image)) => image,
+                None => continue,
+            };
+
+            let _ = match image.associated_id() {
+                Some(id) if id.clone() != AssociatedId::Product(product.id().clone()) => {
+                    Err(DomainError::SystemError)
+                }
+                None => Err(DomainError::SystemError),
+                _ => Ok(medium),
+            };
+        }
 
         let schema = ProductSchema::to_schema(product, media);
         Ok(web::Json(GetProductResponse { product: schema }))
@@ -72,7 +82,15 @@ impl ProductPresenter for ProductPresenterImpl {
 
         let mut media_map: HashMap<AssociatedId, Vec<Media>> =
             media.into_iter().fold(HashMap::new(), |mut accum, medium| {
-                if let Some(associated_id) = medium.associated_id() {
+                let image = match medium.content() {
+                    Some(MediaContent::Image(image)) => Some(image),
+                    None => None,
+                };
+                if image.is_none() {
+                    return accum;
+                }
+
+                if let Some(associated_id) = image.unwrap().associated_id() {
                     accum
                         .entry(associated_id.to_owned())
                         .or_insert_with(Vec::new)
@@ -105,11 +123,17 @@ mod tests {
     use crate::domain::{
         media::{
             media::{Media, MediaStatus},
+            media_content::image::image::Image,
             src::src::Src,
         },
+        money::money::money::Money,
         product::{
             product::ProductStatus,
-            variant::{barcode::barcode::Barcode, sku::sku::Sku, variant::Variant},
+            variant::{
+                barcode::barcode::Barcode,
+                sku::sku::Sku,
+                variant::{InventoryPolicy, Variant},
+            },
         },
     };
 
@@ -126,11 +150,16 @@ mod tests {
                     vec![Variant::new(
                         format!("{i}"),
                         Some(format!("Test Variant {i}")),
-                        100,
-                        Some(Sku::new("TESTSKU123").unwrap()),
-                        Some(Barcode::new("123456789012").unwrap()),
-                        Some(50),
+                        Some(Sku::new("ABC123").unwrap()),
+                        Some(Barcode::new("1234567890").unwrap()),
+                        true,
                         1,
+                        "test_inventory_id",
+                        InventoryPolicy::Continue,
+                        Some(1),
+                        Money::new(100.0).unwrap(),
+                        true,
+                        Some("tax_code".to_string()),
                         Utc::now(),
                         Utc::now(),
                     )
@@ -147,12 +176,24 @@ mod tests {
             .map(|i| {
                 Media::new(
                     format!("{i}"),
-                    Some(AssociatedId::Product(format!("{i}"))),
                     Some(format!("Test Media {i}")),
                     MediaStatus::Active,
-                    Some(format!("{}", i)),
-                    Some(Src::new(format!("https://example.com/uploaded_{}.jpg", i)).unwrap()),
-                    Some(Src::new(format!("https://example.com/published_{}.jpg", i)).unwrap()),
+                    Some(MediaContent::Image(
+                        Image::new(
+                            format!("{i}"),
+                            Some(AssociatedId::Product(format!("{i}"))),
+                            Some(format!("Alt Text {i}")),
+                            Some(
+                                Src::new(format!("https://example.com/uploaded_{}.jpg", i))
+                                    .unwrap(),
+                            ),
+                            Some(
+                                Src::new(format!("https://example.com/published_{}.jpg", i))
+                                    .unwrap(),
+                            ),
+                        )
+                        .unwrap(),
+                    )),
                     Utc::now(),
                     Utc::now(),
                 )

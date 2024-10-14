@@ -1,5 +1,8 @@
 use crate::domain::{
-    media::media::{Media, MediaStatus},
+    media::{
+        media::{Media, MediaStatus},
+        media_content::media_content::MediaContent,
+    },
     product::{
         product::{Product, ProductStatus},
         variant::variant::Variant,
@@ -12,6 +15,11 @@ use super::schema::{
 
 impl From<Media> for MediaSchema {
     fn from(media: Media) -> Self {
+        let image = match media.content() {
+            Some(MediaContent::Image(image)) => Some(image),
+            None => None,
+        };
+
         MediaSchema {
             id: media.id().to_string(),
             name: media.name().to_owned(),
@@ -20,8 +28,10 @@ impl From<Media> for MediaSchema {
                 MediaStatus::Inactive => MediaStatusEnum::Inactive,
                 MediaStatus::InPreparation => MediaStatusEnum::InPreparation,
             },
-            alt: media.alt().to_owned(),
-            src: media.published_src().as_ref().map(|s| s.value().to_owned()),
+            alt: image.and_then(|image| image.alt().to_owned()),
+            src: image
+                .and_then(|image| image.published_src().to_owned())
+                .map(|src| src.value().to_owned()),
             created_at: media.created_at().to_owned(),
             updated_at: media.updated_at().to_owned(),
         }
@@ -33,7 +43,7 @@ impl From<&Variant> for VariantSchema {
         VariantSchema {
             id: variant.id().to_string(),
             name: variant.name().to_owned(),
-            price: *(variant.price()),
+            price: *variant.price().value() as u32,
             sku: variant.sku().as_ref().map(|sku| sku.value().to_owned()),
             barcode: variant
                 .barcode()
