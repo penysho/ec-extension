@@ -2,8 +2,8 @@ use crate::domain::address::address::Address;
 
 use super::schema::AddressSchema;
 
-impl From<&Address> for AddressSchema {
-    fn from(address: &Address) -> Self {
+impl From<Address> for AddressSchema {
+    fn from(address: Address) -> Self {
         Self {
             address1: address.address1().to_owned(),
             address2: address.address2().to_owned(),

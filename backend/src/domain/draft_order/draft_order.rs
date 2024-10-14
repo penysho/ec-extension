@@ -22,8 +22,8 @@ pub struct DraftOrder {
     status: DraftOrderStatus,
 
     customer_id: Option<CustomerId>,
-    billing_address: Address,
-    shipping_address: Address,
+    billing_address: Option<Address>,
+    shipping_address: Option<Address>,
     note: Option<String>,
 
     /// The list of the line items in the draft order.
@@ -60,8 +60,8 @@ impl DraftOrder {
         name: impl Into<String>,
         status: DraftOrderStatus,
         customer_id: Option<CustomerId>,
-        billing_address: Address,
-        shipping_address: Address,
+        billing_address: Option<Address>,
+        shipping_address: Option<Address>,
         note: Option<String>,
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
@@ -119,8 +119,8 @@ impl DraftOrder {
     /// Create an entity in its initial state.
     pub fn create(
         customer_id: Option<CustomerId>,
-        billing_address: Address,
-        shipping_address: Address,
+        billing_address: Option<Address>,
+        shipping_address: Option<Address>,
         note: Option<impl Into<String>>,
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
@@ -197,20 +197,22 @@ mod tests {
             .collect()
     }
 
-    fn mock_address() -> Address {
-        Address::new(
-            Some("123 Main St"),
-            None::<String>,
-            Some("City"),
-            true,
-            Some("Country"),
-            Some("John"),
-            Some("Doe"),
-            Some("Province"),
-            Some("12345"),
-            Some("+1234567890"),
+    fn mock_address() -> Option<Address> {
+        Some(
+            Address::new(
+                Some("123 Main St"),
+                None::<String>,
+                Some("City"),
+                true,
+                Some("Country"),
+                Some("John"),
+                Some("Doe"),
+                Some("Province"),
+                Some("12345"),
+                Some("+1234567890"),
+            )
+            .expect("Failed to create mock address"),
         )
-        .expect("Failed to create mock address")
     }
 
     /// Helper to create a valid `DraftOrder` for testing.

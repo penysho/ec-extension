@@ -131,20 +131,22 @@ mod tests {
             .collect()
     }
 
-    fn mock_address() -> Address {
-        Address::new(
-            Some("123 Main St"),
-            None::<String>,
-            Some("City"),
-            true,
-            Some("Country"),
-            Some("John"),
-            Some("Doe"),
-            Some("Province"),
-            Some("12345"),
-            Some("+1234567890"),
+    fn mock_address() -> Option<Address> {
+        Some(
+            Address::new(
+                Some("123 Main St"),
+                None::<String>,
+                Some("City"),
+                true,
+                Some("Country"),
+                Some("John"),
+                Some("Doe"),
+                Some("Province"),
+                Some("12345"),
+                Some("+1234567890"),
+            )
+            .expect("Failed to create mock address"),
         )
-        .expect("Failed to create mock address")
     }
 
     #[actix_web::test]

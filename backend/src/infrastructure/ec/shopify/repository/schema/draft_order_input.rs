@@ -9,8 +9,8 @@ impl From<DraftOrder> for DraftOrderInput {
     fn from(draft_order: DraftOrder) -> Self {
         Self {
             purchasing_entity: draft_order.customer_id().to_owned().map(|p| p.into()),
-            billing_address: Some(draft_order.billing_address().to_owned().into()),
-            shipping_address: Some(draft_order.shipping_address().to_owned().into()),
+            billing_address: draft_order.billing_address().to_owned().map(|a| a.into()),
+            shipping_address: draft_order.shipping_address().to_owned().map(|a| a.into()),
             note: draft_order.note().to_owned(),
             line_items: draft_order.line_items().iter().map(|l| l.into()).collect(),
             reserve_inventory_until: draft_order.reserve_inventory_until().to_owned(),

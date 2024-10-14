@@ -23,8 +23,8 @@ impl DraftOrderNode {
             status,
             self.customer
                 .map(|c| ShopifyGQLQueryHelper::remove_gid_prefix(&c.id)),
-            self.billing_address.to_domain()?,
-            self.shipping_address.to_domain()?,
+            self.billing_address.map(|a| a.to_domain()).transpose()?,
+            self.shipping_address.map(|a| a.to_domain()).transpose()?,
             self.note2,
             self.line_items
                 .edges
@@ -69,9 +69,9 @@ pub struct DraftOrderNode {
 
     pub customer: Option<CustomerIdNode>,
     #[serde(rename = "billingAddress")]
-    pub billing_address: AddressNode,
+    pub billing_address: Option<AddressNode>,
     #[serde(rename = "shippingAddress")]
-    pub shipping_address: AddressNode,
+    pub shipping_address: Option<AddressNode>,
     pub note2: Option<String>,
 
     #[serde(rename = "lineItems")]

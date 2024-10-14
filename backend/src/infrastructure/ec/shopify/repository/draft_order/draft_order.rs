@@ -233,9 +233,9 @@ mod tests {
         }
     }
 
-    fn mock_address(address1: Option<impl Into<String>>) -> AddressNode {
+    fn mock_address(address1: Option<impl Into<String>>) -> Option<AddressNode> {
         let address1 = address1.map(|a| a.into());
-        AddressNode {
+        Some(AddressNode {
             address1: address1,
             address2: Some("Apt 123".to_string()),
             city: Some("Test City".to_string()),
@@ -246,7 +246,7 @@ mod tests {
             province: Some("Test Province".to_string()),
             zip: Some("12345".to_string()),
             phone: Some("+1234567890".to_string()),
-        }
+        })
     }
 
     fn mock_draft_orders_response(count: usize) -> GraphQLResponse<DraftOrdersData> {
