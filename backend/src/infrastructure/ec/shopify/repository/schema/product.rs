@@ -149,7 +149,7 @@ pub struct VariantNode {
     #[serde(rename = "inventoryPolicy")]
     pub inventory_policy: String,
 
-    pub price: String,
+    pub price: String, // Money objcets. Define with string because it is not MoneyV2.
     pub taxable: bool,
     #[serde(rename = "taxCode")]
     pub tax_code: Option<String>,

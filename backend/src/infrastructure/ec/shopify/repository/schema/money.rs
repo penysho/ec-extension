@@ -30,6 +30,7 @@ impl MoneyNode {
 
 #[derive(Debug, Deserialize)]
 pub struct MoneyBagNode {
+    #[serde(rename = "shopMoney")]
     pub shop_money: MoneyNode,
 }
 

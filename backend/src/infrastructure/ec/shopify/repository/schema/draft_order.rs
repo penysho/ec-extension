@@ -38,7 +38,7 @@ impl DraftOrderNode {
                 .map(|c| ShopifyGQLQueryHelper::remove_gid_prefix(&c.id)),
             self.billing_address.to_domain()?,
             self.shipping_address.to_domain()?,
-            self.note,
+            self.note2,
             self.order
                 .map(|o| ShopifyGQLQueryHelper::remove_gid_prefix(&o.id)),
             self.completed_at,
@@ -92,7 +92,7 @@ pub struct DraftOrderNode {
     pub billing_address: AddressNode,
     #[serde(rename = "shippingAddress")]
     pub shipping_address: AddressNode,
-    pub note: Option<String>,
+    pub note2: Option<String>,
 
     pub order: Option<OrderIdNode>,
 

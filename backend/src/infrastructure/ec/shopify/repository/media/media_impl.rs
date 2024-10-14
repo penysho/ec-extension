@@ -209,7 +209,7 @@ mod tests {
                     alt: Some(format!("Alt text for media {i}")),
                     preview: Some(MediaPreviewImage {
                         image: Some(ImageNode {
-                            id: format!("gid://shopify/MediaImage/{i}"),
+                            id: Some(format!("gid://shopify/MediaImage/{i}")),
                             alt_text: Some(format!("Alt text for image {i}")),
                             url: format!("https://example.com/MediaImage/{i}.jpg"),
                             height: Some(600),

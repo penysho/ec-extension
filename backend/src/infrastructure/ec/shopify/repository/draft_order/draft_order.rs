@@ -52,27 +52,32 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                             name
                             status
                             lineItems({first_query}) {{
-                                id
-                                isCustom
-                                variant {{
-                                    id
-                                }}
-                                quantity
-                                discount {{
-                                    title
-                                    description
-                                    value
-                                    valueType
-                                    amountSet {{
-                                        {money_bag_fields}
+                                edges {{
+                                    node {{
+                                        id
+                                        custom
+                                        variant {{
+                                            id
+                                        }}
+                                        quantity
+                                        appliedDiscount {{
+                                            title
+                                            description
+                                            value
+                                            valueType
+                                            amountSet {{
+                                                {money_bag_fields}
+                                            }}
+                                        }}
+                                        discountedTotalSet {{
+                                            {money_bag_fields}
+                                        }}
+                                        originalTotalSet {{
+                                            {money_bag_fields}
+                                        }}
                                     }}
                                 }}
-                                discountedTotalSet {{
-                                    {money_bag_fields}
-                                }}
-                                originalTotalSet {{
-                                    {money_bag_fields}
-                                }}
+                                {page_info}
                             }}
                             reserveInventoryUntil
                             subtotalPriceSet {{
@@ -101,7 +106,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                             shippingAddress {{
                                 {address_fields}
                             }}
-                            note
+                            note2
                             order {{
                                 id
                             }}
@@ -185,7 +190,7 @@ mod tests {
             }),
             billing_address: mock_address(id),
             shipping_address: mock_address(id),
-            note: Some("Test note".to_string()),
+            note2: Some("Test note".to_string()),
             order: Some(OrderIdNode {
                 id: format!("gid://shopify/Order/{id}"),
             }),
@@ -198,22 +203,22 @@ mod tests {
     fn mock_line_item(id: u32) -> LineItemNode {
         LineItemNode {
             id: format!("gid://shopify/LineItem/{id}"),
-            is_custom: false,
+            custom: false,
             variant: Some(VariantIdNode {
                 id: format!("gid://shopify/Variant/{id}"),
             }),
             quantity: 2,
-            discount: Some(create_test_discount_node()),
+            applied_discount: Some(mock_discount()),
             discounted_total_set: mock_money_bag("90.00", "USD"),
             original_total_set: mock_money_bag("100.00", "USD"),
         }
     }
 
-    fn create_test_discount_node() -> DiscountNode {
+    fn mock_discount() -> DiscountNode {
         DiscountNode {
             title: Some("Test Discount".to_string()),
             description: "Test discount description".to_string(),
-            value: "10.00".to_string(),
+            value: 10.00,
             value_type: "FIXED_AMOUNT".to_string(),
             amount_set: mock_money_bag("10.00", "USD"),
         }

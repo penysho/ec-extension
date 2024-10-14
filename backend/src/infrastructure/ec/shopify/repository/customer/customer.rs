@@ -132,7 +132,7 @@ mod tests {
             email: Some("test@example.com".to_string()),
             first_name: Some("Test".to_string()),
             last_name: Some("Customer".to_string()),
-            image: Some(mock_image(id)),
+            image: mock_image(id),
             phone: Some("+1234567890".to_string()),
             note: Some("Test note".to_string()),
             state: "ENABLED".to_string(),
@@ -160,7 +160,7 @@ mod tests {
 
     fn mock_image(id: u32) -> ImageNode {
         ImageNode {
-            id: format!("gid://shopify/MediaImage/{id}"),
+            id: Some(format!("gid://shopify/MediaImage/{id}")),
             alt_text: Some(format!("Alt text for image {id}")),
             url: format!("https://example.com/MediaImage/{id}.jpg"),
             height: Some(600),

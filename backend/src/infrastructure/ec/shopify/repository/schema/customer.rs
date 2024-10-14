@@ -22,6 +22,13 @@ impl CustomerNode {
             "DISABLED" => Ok(CustomerStatus::Inactive),
             _ => Err(DomainError::ConversionError),
         }?;
+        let image = match self.image.id.clone() {
+            Some(id) => Some(
+                self.image
+                    .to_domain(Some(AssociatedId::Customer(id.clone())))?,
+            ),
+            None => None,
+        };
 
         Customer::new(
             id.clone(),
@@ -36,9 +43,7 @@ impl CustomerNode {
             self.email.map(|email| Email::new(email)).transpose()?,
             self.first_name,
             self.last_name,
-            self.image
-                .map(|image| image.to_domain(Some(AssociatedId::Customer(id.clone()))))
-                .transpose()?,
+            image,
             self.phone.map(|phone| Phone::new(phone)).transpose()?,
             self.note,
             status,
@@ -65,6 +70,7 @@ pub struct CustomersData {
 pub struct CustomerNode {
     pub id: String,
     pub addresses: Vec<AddressNode>,
+    #[serde(rename = "canDelete")]
     pub can_delete: bool,
     #[serde(rename = "defaultAddress")]
     pub default_address: Option<AddressNode>,
@@ -75,12 +81,14 @@ pub struct CustomerNode {
     pub first_name: Option<String>,
     #[serde(rename = "lastName")]
     pub last_name: Option<String>,
-    pub image: Option<ImageNode>,
+    pub image: ImageNode,
     pub phone: Option<String>,
     pub note: Option<String>,
     pub state: String,
     #[serde(rename = "verifiedEmail")]
     pub verified_email: bool,
+    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
+    #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
 }

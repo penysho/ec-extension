@@ -54,15 +54,13 @@ impl MediaNode {
 
 impl ImageNode {
     pub fn to_domain(self, associated_id: Option<AssociatedId>) -> Result<Image, DomainError> {
+        let id = match self.id {
+            Some(id) => ShopifyGQLQueryHelper::remove_gid_prefix(&id),
+            None => return Err(DomainError::ConversionError),
+        };
         let src = Src::new(self.url)?;
 
-        Image::new(
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            associated_id,
-            self.alt_text,
-            None,
-            Some(src),
-        )
+        Image::new(id, associated_id, self.alt_text, None, Some(src))
     }
 }
 
@@ -93,7 +91,7 @@ pub struct MediaPreviewImage {
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct ImageNode {
-    pub id: String,
+    pub id: Option<String>,
     #[serde(rename = "altText")]
     pub alt_text: Option<String>,
     pub height: Option<i32>,
