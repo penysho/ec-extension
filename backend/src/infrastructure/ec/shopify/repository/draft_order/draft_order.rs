@@ -137,6 +137,10 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
         DraftOrderNode::to_domains(nodes)
     }
+
+    async fn create(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError> {
+        todo!()
+    }
 }
 
 #[cfg(test)]

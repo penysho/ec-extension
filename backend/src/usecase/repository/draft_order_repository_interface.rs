@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 
 use crate::domain::{
-    customer::customer::Id as CustomerId, draft_order::draft_order::DraftOrder,
+    customer::customer::Id as CustomerId,
+    draft_order::{self, draft_order::DraftOrder},
     error::error::DomainError,
 };
 
@@ -11,4 +12,6 @@ pub trait DraftOrderRepository: Send + Sync {
         &self,
         customer_id: &CustomerId,
     ) -> Result<Vec<DraftOrder>, DomainError>;
+
+    async fn create(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError>;
 }
