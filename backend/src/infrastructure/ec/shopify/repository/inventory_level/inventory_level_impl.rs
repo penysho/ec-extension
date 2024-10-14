@@ -192,7 +192,7 @@ mod tests {
         usecase::repository::inventory_level_repository_interface::InventoryLevelRepository,
     };
 
-    fn mock_inventory_item(id: u32) -> InventoryItemNode {
+    fn mock_inventory_item_node(id: u32) -> InventoryItemNode {
         InventoryItemNode {
             id: format!("gid://shopify/InventoryItem/{id}"),
             variant: VariantIdNode {
@@ -231,7 +231,7 @@ mod tests {
     fn mock_inventory_items_response(count: usize) -> GraphQLResponse<InventoryItemsData> {
         let nodes: Vec<Node<InventoryItemNode>> = (0..count)
             .map(|i: usize| Node {
-                node: mock_inventory_item(i as u32),
+                node: mock_inventory_item_node(i as u32),
             })
             .collect();
 
@@ -251,7 +251,7 @@ mod tests {
         }
     }
 
-    fn mock_inventory_change() -> InventoryChange {
+    fn mock_inventory_change_domain() -> InventoryChange {
         InventoryChange::new(
             InventoryType::Committed,
             InventoryChangeReason::Correction,
@@ -439,13 +439,13 @@ mod tests {
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
-        let result = repo.update(mock_inventory_change()).await;
+        let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_ok());
     }
 
     #[tokio::test]
-    async fn test_update_success_with_user_errors() {
+    async fn test_update_with_user_errors() {
         let mut client = MockECClient::new();
 
         client
@@ -455,7 +455,7 @@ mod tests {
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
-        let result = repo.update(mock_inventory_change()).await;
+        let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -472,11 +472,11 @@ mod tests {
         client
             .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
             .times(1)
-            .return_once(|_, _| Ok(mock_with_no_data()));
+            .return_once(|_, _| Ok(mock_with_error()));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
-        let result = repo.update(mock_inventory_change()).await;
+        let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -493,11 +493,11 @@ mod tests {
         client
             .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
             .times(1)
-            .return_once(|_, _| Ok(mock_with_error()));
+            .return_once(|_, _| Ok(mock_with_no_data()));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
-        let result = repo.update(mock_inventory_change()).await;
+        let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {

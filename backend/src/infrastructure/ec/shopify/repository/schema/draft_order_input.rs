@@ -1,9 +1,12 @@
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::domain::{customer::customer::Id as CustomerId, draft_order::draft_order::DraftOrder};
 
-use super::{address_input::AddressInput, line_item_input::LineItemInput};
+use super::{
+    address_input::AddressInput, common::UserError, draft_order::DraftOrderNode,
+    line_item_input::LineItemInput,
+};
 
 impl From<DraftOrder> for DraftOrderInput {
     fn from(draft_order: DraftOrder) -> Self {
@@ -50,4 +53,17 @@ impl From<CustomerId> for PurchasingEntityInput {
 pub struct PurchasingEntityInput {
     #[serde(rename = "customerId")]
     pub customer_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DraftOrderCreateData {
+    #[serde(rename = "draftOrderCreate")]
+    pub draft_order_create: DraftOrderCreate,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DraftOrderCreate {
+    #[serde(rename = "draftOrder")]
+    pub draft_order: Option<DraftOrderNode>,
+    pub user_errors: Vec<UserError>,
 }

@@ -110,7 +110,7 @@ mod tests {
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
-                customer::customer::CustomerRepositoryImpl,
+                customer::customer_impl::CustomerRepositoryImpl,
                 schema::{
                     address::AddressNode,
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
