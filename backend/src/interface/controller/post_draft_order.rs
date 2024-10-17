@@ -10,13 +10,7 @@ use crate::{
     },
 };
 
-use super::controller::Controller;
-
-#[derive(Serialize, Deserialize)]
-pub struct LineItemSchema {
-    variant_id: Option<String>,
-    quantity: u32,
-}
+use super::{controller::Controller, schema::component::component::LineItemSchema};
 
 #[derive(Serialize, Deserialize)]
 pub struct PostDraftOrderRequest {
@@ -32,6 +26,7 @@ impl Controller {
     pub async fn post_draft_order(&self, body: web::Json<PostDraftOrderRequest>) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
 
+        // TODO: Allow customized products and discounts to be accepted.
         let line_items_result = body
             .line_items
             .iter()
@@ -63,8 +58,8 @@ impl Controller {
                 None,
                 body.note.to_owned(),
                 line_items,
-                None,
-                None,
+                body.reserve_inventory_until,
+                body.tax_exempt,
             )
             .await;
 
@@ -166,6 +161,25 @@ mod tests {
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[actix_web::test]
+    async fn test_post_draft_order_bad_request_with_line_items_empty() {
+        let interactor = MockDraftOrderInteractor::new();
+
+        let req = test::TestRequest::post()
+            .uri(&format!("{BASE_URL}"))
+            .set_json(PostDraftOrderRequest {
+                customer_id: Some("1".to_string()),
+                note: Some("Test note".to_string()),
+                line_items: vec![],
+                reserve_inventory_until: None,
+                tax_exempt: None,
+            })
+            .to_request();
+        let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
+
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     }
 
     #[actix_web::test]
