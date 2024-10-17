@@ -10,6 +10,7 @@ impl ShopifyGQLQueryHelper {
     pub const SHOPIFY_INVENTORY_ITEM_GID_PREFIX: &'static str = "gid://shopify/InventoryItem/";
     pub const SHOPIFY_LOCATION_GID_PREFIX: &'static str = "gid://shopify/Location/";
     pub const SHOPIFY_DRAFT_ORDER_GID_PREFIX: &'static str = "gid://shopify/DraftOrder/";
+    pub const SHOPIFY_CUSTOMER_GID_PREFIX: &'static str = "gid://shopify/Customer/";
 
     /// Return first query with max limit.
     pub fn first_query() -> String {
@@ -29,7 +30,6 @@ impl ShopifyGQLQueryHelper {
 
     pub fn user_errors() -> String {
         "userErrors {
-            code
             field
             message
         }"
@@ -82,6 +82,20 @@ impl ShopifyGQLQueryHelper {
             return id.to_string();
         }
         format!("{}{}", Self::SHOPIFY_DRAFT_ORDER_GID_PREFIX, id)
+    }
+
+    pub fn add_customer_gid_prefix(id: &str) -> String {
+        if id.contains(Self::SHOPIFY_CUSTOMER_GID_PREFIX) {
+            return id.to_string();
+        }
+        format!("{}{}", Self::SHOPIFY_CUSTOMER_GID_PREFIX, id)
+    }
+
+    pub fn add_product_variant_gid_prefix(id: &str) -> String {
+        if id.contains(Self::SHOPIFY_PRODUCT_VARIANT_GID_PREFIX) {
+            return id.to_string();
+        }
+        format!("{}{}", Self::SHOPIFY_PRODUCT_VARIANT_GID_PREFIX, id)
     }
 
     /// Remove Shopify gid prefix.

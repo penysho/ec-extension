@@ -164,10 +164,10 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
         let query = format!(
             "mutation draftOrderCreate($input: DraftOrderInput!) {{
-                draftOrder {{
-                    {draft_order_fields}
-                }}
                 draftOrderCreate(input: $input) {{
+                    draftOrder {{
+                        {draft_order_fields}
+                    }}
                     {user_errors}
                 }}
             }}",

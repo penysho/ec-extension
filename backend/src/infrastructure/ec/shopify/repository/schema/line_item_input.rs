@@ -16,7 +16,7 @@ impl From<&LineItem> for LineItemInput {
             variant_id: line_item
                 .variant_id()
                 .as_ref()
-                .map(|id| ShopifyGQLQueryHelper::add_draft_order_gid_prefix(&id)),
+                .map(|id| ShopifyGQLQueryHelper::add_product_variant_gid_prefix(&id)),
             quantity: *line_item.quantity() as i32,
             applied_discount: line_item.discount().as_ref().map(|d| d.to_owned().into()),
         }
@@ -46,6 +46,7 @@ impl From<DiscountValueType> for String {
 
 #[derive(Debug, Serialize)]
 pub struct LineItemInput {
+    #[serde(rename = "variantId")]
     pub variant_id: Option<String>,
     pub quantity: i32,
     #[serde(rename = "appliedDiscount")]

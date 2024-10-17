@@ -1,7 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::domain::{customer::customer::Id as CustomerId, draft_order::draft_order::DraftOrder};
+use crate::{
+    domain::{customer::customer::Id as CustomerId, draft_order::draft_order::DraftOrder},
+    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+};
 
 use super::{
     address_input::AddressInput, common::UserError, draft_order::DraftOrderNode,
@@ -44,7 +47,7 @@ pub struct DraftOrderInput {
 impl From<CustomerId> for PurchasingEntityInput {
     fn from(customer_id: CustomerId) -> Self {
         Self {
-            customer_id: Some(customer_id),
+            customer_id: Some(ShopifyGQLQueryHelper::add_customer_gid_prefix(&customer_id)),
         }
     }
 }
@@ -65,5 +68,6 @@ pub struct DraftOrderCreateData {
 pub struct DraftOrderCreate {
     #[serde(rename = "draftOrder")]
     pub draft_order: Option<DraftOrderNode>,
+    #[serde(rename = "userErrors")]
     pub user_errors: Vec<UserError>,
 }
