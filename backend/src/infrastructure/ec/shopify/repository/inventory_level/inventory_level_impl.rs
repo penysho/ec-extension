@@ -179,10 +179,8 @@ mod tests {
             shopify::repository::{
                 inventory_level::inventory_level_impl::InventoryLevelRepositoryImpl,
                 schema::{
-                    common::{
-                        Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError, UserErrors,
-                    },
-                    inventory_change::InventoryAdjustQuantitiesData,
+                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
+                    inventory_change::{InventoryAdjustQuantities, InventoryAdjustQuantitiesData},
                     inventory_item::{InventoryItemNode, InventoryItemsData, VariantIdNode},
                     inventory_level::{InventoryItemIdNode, InventoryLevelNode, QuantityNode},
                     location::LocationNode,
@@ -270,24 +268,8 @@ mod tests {
     {
         GraphQLResponse {
             data: Some(InventoryAdjustQuantitiesData {
-                inventory_adjust_quantities: UserErrors {
+                inventory_adjust_quantities: InventoryAdjustQuantities {
                     user_errors: vec![],
-                },
-            }),
-            errors: None,
-        }
-    }
-
-    fn mock_inventory_adjust_quantities_response_with_user_errors(
-    ) -> GraphQLResponse<InventoryAdjustQuantitiesData> {
-        GraphQLResponse {
-            data: Some(InventoryAdjustQuantitiesData {
-                inventory_adjust_quantities: UserErrors {
-                    user_errors: vec![UserError {
-                        code: None,
-                        field: vec!["quantity".to_string()],
-                        message: "Quantity must be positive".to_string(),
-                    }],
                 },
             }),
             errors: None,
@@ -448,10 +430,21 @@ mod tests {
     async fn test_update_with_user_errors() {
         let mut client = MockECClient::new();
 
+        let mut response = mock_inventory_adjust_quantities_response();
+        response
+            .data
+            .as_mut()
+            .unwrap()
+            .inventory_adjust_quantities
+            .user_errors = vec![UserError {
+            field: vec!["quantity".to_string()],
+            message: "Quantity must be positive".to_string(),
+        }];
+
         client
             .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
             .times(1)
-            .return_once(|_, _| Ok(mock_inventory_adjust_quantities_response_with_user_errors()));
+            .return_once(|_, _| Ok(response));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 

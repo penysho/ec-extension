@@ -8,7 +8,7 @@ use crate::{
     infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
-use super::common::UserErrors;
+use super::common::UserError;
 
 impl From<InventoryChange> for InventoryAdjustQuantitiesInput {
     fn from(domain: InventoryChange) -> Self {
@@ -93,5 +93,11 @@ pub struct InventoryChangeInput {
 #[derive(Debug, Deserialize)]
 pub struct InventoryAdjustQuantitiesData {
     #[serde(rename = "inventoryAdjustQuantities")]
-    pub inventory_adjust_quantities: UserErrors,
+    pub inventory_adjust_quantities: InventoryAdjustQuantities,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InventoryAdjustQuantities {
+    #[serde(rename = "userErrors")]
+    pub user_errors: Vec<UserError>,
 }

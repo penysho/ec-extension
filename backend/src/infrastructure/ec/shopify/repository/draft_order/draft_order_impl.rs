@@ -540,7 +540,6 @@ mod tests {
             .unwrap()
             .draft_order_create
             .user_errors = vec![UserError {
-            code: None,
             field: vec!["quantity".to_string()],
             message: "Quantity must be positive".to_string(),
         }];
