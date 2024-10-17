@@ -3,18 +3,25 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{error::error::DomainError, line_item::line_item::LineItem},
+    domain::{
+        address::address::Address, error::error::DomainError, line_item::line_item::LineItem,
+    },
     interface::presenter::{
         draft_order::draft_order_impl::DraftOrderPresenterImpl,
         draft_order_presenter_interface::DraftOrderPresenter,
     },
 };
 
-use super::{controller::Controller, schema::component::component::LineItemSchema};
+use super::{
+    controller::Controller,
+    schema::component::component::{AddressSchema, LineItemSchema},
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct PostDraftOrderRequest {
     customer_id: Option<String>,
+    billing_address: Option<AddressSchema>,
+    shipping_address: Option<AddressSchema>,
     note: Option<String>,
     line_items: Vec<LineItemSchema>,
     reserve_inventory_until: Option<DateTime<Utc>>,
@@ -46,6 +53,56 @@ impl Controller {
                 .await;
         }
 
+        let billing_address_result = body
+            .billing_address
+            .as_ref()
+            .map(|a| {
+                Address::new(
+                    a.address1.to_owned(),
+                    a.address2.to_owned(),
+                    a.city.to_owned(),
+                    false,
+                    a.country.to_owned(),
+                    a.first_name.to_owned(),
+                    a.last_name.to_owned(),
+                    a.province.to_owned(),
+                    a.zip.to_owned(),
+                    a.phone.to_owned(),
+                )
+            })
+            .transpose();
+        if billing_address_result.is_err() {
+            return presenter
+                .present_post_draft_order(Err(DomainError::InvalidRequest))
+                .await;
+        }
+        let billing_address = billing_address_result.unwrap();
+
+        let shipping_address_result = body
+            .shipping_address
+            .as_ref()
+            .map(|a| {
+                Address::new(
+                    a.address1.to_owned(),
+                    a.address2.to_owned(),
+                    a.city.to_owned(),
+                    false,
+                    a.country.to_owned(),
+                    a.first_name.to_owned(),
+                    a.last_name.to_owned(),
+                    a.province.to_owned(),
+                    a.zip.to_owned(),
+                    a.phone.to_owned(),
+                )
+            })
+            .transpose();
+        if shipping_address_result.is_err() {
+            return presenter
+                .present_post_draft_order(Err(DomainError::InvalidRequest))
+                .await;
+        }
+        let shipping_address = shipping_address_result.unwrap();
+
         let interactor = self
             .interact_provider
             .provide_draft_order_interactor()
@@ -54,8 +111,8 @@ impl Controller {
         let result = interactor
             .create_draft_order(
                 body.customer_id.to_owned(),
-                None,
-                None,
+                billing_address,
+                shipping_address,
                 body.note.to_owned(),
                 line_items,
                 body.reserve_inventory_until,
@@ -149,6 +206,28 @@ mod tests {
             .uri(&format!("{BASE_URL}"))
             .set_json(PostDraftOrderRequest {
                 customer_id: Some(customer_id.to_string()),
+                billing_address: Some(AddressSchema {
+                    first_name: Some("John".to_string()),
+                    last_name: Some("Doe".to_string()),
+                    address1: Some("123 Main St".to_string()),
+                    address2: None,
+                    city: Some("Anytown".to_string()),
+                    province: Some("CA".to_string()),
+                    country: Some("US".to_string()),
+                    zip: Some("12345".to_string()),
+                    phone: Some("555-1234".to_string()),
+                }),
+                shipping_address: Some(AddressSchema {
+                    first_name: Some("John".to_string()),
+                    last_name: Some("Doe".to_string()),
+                    address1: Some("123 Main St".to_string()),
+                    address2: None,
+                    city: Some("Anytown".to_string()),
+                    province: Some("CA".to_string()),
+                    country: Some("US".to_string()),
+                    zip: Some("12345".to_string()),
+                    phone: Some("555-1234".to_string()),
+                }),
                 note: Some("Test note".to_string()),
                 line_items: vec![LineItemSchema {
                     variant_id: Some("variant_id".to_string()),
@@ -171,6 +250,8 @@ mod tests {
             .uri(&format!("{BASE_URL}"))
             .set_json(PostDraftOrderRequest {
                 customer_id: Some("1".to_string()),
+                billing_address: None,
+                shipping_address: None,
                 note: Some("Test note".to_string()),
                 line_items: vec![],
                 reserve_inventory_until: None,
@@ -193,6 +274,8 @@ mod tests {
             .uri(&format!("{BASE_URL}"))
             .set_json(PostDraftOrderRequest {
                 customer_id: Some("1".to_string()),
+                billing_address: None,
+                shipping_address: None,
                 note: Some("Test note".to_string()),
                 line_items: vec![LineItemSchema {
                     variant_id: Some("variant_id".to_string()),
@@ -218,6 +301,8 @@ mod tests {
             .uri(&format!("{BASE_URL}"))
             .set_json(PostDraftOrderRequest {
                 customer_id: Some("1".to_string()),
+                billing_address: None,
+                shipping_address: None,
                 note: Some("Test note".to_string()),
                 line_items: vec![LineItemSchema {
                     variant_id: Some("variant_id".to_string()),
