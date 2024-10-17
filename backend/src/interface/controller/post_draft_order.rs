@@ -1,4 +1,5 @@
 use actix_web::{web, Responder};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -13,9 +14,8 @@ use super::controller::Controller;
 
 #[derive(Serialize, Deserialize)]
 pub struct LineItemSchema {
-    pub is_custom: bool,
-    pub variant_id: Option<String>,
-    pub quantity: u32,
+    variant_id: Option<String>,
+    quantity: u32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -23,6 +23,8 @@ pub struct PostDraftOrderRequest {
     customer_id: Option<String>,
     note: Option<String>,
     line_items: Vec<LineItemSchema>,
+    reserve_inventory_until: Option<DateTime<Utc>>,
+    tax_exempt: Option<bool>,
 }
 
 impl Controller {
@@ -30,16 +32,24 @@ impl Controller {
     pub async fn post_draft_order(&self, body: web::Json<PostDraftOrderRequest>) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
 
-        let line_items = body
+        let line_items_result = body
             .line_items
             .iter()
-            .map(|li| LineItem::create(li.is_custom, li.variant_id.to_owned(), li.quantity, None))
+            .map(|li| LineItem::create(false, li.variant_id.to_owned(), li.quantity, None))
             .collect::<Result<Vec<_>, _>>();
-        if line_items.is_err() {
+        if line_items_result.is_err() {
             return presenter
                 .present_post_draft_order(Err(DomainError::InvalidRequest))
                 .await;
         };
+
+        let line_items = line_items_result.unwrap();
+        if line_items.is_empty() {
+            log::error!("Line items cannot be empty.");
+            return presenter
+                .present_post_draft_order(Err(DomainError::InvalidRequest))
+                .await;
+        }
 
         let interactor = self
             .interact_provider
@@ -52,7 +62,7 @@ impl Controller {
                 None,
                 None,
                 body.note.to_owned(),
-                line_items.unwrap(),
+                line_items,
                 None,
                 None,
             )
@@ -146,10 +156,11 @@ mod tests {
                 customer_id: Some(customer_id.to_string()),
                 note: Some("Test note".to_string()),
                 line_items: vec![LineItemSchema {
-                    is_custom: false,
                     variant_id: Some("variant_id".to_string()),
                     quantity: 2,
                 }],
+                reserve_inventory_until: None,
+                tax_exempt: None,
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -170,10 +181,11 @@ mod tests {
                 customer_id: Some("1".to_string()),
                 note: Some("Test note".to_string()),
                 line_items: vec![LineItemSchema {
-                    is_custom: false,
                     variant_id: Some("variant_id".to_string()),
                     quantity: 2,
                 }],
+                reserve_inventory_until: None,
+                tax_exempt: None,
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -194,10 +206,11 @@ mod tests {
                 customer_id: Some("1".to_string()),
                 note: Some("Test note".to_string()),
                 line_items: vec![LineItemSchema {
-                    is_custom: false,
                     variant_id: Some("variant_id".to_string()),
                     quantity: 2,
                 }],
+                reserve_inventory_until: None,
+                tax_exempt: None,
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
