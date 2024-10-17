@@ -10,7 +10,7 @@ use crate::domain::error::error::DomainError;
 /// use backend::domain::money::money::money::Money;
 ///
 /// let money = Money::new(100.0).unwrap();
-/// assert_eq!(money.value(), 100.0);
+/// assert_eq!(money.value(), &100.0);
 /// ```
 ///
 #[derive(Debug, Getters, Clone, PartialEq)]

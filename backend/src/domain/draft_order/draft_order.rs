@@ -8,6 +8,12 @@ use crate::domain::{
 
 pub type Id = String;
 
+/// Represents the status of a draft order.
+///
+/// # Variants
+/// - `Open` - The draft order is open and can be edited.
+/// - `Completed` - The draft order has been completed and cannot be edited anymore.
+/// - `Canceled` - The draft order has been canceled and cannot be edited anymore.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DraftOrderStatus {
     Open,
@@ -15,6 +21,31 @@ pub enum DraftOrderStatus {
     Canceled,
 }
 
+/// Representing Draft Orders.
+///
+/// Unlike regular orders, they serve as Admin Orders, which are created from the application or admin screen.
+///
+/// # Fields
+/// - `id` - A unique identifier for the draft order.
+/// - `name` - The name of the draft order.
+/// - `status` - The current status of the draft order.
+/// - `customer_id` - An optional identifier for the associated customer.
+/// - `billing_address` - An optional billing address for the draft order.
+/// - `shipping_address` - An optional shipping address for the draft order.
+/// - `note` - An optional note or memo related to the order.
+/// - `line_items` - The list of products or services associated with the order.
+/// - `reserve_inventory_until` - The date and time after which the reserved inventory will be automatically restocked if the order remains incomplete.
+/// - `subtotal_price_set` - The subtotal price of all line items and applied discounts, excluding shipping and taxes.
+/// - `taxes_included` - A flag indicating whether taxes are included in the item prices.
+/// - `tax_exempt` - A flag indicating whether the order is exempt from taxes.
+/// - `total_tax_set` - The total tax amount for the draft order.
+/// - `total_discounts_set` - The total amount of discounts applied to the order.
+/// - `total_shipping_price_set` - The total cost of shipping for the order.
+/// - `total_price_set` - The final total price of the order, including shipping, discounts, and taxes.
+/// - `order_id` - An optional identifier for the associated order, if the draft was converted to a finalized order.
+/// - `completed_at` - An optional timestamp indicating when the order was completed.
+/// - `created_at` - The timestamp when the draft order was initially created.
+/// - `update_at` - The timestamp when the draft order was last updated.
 #[derive(Debug, Getters)]
 pub struct DraftOrder {
     id: Id,

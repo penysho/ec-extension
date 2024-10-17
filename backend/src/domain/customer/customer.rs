@@ -8,13 +8,18 @@ use crate::domain::{
 
 pub type Id = String;
 
+/// Represents the status of a customer.
+///
+/// # Variants
+/// - `Active` - The customer is active and can perform certain actions.
+/// - `Inactive` - The customer is inactive and cannot perform certain actions.
 #[derive(Debug, Clone, PartialEq)]
 pub enum CustomerStatus {
     Active,
     Inactive,
 }
 
-/// Representing Customers on an E-Commerce Site.
+/// Representing Customers.
 ///
 /// A `Customer` contains various details such as addresses, contact information,
 /// and status. It provides core customer-related attributes and ensures that
@@ -56,6 +61,7 @@ pub struct Customer {
 }
 
 impl Customer {
+    /// Constructor to be used from the repository.
     pub fn new(
         id: impl Into<String>,
         addresses: Vec<Address>,

@@ -2,8 +2,6 @@ use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
 
-pub type Id = String;
-
 /// Represent the address that each entity has.
 ///
 /// # Fields
