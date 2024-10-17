@@ -8,10 +8,38 @@ use mockall::automock;
 #[automock]
 #[async_trait]
 pub trait ProductInteractor {
+    /// Get detailed product information.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Product ID
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(Product, Vec<Media>), DomainError>` - Product and its media
+    ///
+    /// # Errors
+    ///
+    /// * Returns a domain error if the media repository fails.
     async fn get_product_with_media(
         &self,
         id: &ProductId,
     ) -> Result<(Product, Vec<Media>), DomainError>;
+
+    /// Get a list of products.
+    ///
+    /// # Arguments
+    ///
+    /// * `limit` - Maximum number of products to return
+    /// * `offset` - Number of products to skip
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(Vec<Product>, Vec<Media>), DomainError>` - List of products and their media
+    ///
+    /// # Errors
+    ///
+    /// * Returns a domain error if the product or media repository fails.
     async fn get_products(
         &self,
         limit: &Option<u32>,

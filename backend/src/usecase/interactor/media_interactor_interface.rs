@@ -9,6 +9,19 @@ use crate::domain::media::media::Media;
 #[automock]
 #[async_trait]
 pub trait MediaInteractor {
+    /// Get a list of media by product id.
+    ///
+    /// # Arguments
+    ///
+    /// * `product_id` - The product id.
+    ///
+    /// # Returns
+    ///
+    /// A list of media.
+    ///
+    /// # Errors
+    ///
+    /// * Returns a domain error if the media repository fails.
     async fn get_media_by_product_id(
         &self,
         product_id: &ProductId,

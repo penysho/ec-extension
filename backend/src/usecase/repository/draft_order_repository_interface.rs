@@ -1,8 +1,7 @@
 use async_trait::async_trait;
 
 use crate::domain::{
-    customer::customer::Id as CustomerId,
-    draft_order::{self, draft_order::DraftOrder},
+    customer::customer::Id as CustomerId, draft_order::draft_order::DraftOrder,
     error::error::DomainError,
 };
 
