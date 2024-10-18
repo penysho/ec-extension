@@ -3,9 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::{
-        address::address::Address, error::error::DomainError, line_item::line_item::LineItem,
-    },
+    domain::{error::error::DomainError, line_item::line_item::LineItem},
     interface::presenter::{
         draft_order::draft_order_impl::DraftOrderPresenterImpl,
         draft_order_presenter_interface::DraftOrderPresenter,
@@ -37,7 +35,14 @@ impl Controller {
         let line_items_result = body
             .line_items
             .iter()
-            .map(|li| LineItem::create(false, li.variant_id.to_owned(), li.quantity, None))
+            .map(|li| {
+                let discount = li
+                    .applied_discount
+                    .to_owned()
+                    .map(|d| d.to_domain())
+                    .transpose()?;
+                LineItem::create(false, li.variant_id.to_owned(), li.quantity, discount)
+            })
             .collect::<Result<Vec<_>, _>>();
         if line_items_result.is_err() {
             return presenter
@@ -107,6 +112,9 @@ mod tests {
     use crate::domain::money::money_bag::{CurrencyCode, MoneyBag};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::controller::schema::component::component::{
+        CurrencyCodeSchema, DiscountSchema, DiscountValueTypeSchema, MoneyBagSchema,
+    };
     use crate::usecase::interactor::draft_order_interactor_interface::DraftOrderInteractor;
     use crate::usecase::interactor::draft_order_interactor_interface::MockDraftOrderInteractor;
 
@@ -206,9 +214,19 @@ mod tests {
                 line_items: vec![LineItemSchema {
                     variant_id: Some("variant_id".to_string()),
                     quantity: 2,
+                    applied_discount: Some(DiscountSchema {
+                        title: Some("Discount title".to_string()),
+                        description: Some("Discount description".to_string()),
+                        value_type: DiscountValueTypeSchema::Fixed,
+                        value: 10.0,
+                        amount_set: MoneyBagSchema {
+                            currency_code: CurrencyCodeSchema::USD,
+                            amount: 10.0,
+                        },
+                    }),
                 }],
-                reserve_inventory_until: None,
-                tax_exempt: None,
+                reserve_inventory_until: Some(Utc::now()),
+                tax_exempt: Some(true),
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -254,6 +272,7 @@ mod tests {
                 line_items: vec![LineItemSchema {
                     variant_id: Some("variant_id".to_string()),
                     quantity: 2,
+                    applied_discount: None,
                 }],
                 reserve_inventory_until: None,
                 tax_exempt: None,
@@ -281,6 +300,7 @@ mod tests {
                 line_items: vec![LineItemSchema {
                     variant_id: Some("variant_id".to_string()),
                     quantity: 2,
+                    applied_discount: None,
                 }],
                 reserve_inventory_until: None,
                 tax_exempt: None,

@@ -23,4 +23,34 @@ pub struct AddressSchema {
 pub struct LineItemSchema {
     pub variant_id: Option<String>,
     pub quantity: u32,
+    pub applied_discount: Option<DiscountSchema>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct DiscountSchema {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub value: f32,
+    pub value_type: DiscountValueTypeSchema,
+    pub amount_set: MoneyBagSchema,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub enum DiscountValueTypeSchema {
+    Fixed,
+    Percentage,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MoneyBagSchema {
+    pub currency_code: CurrencyCodeSchema,
+    pub amount: f64,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub enum CurrencyCodeSchema {
+    USD,
+    EUR,
+    GBP,
+    JPY,
 }
