@@ -55,21 +55,8 @@ impl Controller {
 
         let billing_address_result = body
             .billing_address
-            .as_ref()
-            .map(|a| {
-                Address::new(
-                    a.address1.to_owned(),
-                    a.address2.to_owned(),
-                    a.city.to_owned(),
-                    false,
-                    a.country.to_owned(),
-                    a.first_name.to_owned(),
-                    a.last_name.to_owned(),
-                    a.province.to_owned(),
-                    a.zip.to_owned(),
-                    a.phone.to_owned(),
-                )
-            })
+            .to_owned()
+            .map(|a| a.to_domain())
             .transpose();
         if billing_address_result.is_err() {
             return presenter
@@ -80,21 +67,8 @@ impl Controller {
 
         let shipping_address_result = body
             .shipping_address
-            .as_ref()
-            .map(|a| {
-                Address::new(
-                    a.address1.to_owned(),
-                    a.address2.to_owned(),
-                    a.city.to_owned(),
-                    false,
-                    a.country.to_owned(),
-                    a.first_name.to_owned(),
-                    a.last_name.to_owned(),
-                    a.province.to_owned(),
-                    a.zip.to_owned(),
-                    a.phone.to_owned(),
-                )
-            })
+            .to_owned()
+            .map(|a| a.to_domain())
             .transpose();
         if shipping_address_result.is_err() {
             return presenter
