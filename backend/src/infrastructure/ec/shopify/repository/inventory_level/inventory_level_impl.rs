@@ -116,18 +116,56 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
     }
 
     /// Update inventory quantity.
-    async fn update(&self, inventory_change: InventoryChange) -> Result<(), DomainError> {
+    async fn update(
+        &self,
+        inventory_change: InventoryChange,
+    ) -> Result<Vec<InventoryLevel>, DomainError> {
         let schema = InventoryAdjustQuantitiesInput::from(inventory_change);
         let input = serde_json::to_value(schema).map_err(|e| {
             log::error!("Failed to parse the request structure. Error: {:?}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
         })?;
 
+        let first_query = ShopifyGQLQueryHelper::first_query();
+        let page_info = ShopifyGQLQueryHelper::page_info();
+        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
         let user_errors = ShopifyGQLQueryHelper::user_errors();
 
         let query = format!(
             "mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {{
                 inventoryAdjustQuantities(input: $input) {{
+                    inventoryAdjustmentGroup {{
+                        changes {{
+                            item {{
+                                id
+                                variant {{
+                                    id
+                                }}
+                                requiresShipping
+                                tracked
+                                createdAt
+                                updatedAt
+                                inventoryLevels({first_query}) {{
+                                    edges {{
+                                        node {{
+                                            id
+                                            item {{
+                                                id
+                                            }}
+                                            location {{
+                                                id
+                                            }}
+                                            quantities(names: {inventory_names}) {{
+                                                name
+                                                quantity
+                                            }}
+                                        }}
+                                    }}
+                                    {page_info}
+                                }}
+                            }}
+                        }}
+                    }}
                     {user_errors}
                 }}
             }}",
@@ -140,18 +178,23 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             return Err(DomainError::QueryError);
         }
 
-        let user_errors = graphql_response
+        let data = graphql_response
             .data
             .ok_or(DomainError::QueryError)?
-            .inventory_adjust_quantities
-            .user_errors;
+            .inventory_adjust_quantities;
 
-        if !user_errors.is_empty() {
+        if !data.user_errors.is_empty() {
             log::error!("UserErrors returned. userErrors: {:?}", user_errors);
             return Err(DomainError::QueryError);
         }
 
-        Ok(())
+        match data.inventory_adjustment_group {
+            Some(inventory_adjustment_group) => inventory_adjustment_group.to_level_domains(),
+            None => {
+                log::error!("No draft order returned.");
+                Err(DomainError::QueryError)
+            }
+        }
     }
 }
 
@@ -180,7 +223,10 @@ mod tests {
                 inventory_level::inventory_level_impl::InventoryLevelRepositoryImpl,
                 schema::{
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
-                    inventory_change::{InventoryAdjustQuantities, InventoryAdjustQuantitiesData},
+                    inventory_change::{
+                        InventoryAdjustQuantities, InventoryAdjustQuantitiesData,
+                        InventoryAdjustmentGroupNode, InventoryChangeNode,
+                    },
                     inventory_item::{InventoryItemNode, InventoryItemsData, VariantIdNode},
                     inventory_level::{InventoryItemIdNode, InventoryLevelNode, QuantityNode},
                     location::LocationNode,
@@ -219,6 +265,29 @@ mod tests {
                     },
                 ],
             }),
+            inventory_levels: vec![InventoryLevelNode {
+                id: format!("gid://shopify/InventoryLevel/{id}"),
+                item: InventoryItemIdNode {
+                    id: format!("gid://shopify/InventoryItem/{id}"),
+                },
+                location: LocationNode {
+                    id: format!("gid://shopify/Location/{id}"),
+                },
+                quantities: vec![
+                    QuantityNode {
+                        quantity: 1,
+                        name: "available".to_string(),
+                    },
+                    QuantityNode {
+                        quantity: 2,
+                        name: "committed".to_string(),
+                    },
+                    QuantityNode {
+                        quantity: 3,
+                        name: "reserved".to_string(),
+                    },
+                ],
+            }],
             requires_shipping: true,
             tracked: true,
             created_at: Utc::now(),
@@ -269,6 +338,11 @@ mod tests {
         GraphQLResponse {
             data: Some(InventoryAdjustQuantitiesData {
                 inventory_adjust_quantities: InventoryAdjustQuantities {
+                    inventory_adjustment_group: Some(InventoryAdjustmentGroupNode {
+                        changes: vec![InventoryChangeNode {
+                            item: mock_inventory_item_node(0),
+                        }],
+                    }),
                     user_errors: vec![],
                 },
             }),

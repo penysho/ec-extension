@@ -100,7 +100,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
         ledger_document_uri: &Option<LedgerDocumentUri>,
         location_id: &LocationId,
     ) -> Result<InventoryLevel, DomainError> {
-        let mut inventory_level = self
+        let inventory_level = self
             .inventory_level_repository
             .find_inventory_level_by_sku(sku, location_id)
             .await?
@@ -116,12 +116,11 @@ impl InventoryInteractor for InventoryInteractorImpl {
         let inventory_change =
             inventory_level.create_inventory_change(name, reason, delta, ledger_document_uri)?;
 
-        self.inventory_level_repository
+        let updated_levels = self
+            .inventory_level_repository
             .update(inventory_change)
             .await?;
 
-        inventory_level.update_quantity_by_delta(name, delta)?;
-
-        Ok(inventory_level)
+        Ok(updated_levels.into_iter().next().unwrap())
     }
 }

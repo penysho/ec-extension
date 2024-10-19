@@ -1,14 +1,20 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    domain::inventory_level::{
-        inventory_change::inventory_change::{InventoryChange, InventoryChangeReason},
-        quantity::quantity::InventoryType,
+    domain::{
+        error::error::DomainError,
+        inventory_level::{
+            inventory_change::inventory_change::{InventoryChange, InventoryChangeReason},
+            inventory_level::InventoryLevel,
+            quantity::quantity::InventoryType,
+        },
     },
     infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
-use super::common::UserError;
+use super::{
+    common::UserError, inventory_item::InventoryItemNode, inventory_level::InventoryLevelNode,
+};
 
 impl From<InventoryChange> for InventoryAdjustQuantitiesInput {
     fn from(domain: InventoryChange) -> Self {
@@ -90,6 +96,21 @@ pub struct InventoryChangeInput {
     pub location_id: String,
 }
 
+impl InventoryAdjustmentGroupNode {
+    pub fn to_level_domains(self) -> Result<Vec<InventoryLevel>, DomainError> {
+        let changes = self
+            .changes
+            .into_iter()
+            .map(|c| InventoryLevelNode::to_domains(c.item.inventory_levels))
+            .collect::<Result<Vec<Vec<_>>, _>>()? // Nested Vec
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+
+        Ok(changes)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct InventoryAdjustQuantitiesData {
     #[serde(rename = "inventoryAdjustQuantities")]
@@ -98,6 +119,18 @@ pub struct InventoryAdjustQuantitiesData {
 
 #[derive(Debug, Deserialize)]
 pub struct InventoryAdjustQuantities {
+    #[serde(rename = "inventoryAdjustmentGroup")]
+    pub inventory_adjustment_group: Option<InventoryAdjustmentGroupNode>,
     #[serde(rename = "userErrors")]
     pub user_errors: Vec<UserError>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InventoryAdjustmentGroupNode {
+    pub changes: Vec<InventoryChangeNode>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InventoryChangeNode {
+    pub item: InventoryItemNode,
 }

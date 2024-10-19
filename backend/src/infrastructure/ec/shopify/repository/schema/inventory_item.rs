@@ -52,6 +52,8 @@ pub struct InventoryItemNode {
     pub variant: VariantIdNode,
     #[serde(rename = "inventoryLevel")]
     pub inventory_level: Option<InventoryLevelNode>,
+    #[serde(rename = "inventoryLevels")]
+    pub inventory_levels: Vec<InventoryLevelNode>,
     #[serde(rename = "requiresShipping")]
     pub requires_shipping: bool,
     pub tracked: bool,

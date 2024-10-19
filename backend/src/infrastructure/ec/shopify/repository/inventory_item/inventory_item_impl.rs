@@ -185,6 +185,29 @@ mod tests {
                     },
                 ],
             }),
+            inventory_levels: vec![InventoryLevelNode {
+                id: format!("gid://shopify/InventoryLevel/{id}"),
+                item: InventoryItemIdNode {
+                    id: format!("gid://shopify/InventoryItem/{id}"),
+                },
+                location: LocationNode {
+                    id: format!("gid://shopify/Location/{id}"),
+                },
+                quantities: vec![
+                    QuantityNode {
+                        quantity: 1,
+                        name: "available".to_string(),
+                    },
+                    QuantityNode {
+                        quantity: 2,
+                        name: "committed".to_string(),
+                    },
+                    QuantityNode {
+                        quantity: 3,
+                        name: "reserved".to_string(),
+                    },
+                ],
+            }],
             requires_shipping: true,
             tracked: true,
             created_at: Utc::now(),
