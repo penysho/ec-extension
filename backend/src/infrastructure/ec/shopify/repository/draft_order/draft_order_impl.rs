@@ -224,7 +224,7 @@ mod tests {
                     draft_order::{CustomerIdNode, DraftOrderNode, DraftOrdersData, OrderIdNode},
                     draft_order_input::{DraftOrderCreate, DraftOrderCreateData},
                     line_item::{DiscountNode, LineItemNode, VariantIdNode},
-                    money::{MoneyBagNode, MoneyNode},
+                    money::{CurrencyCodeNode, MoneyBagNode, MoneyNode},
                 },
             },
         },
@@ -236,6 +236,12 @@ mod tests {
             id: format!("gid://shopify/DraftOrder/{id}"),
             name: "Test Order".to_string(),
             status: "OPEN".to_string(),
+            customer: Some(CustomerIdNode {
+                id: format!("gid://shopify/Customer/{id}"),
+            }),
+            billing_address: mock_address_node(Some("123")),
+            shipping_address: mock_address_node(Some("123")),
+            note2: Some("Test note".to_string()),
             line_items: Edges {
                 edges: vec![Node {
                     node: mock_line_item_node(id),
@@ -255,12 +261,7 @@ mod tests {
             total_discounts_set: mock_money_bag_node("10.00", "USD"),
             total_shipping_price_set: mock_money_bag_node("15.00", "USD"),
             total_price_set: mock_money_bag_node("110.00", "USD"),
-            customer: Some(CustomerIdNode {
-                id: format!("gid://shopify/Customer/{id}"),
-            }),
-            billing_address: mock_address_node(Some("123")),
-            shipping_address: mock_address_node(Some("123")),
-            note2: Some("Test note".to_string()),
+            presentment_currency_code: CurrencyCodeNode("USD".to_string()),
             order: Some(OrderIdNode {
                 id: format!("gid://shopify/Order/{id}"),
             }),
@@ -298,7 +299,7 @@ mod tests {
         MoneyBagNode {
             shop_money: MoneyNode {
                 amount: amount.to_string(),
-                currency_code: currency.to_string(),
+                currency_code: CurrencyCodeNode(currency.to_string()),
             },
         }
     }
@@ -342,6 +343,7 @@ mod tests {
             mock_money_bag_domain(),
             mock_money_bag_domain(),
             mock_money_bag_domain(),
+            CurrencyCode::JPY,
             None,
             None,
             Utc::now(),

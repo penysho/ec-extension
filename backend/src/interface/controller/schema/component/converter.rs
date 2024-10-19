@@ -70,3 +70,14 @@ impl MoneyBagSchema {
         MoneyBag::new(currency_code, money)
     }
 }
+
+impl CurrencyCodeSchema {
+    pub fn to_domain(self) -> Result<CurrencyCode, DomainError> {
+        match self {
+            CurrencyCodeSchema::USD => Ok(CurrencyCode::USD),
+            CurrencyCodeSchema::EUR => Ok(CurrencyCode::EUR),
+            CurrencyCodeSchema::GBP => Ok(CurrencyCode::GBP),
+            CurrencyCodeSchema::JPY => Ok(CurrencyCode::JPY),
+        }
+    }
+}

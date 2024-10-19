@@ -6,7 +6,12 @@ use crate::{
     infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
-use super::{address::AddressNode, common::Edges, line_item::LineItemNode, money::MoneyBagNode};
+use super::{
+    address::AddressNode,
+    common::Edges,
+    line_item::LineItemNode,
+    money::{CurrencyCodeNode, MoneyBagNode},
+};
 
 impl DraftOrderNode {
     pub fn to_domain(self) -> Result<DraftOrder, DomainError> {
@@ -39,6 +44,7 @@ impl DraftOrderNode {
             self.total_discounts_set.to_domain()?,
             self.total_shipping_price_set.to_domain()?,
             self.total_price_set.to_domain()?,
+            self.presentment_currency_code.to_domain()?,
             self.order
                 .map(|o| ShopifyGQLQueryHelper::remove_gid_prefix(&o.id)),
             self.completed_at,
@@ -93,6 +99,8 @@ pub struct DraftOrderNode {
     pub total_shipping_price_set: MoneyBagNode,
     #[serde(rename = "totalPriceSet")]
     pub total_price_set: MoneyBagNode,
+    #[serde(rename = "presentmentCurrencyCode")]
+    pub presentment_currency_code: CurrencyCodeNode,
 
     pub order: Option<OrderIdNode>,
 

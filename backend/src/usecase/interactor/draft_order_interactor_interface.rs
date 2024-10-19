@@ -5,7 +5,7 @@ use mockall::automock;
 use crate::domain::{
     address::address::Address, customer::customer::Id as CustomerId,
     draft_order::draft_order::DraftOrder, email::email::Email, error::error::DomainError,
-    line_item::line_item::LineItem,
+    line_item::line_item::LineItem, money::money_bag::CurrencyCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -48,6 +48,7 @@ pub trait DraftOrderInteractor {
     /// * `line_items` - The line items.
     /// * `reserve_inventory_until` - The reserve inventory until.
     /// * `tax_exempt` - The tax exempt.
+    /// * `presentment_currency_code` - Currency code to be applied to the order. If not specified, the store's default currency code is used.
     ///
     /// # Returns
     ///
@@ -67,5 +68,6 @@ pub trait DraftOrderInteractor {
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
         tax_exempt: Option<bool>,
+        presentment_currency_code: Option<CurrencyCode>,
     ) -> Result<DraftOrder, DomainError>;
 }

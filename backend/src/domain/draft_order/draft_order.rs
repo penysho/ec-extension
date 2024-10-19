@@ -2,8 +2,12 @@ use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use crate::domain::{
-    address::address::Address, customer::customer::Id as CustomerId, error::error::DomainError,
-    line_item::line_item::LineItem, money::money_bag::MoneyBag, order::order::Id as OrderId,
+    address::address::Address,
+    customer::customer::Id as CustomerId,
+    error::error::DomainError,
+    line_item::line_item::LineItem,
+    money::money_bag::{CurrencyCode, MoneyBag},
+    order::order::Id as OrderId,
 };
 
 pub type Id = String;
@@ -42,6 +46,7 @@ pub enum DraftOrderStatus {
 /// - `total_discounts_set` - The total amount of discounts applied to the order.
 /// - `total_shipping_price_set` - The total cost of shipping for the order.
 /// - `total_price_set` - The final total price of the order, including shipping, discounts, and taxes.
+/// - `presentment_currency_code` - Currency code used for the order. May differ from the store's default currency code.
 /// - `order_id` - An optional identifier for the associated order, if the draft was converted to a finalized order.
 /// - `completed_at` - An optional timestamp indicating when the order was completed.
 /// - `created_at` - The timestamp when the draft order was initially created.
@@ -76,6 +81,9 @@ pub struct DraftOrder {
     total_shipping_price_set: MoneyBag,
     /// The total price, includes taxes, shipping charges, and discounts.
     total_price_set: MoneyBag,
+    /// Currency code used for the order.
+    /// May differ from the store's default currency code.
+    presentment_currency_code: CurrencyCode,
 
     order_id: Option<OrderId>,
 
@@ -103,6 +111,7 @@ impl DraftOrder {
         total_discounts_set: MoneyBag,
         total_shipping_price_set: MoneyBag,
         total_price_set: MoneyBag,
+        presentment_currency_code: CurrencyCode,
         order_id: Option<OrderId>,
         completed_at: Option<DateTime<Utc>>,
         created_at: DateTime<Utc>,
@@ -125,6 +134,7 @@ impl DraftOrder {
             total_discounts_set,
             total_shipping_price_set,
             total_price_set,
+            presentment_currency_code,
             order_id,
             completed_at,
             created_at,
@@ -156,9 +166,14 @@ impl DraftOrder {
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
         tax_exempt: Option<bool>,
+        presentment_currency_code: Option<CurrencyCode>,
     ) -> Result<Self, DomainError> {
         let now = Utc::now();
         let tax_exempt = tax_exempt.unwrap_or(false);
+        let presentment_currency_code = match presentment_currency_code {
+            Some(presentment_currency_code) => presentment_currency_code,
+            None => CurrencyCode::default(),
+        };
 
         Ok(Self {
             id: String::new(),
@@ -177,6 +192,7 @@ impl DraftOrder {
             total_discounts_set: MoneyBag::zero(),
             total_shipping_price_set: MoneyBag::zero(),
             total_price_set: MoneyBag::zero(),
+            presentment_currency_code,
             order_id: None,
             completed_at: None,
             created_at: now,
@@ -266,6 +282,7 @@ mod tests {
             mock_money_bag(),
             mock_money_bag(),
             mock_money_bag(),
+            CurrencyCode::default(),
             None,
             None,
             Utc::now(),
@@ -300,6 +317,7 @@ mod tests {
             mock_money_bag(),
             mock_money_bag(),
             mock_money_bag(),
+            CurrencyCode::default(),
             None,
             None,
             Utc::now(),
@@ -328,6 +346,7 @@ mod tests {
             mock_money_bag(),
             mock_money_bag(),
             mock_money_bag(),
+            CurrencyCode::default(),
             None,
             None,
             Utc::now(),
@@ -347,6 +366,7 @@ mod tests {
             mock_line_items(2),
             None,
             Some(false),
+            None,
         )
         .expect("Failed to create draft order");
 

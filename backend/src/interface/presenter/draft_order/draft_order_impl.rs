@@ -166,6 +166,7 @@ mod tests {
                     mock_money_bag(),
                     mock_money_bag(),
                     mock_money_bag(),
+                    CurrencyCode::JPY,
                     None,
                     None,
                     Utc::now(),

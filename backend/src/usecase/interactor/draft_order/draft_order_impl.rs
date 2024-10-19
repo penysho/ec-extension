@@ -5,7 +5,7 @@ use crate::{
     domain::{
         address::address::Address, customer::customer::Id as CustomerId,
         draft_order::draft_order::DraftOrder, error::error::DomainError,
-        line_item::line_item::LineItem,
+        line_item::line_item::LineItem, money::money_bag::CurrencyCode,
     },
     usecase::{
         interactor::draft_order_interactor_interface::{DraftOrderInteractor, GetDraftOrdersQuery},
@@ -62,6 +62,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
         tax_exempt: Option<bool>,
+        presentment_currency_code: Option<CurrencyCode>,
     ) -> Result<DraftOrder, DomainError> {
         let draft_order = DraftOrder::create(
             customer_id,
@@ -71,6 +72,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
             line_items,
             reserve_inventory_until,
             tax_exempt,
+            presentment_currency_code,
         )?;
 
         self.draft_order_repository.create(draft_order).await

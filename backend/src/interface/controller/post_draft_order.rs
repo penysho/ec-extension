@@ -12,7 +12,7 @@ use crate::{
 
 use super::{
     controller::Controller,
-    schema::component::component::{AddressSchema, LineItemSchema},
+    schema::component::component::{AddressSchema, CurrencyCodeSchema, LineItemSchema},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -24,6 +24,7 @@ pub struct PostDraftOrderRequest {
     line_items: Vec<LineItemSchema>,
     reserve_inventory_until: Option<DateTime<Utc>>,
     tax_exempt: Option<bool>,
+    presentment_currency_code: Option<CurrencyCodeSchema>,
 }
 
 impl Controller {
@@ -87,6 +88,18 @@ impl Controller {
             .provide_draft_order_interactor()
             .await;
 
+        let presentment_currency_code_result = body
+            .presentment_currency_code
+            .to_owned()
+            .map(|c| c.to_domain())
+            .transpose();
+        if presentment_currency_code_result.is_err() {
+            return presenter
+                .present_post_draft_order(Err(DomainError::InvalidRequest))
+                .await;
+        }
+        let presentment_currency_code = presentment_currency_code_result.unwrap();
+
         let result = interactor
             .create_draft_order(
                 body.customer_id.to_owned(),
@@ -96,6 +109,7 @@ impl Controller {
                 line_items,
                 body.reserve_inventory_until,
                 body.tax_exempt,
+                presentment_currency_code,
             )
             .await;
 
@@ -159,7 +173,7 @@ mod tests {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
             .expect_create_draft_order()
-            .returning(|_, _, _, _, _, _, _| {
+            .returning(|_, _, _, _, _, _, _, _| {
                 DraftOrder::new(
                     format!("1"),
                     format!("Test Order 1"),
@@ -177,6 +191,7 @@ mod tests {
                     mock_money_bag(),
                     mock_money_bag(),
                     mock_money_bag(),
+                    CurrencyCode::JPY,
                     None,
                     None,
                     Utc::now(),
@@ -227,6 +242,7 @@ mod tests {
                 }],
                 reserve_inventory_until: Some(Utc::now()),
                 tax_exempt: Some(true),
+                presentment_currency_code: Some(CurrencyCodeSchema::JPY),
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -248,6 +264,7 @@ mod tests {
                 line_items: vec![],
                 reserve_inventory_until: None,
                 tax_exempt: None,
+                presentment_currency_code: None,
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -260,7 +277,7 @@ mod tests {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
             .expect_create_draft_order()
-            .returning(|_, _, _, _, _, _, _| Err(DomainError::ValidationError));
+            .returning(|_, _, _, _, _, _, _, _| Err(DomainError::ValidationError));
 
         let req = test::TestRequest::post()
             .uri(&format!("{BASE_URL}"))
@@ -276,6 +293,7 @@ mod tests {
                 }],
                 reserve_inventory_until: None,
                 tax_exempt: None,
+                presentment_currency_code: None,
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -288,7 +306,7 @@ mod tests {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
             .expect_create_draft_order()
-            .returning(|_, _, _, _, _, _, _| Err(DomainError::SystemError));
+            .returning(|_, _, _, _, _, _, _, _| Err(DomainError::SystemError));
 
         let req = test::TestRequest::post()
             .uri(&format!("{BASE_URL}"))
@@ -304,6 +322,7 @@ mod tests {
                 }],
                 reserve_inventory_until: None,
                 tax_exempt: None,
+                presentment_currency_code: None,
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;

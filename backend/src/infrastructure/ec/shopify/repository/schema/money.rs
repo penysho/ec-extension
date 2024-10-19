@@ -36,7 +36,7 @@ pub struct MoneyNode {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CurrencyCodeNode(String);
+pub struct CurrencyCodeNode(pub String);
 
 impl CurrencyCodeNode {
     pub fn to_domain(self) -> Result<CurrencyCode, DomainError> {
