@@ -40,18 +40,11 @@ impl InventoryPresenter for InventoryPresenterImpl {
             DomainError,
         >,
     ) -> Result<Self::GetInventoriesResponse, Self::GetInventoriesErrorResponse> {
-        let (inventory_items, mut inventory_levels) = match result {
-            Ok((inventory_items, inventory_levels)) => (inventory_items, inventory_levels),
-            Err(DomainError::ValidationError) => {
-                return Err(GetInventoriesErrorResponse::BadRequest)
-            }
-            Err(DomainError::InvalidRequest) => {
-                return Err(GetInventoriesErrorResponse::BadRequest)
-            }
-            Err(_) => return Err(GetInventoriesErrorResponse::ServiceUnavailable),
-        };
+        let (inventory_items, mut inventory_levels) = result?;
         if inventory_items.is_empty() {
-            return Err(GetInventoriesErrorResponse::NotFound);
+            return Err(GetInventoriesErrorResponse::NotFound {
+                object_name: "Inventories".to_string(),
+            });
         }
 
         let response: Vec<InventorySchema> = inventory_items
@@ -74,16 +67,8 @@ impl InventoryPresenter for InventoryPresenterImpl {
         &self,
         result: Result<InventoryLevel, DomainError>,
     ) -> Result<Self::PutInventoryResponse, Self::PutInventoryErrorResponse> {
-        let inventory_level = match result {
-            Ok(inventory_level) => inventory_level,
-            Err(DomainError::NotFound) => return Err(PutInventoryErrorResponse::NotFound),
-            Err(DomainError::ValidationError) => return Err(PutInventoryErrorResponse::BadRequest),
-            Err(DomainError::InvalidRequest) => return Err(PutInventoryErrorResponse::BadRequest),
-            Err(_) => return Err(PutInventoryErrorResponse::ServiceUnavailable),
-        };
-
         Ok(web::Json(PutInventoryResponse {
-            inventory_level: inventory_level.into(),
+            inventory_level: result?.into(),
         }))
     }
 }
@@ -183,7 +168,10 @@ mod tests {
             .present_get_inventories(Ok((vec![], HashMap::new())))
             .await;
 
-        assert!(matches!(result, Err(GetInventoriesErrorResponse::NotFound)));
+        assert!(matches!(
+            result,
+            Err(GetInventoriesErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]
@@ -235,7 +223,10 @@ mod tests {
             .present_put_inventory(Err(DomainError::NotFound))
             .await;
 
-        assert!(matches!(result, Err(PutInventoryErrorResponse::NotFound)));
+        assert!(matches!(
+            result,
+            Err(PutInventoryErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]

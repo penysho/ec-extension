@@ -38,12 +38,7 @@ impl ProductPresenter for ProductPresenterImpl {
         &self,
         result: Result<(Product, Vec<Media>), DomainError>,
     ) -> Result<Self::GetProductResponse, Self::GetProductErrorResponse> {
-        let (product, media) = match result {
-            Ok((product, media)) => (product, media),
-            Err(DomainError::NotFound) => return Err(GetProductErrorResponse::NotFound),
-            Err(DomainError::ValidationError) => return Err(GetProductErrorResponse::BadRequest),
-            Err(_) => return Err(GetProductErrorResponse::ServiceUnavailable),
-        };
+        let (product, media) = result?;
 
         for medium in media.iter() {
             let image = match medium.content() {
@@ -71,13 +66,11 @@ impl ProductPresenter for ProductPresenterImpl {
         &self,
         result: Result<(Vec<Product>, Vec<Media>), DomainError>,
     ) -> Result<Self::GetProductsResponse, Self::GetProductsErrorResponse> {
-        let (products, media) = match result {
-            Ok((products, media)) => (products, media),
-            Err(DomainError::ValidationError) => return Err(GetProductsErrorResponse::BadRequest),
-            Err(_) => return Err(GetProductsErrorResponse::ServiceUnavailable),
-        };
+        let (products, media) = result?;
         if products.is_empty() {
-            return Err(GetProductsErrorResponse::NotFound);
+            return Err(GetProductsErrorResponse::NotFound {
+                object_name: "Products".to_string(),
+            });
         }
 
         let mut media_map: HashMap<AssociatedId, Vec<Media>> =
@@ -234,7 +227,10 @@ mod tests {
             .present_get_product(Err(DomainError::NotFound))
             .await;
 
-        assert!(matches!(result, Err(GetProductErrorResponse::NotFound)));
+        assert!(matches!(
+            result,
+            Err(GetProductErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]
@@ -285,7 +281,10 @@ mod tests {
 
         let result = presenter.present_get_products(Ok((vec![], vec![]))).await;
 
-        assert!(matches!(result, Err(GetProductsErrorResponse::NotFound)));
+        assert!(matches!(
+            result,
+            Err(GetProductsErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]

@@ -5,6 +5,7 @@ use actix_http::StatusCode;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::domain::error::error::DomainError;
 use crate::{
     define_error_response,
     interface::presenter::{
@@ -14,8 +15,6 @@ use crate::{
         money::schema::{CurrencyCodeSchema, MoneyBagSchema},
     },
 };
-
-use crate::domain::error::error::DomainError;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DraftOrderSchema {

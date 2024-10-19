@@ -52,10 +52,8 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
         &self,
         result: Result<DraftOrder, DomainError>,
     ) -> Result<Self::PostDraftOrderResponse, Self::PostDraftOrderErrorResponse> {
-        let draft_order = result?;
-
         Ok(web::Json(PostDraftOrderResponse {
-            draft_order: draft_order.into(),
+            draft_order: result?.into(),
         }))
     }
 }
