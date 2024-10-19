@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
-use crate::interface::presenter::common::exception::GenericResponseError;
+use crate::interface::presenter::common::exception::ErrorResponseBuilder;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ProductStatusEnum {
@@ -69,7 +69,7 @@ pub enum GetProductErrorResponse {
     ServiceUnavailable,
 }
 
-impl GenericResponseError for GetProductErrorResponse {
+impl ErrorResponseBuilder for GetProductErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
             GetProductErrorResponse::NotFound => StatusCode::NOT_FOUND,
@@ -81,11 +81,11 @@ impl GenericResponseError for GetProductErrorResponse {
 
 impl ResponseError for GetProductErrorResponse {
     fn error_response(&self) -> HttpResponse {
-        <Self as GenericResponseError>::error_response(self)
+        <Self as ErrorResponseBuilder>::error_response(self)
     }
 
     fn status_code(&self) -> StatusCode {
-        <Self as GenericResponseError>::status_code(self)
+        <Self as ErrorResponseBuilder>::status_code(self)
     }
 }
 
@@ -104,7 +104,7 @@ pub enum GetProductsErrorResponse {
     ServiceUnavailable,
 }
 
-impl GenericResponseError for GetProductsErrorResponse {
+impl ErrorResponseBuilder for GetProductsErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
             GetProductsErrorResponse::NotFound => StatusCode::NOT_FOUND,
@@ -116,10 +116,10 @@ impl GenericResponseError for GetProductsErrorResponse {
 
 impl ResponseError for GetProductsErrorResponse {
     fn error_response(&self) -> HttpResponse {
-        <Self as GenericResponseError>::error_response(self)
+        <Self as ErrorResponseBuilder>::error_response(self)
     }
 
     fn status_code(&self) -> StatusCode {
-        <Self as GenericResponseError>::status_code(self)
+        <Self as ErrorResponseBuilder>::status_code(self)
     }
 }

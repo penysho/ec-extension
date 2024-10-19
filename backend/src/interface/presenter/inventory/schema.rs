@@ -5,7 +5,7 @@ use actix_http::StatusCode;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::interface::presenter::common::exception::GenericResponseError;
+use crate::interface::presenter::common::exception::ErrorResponseBuilder;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InventorySchema {
@@ -56,7 +56,7 @@ pub enum GetInventoriesErrorResponse {
     ServiceUnavailable,
 }
 
-impl GenericResponseError for GetInventoriesErrorResponse {
+impl ErrorResponseBuilder for GetInventoriesErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
             GetInventoriesErrorResponse::NotFound => StatusCode::NOT_FOUND,
@@ -68,11 +68,11 @@ impl GenericResponseError for GetInventoriesErrorResponse {
 
 impl ResponseError for GetInventoriesErrorResponse {
     fn error_response(&self) -> HttpResponse {
-        <Self as GenericResponseError>::error_response(self)
+        <Self as ErrorResponseBuilder>::error_response(self)
     }
 
     fn status_code(&self) -> StatusCode {
-        <Self as GenericResponseError>::status_code(self)
+        <Self as ErrorResponseBuilder>::status_code(self)
     }
 }
 
@@ -91,7 +91,7 @@ pub enum PutInventoryErrorResponse {
     ServiceUnavailable,
 }
 
-impl GenericResponseError for PutInventoryErrorResponse {
+impl ErrorResponseBuilder for PutInventoryErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
             PutInventoryErrorResponse::NotFound => StatusCode::NOT_FOUND,
@@ -103,10 +103,10 @@ impl GenericResponseError for PutInventoryErrorResponse {
 
 impl ResponseError for PutInventoryErrorResponse {
     fn error_response(&self) -> HttpResponse {
-        <Self as GenericResponseError>::error_response(self)
+        <Self as ErrorResponseBuilder>::error_response(self)
     }
 
     fn status_code(&self) -> StatusCode {
-        <Self as GenericResponseError>::status_code(self)
+        <Self as ErrorResponseBuilder>::status_code(self)
     }
 }

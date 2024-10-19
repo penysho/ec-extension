@@ -42,6 +42,16 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
             "id
             name
             status
+            customer {{
+                id
+            }}
+            billingAddress {{
+                {address_fields}
+            }}
+            shippingAddress {{
+                {address_fields}
+            }}
+            note2
             lineItems({first_query}) {{
                 edges {{
                     node {{
@@ -88,16 +98,7 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
             totalPriceSet {{
                 {money_bag_fields}
             }}
-            customer {{
-                id
-            }}
-            billingAddress {{
-                {address_fields}
-            }}
-            shippingAddress {{
-                {address_fields}
-            }}
-            note2
+            presentmentCurrencyCode
             order {{
                 id
             }}

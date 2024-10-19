@@ -28,18 +28,11 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
         &self,
         result: Result<Vec<DraftOrder>, DomainError>,
     ) -> Result<Self::GetDraftOrdersResponse, Self::GetDraftOrdersErrorResponse> {
-        let draft_orders = match result {
-            Ok(draft_orders) => draft_orders,
-            Err(DomainError::ValidationError) => {
-                return Err(GetDraftOrdersErrorResponse::BadRequest)
-            }
-            Err(DomainError::InvalidRequest) => {
-                return Err(GetDraftOrdersErrorResponse::BadRequest)
-            }
-            Err(_) => return Err(GetDraftOrdersErrorResponse::ServiceUnavailable),
-        };
+        let draft_orders = result?;
         if draft_orders.is_empty() {
-            return Err(GetDraftOrdersErrorResponse::NotFound);
+            return Err(GetDraftOrdersErrorResponse::NotFound {
+                object_name: "DraftOrder".to_string(),
+            });
         }
 
         let response: Vec<DraftOrderSchema> = draft_orders
@@ -59,16 +52,7 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
         &self,
         result: Result<DraftOrder, DomainError>,
     ) -> Result<Self::PostDraftOrderResponse, Self::PostDraftOrderErrorResponse> {
-        let draft_order = match result {
-            Ok(draft_order) => draft_order,
-            Err(DomainError::ValidationError) => {
-                return Err(PostDraftOrderErrorResponse::BadRequest)
-            }
-            Err(DomainError::InvalidRequest) => {
-                return Err(PostDraftOrderErrorResponse::BadRequest)
-            }
-            Err(_) => return Err(PostDraftOrderErrorResponse::ServiceUnavailable),
-        };
+        let draft_order = result?;
 
         Ok(web::Json(PostDraftOrderResponse {
             draft_order: draft_order.into(),
@@ -204,7 +188,10 @@ mod tests {
 
         let result = presenter.present_get_draft_orders(Ok(vec![])).await;
 
-        assert!(matches!(result, Err(GetDraftOrdersErrorResponse::NotFound)));
+        assert!(matches!(
+            result,
+            Err(GetDraftOrdersErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]
