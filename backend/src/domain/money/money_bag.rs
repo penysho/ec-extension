@@ -13,6 +13,12 @@ pub enum CurrencyCode {
     JPY,
 }
 
+impl Default for CurrencyCode {
+    fn default() -> Self {
+        CurrencyCode::JPY
+    }
+}
+
 /// MoneyBag value object.
 ///
 /// # Examples
@@ -43,7 +49,7 @@ impl MoneyBag {
 
     pub fn zero() -> Self {
         Self {
-            currency_code: CurrencyCode::JPY,
+            currency_code: CurrencyCode::default(),
             amount: Money::zero(),
         }
     }
