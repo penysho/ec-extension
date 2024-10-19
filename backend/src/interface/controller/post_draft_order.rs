@@ -31,7 +31,7 @@ impl Controller {
     pub async fn post_draft_order(&self, body: web::Json<PostDraftOrderRequest>) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
 
-        // TODO: Allow customized products and discounts to be accepted.
+        // TODO: Allow customized products to be accepted.
         let line_items_result = body
             .line_items
             .iter()
@@ -219,10 +219,10 @@ mod tests {
                         description: Some("Discount description".to_string()),
                         value_type: DiscountValueTypeSchema::Fixed,
                         value: 10.0,
-                        amount_set: MoneyBagSchema {
+                        amount_set: Some(MoneyBagSchema {
                             currency_code: CurrencyCodeSchema::USD,
                             amount: 10.0,
-                        },
+                        }),
                     }),
                 }],
                 reserve_inventory_until: Some(Utc::now()),

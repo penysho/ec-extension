@@ -41,7 +41,7 @@ impl DiscountNode {
             Some(self.description),
             self.value,
             value_type,
-            self.amount_set.shop_money.to_domain()?,
+            Some(self.amount_set.shop_money.to_domain()?),
         )
     }
 }

@@ -32,7 +32,7 @@ pub struct DiscountSchema {
     pub description: Option<String>,
     pub value: f32,
     pub value_type: DiscountValueTypeSchema,
-    pub amount_set: MoneyBagSchema,
+    pub amount_set: Option<MoneyBagSchema>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

@@ -202,7 +202,7 @@ mod tests {
             Some("Test description".to_string()),
             10.0,
             DiscountValueType::Percentage,
-            mock_money_bag(),
+            Some(mock_money_bag()),
         )
         .expect("Failed to create mock discount")
     }

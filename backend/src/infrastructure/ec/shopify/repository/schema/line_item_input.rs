@@ -30,7 +30,7 @@ impl From<Discount> for DiscountInput {
             description: discount.description().to_owned(),
             value: *discount.value(),
             value_type: discount.value_type().to_owned().into(),
-            amount_with_currency: discount.amount_set().to_owned().into(),
+            amount_with_currency: discount.amount_set().to_owned().map(|money| money.into()),
         }
     }
 }
@@ -61,5 +61,5 @@ pub struct DiscountInput {
     #[serde(rename = "valueType")]
     pub value_type: String,
     #[serde(rename = "amountWithCurrency")]
-    pub amount_with_currency: MoneyInput,
+    pub amount_with_currency: Option<MoneyInput>,
 }

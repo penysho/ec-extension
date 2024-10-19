@@ -32,7 +32,11 @@ impl AddressSchema {
 impl DiscountSchema {
     pub fn to_domain(self) -> Result<Discount, DomainError> {
         let value_type = self.value_type.to_owned().to_domain()?;
-        let amount_set = self.amount_set.to_owned().to_domain()?;
+        let amount_set = self
+            .amount_set
+            .to_owned()
+            .map(|money| money.to_domain())
+            .transpose()?;
 
         Discount::new(
             self.title.to_owned(),
