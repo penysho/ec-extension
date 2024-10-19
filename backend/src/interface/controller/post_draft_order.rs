@@ -28,11 +28,10 @@ pub struct PostDraftOrderRequest {
 }
 
 impl Controller {
-    /// Update the inventory of the specified SKU.
+    /// Create a draft order.
     pub async fn post_draft_order(&self, body: web::Json<PostDraftOrderRequest>) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
 
-        // TODO: Allow customized products to be accepted.
         let line_items_result = body
             .line_items
             .iter()
@@ -42,6 +41,7 @@ impl Controller {
                     .to_owned()
                     .map(|d| d.to_domain())
                     .transpose()?;
+                // TODO: Allow customized products to be accepted.
                 LineItem::create(false, li.variant_id.to_owned(), li.quantity, discount)
             })
             .collect::<Result<Vec<_>, _>>();

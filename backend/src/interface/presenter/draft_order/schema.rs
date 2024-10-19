@@ -6,8 +6,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::interface::presenter::{
-    address::schema::AddressSchema, common::exception::GenericResponseError,
-    line_item::schema::LineItemSchema, money::schema::MoneyBagSchema,
+    address::schema::AddressSchema,
+    common::exception::GenericResponseError,
+    line_item::schema::LineItemSchema,
+    money::schema::{CurrencyCodeSchema, MoneyBagSchema},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -15,6 +17,10 @@ pub struct DraftOrderSchema {
     pub(super) id: String,
     pub(super) name: String,
     pub(super) status: DraftOrderStatusSchema,
+    pub(super) customer_id: Option<String>,
+    pub(super) billing_address: Option<AddressSchema>,
+    pub(super) shipping_address: Option<AddressSchema>,
+    pub(super) note: Option<String>,
     pub(super) line_items: Vec<LineItemSchema>,
     pub(super) reserve_inventory_until: Option<DateTime<Utc>>,
     pub(super) subtotal_price_set: MoneyBagSchema,
@@ -24,10 +30,7 @@ pub struct DraftOrderSchema {
     pub(super) total_discounts_set: MoneyBagSchema,
     pub(super) total_shipping_price_set: MoneyBagSchema,
     pub(super) total_price_set: MoneyBagSchema,
-    pub(super) customer_id: Option<String>,
-    pub(super) billing_address: Option<AddressSchema>,
-    pub(super) shipping_address: Option<AddressSchema>,
-    pub(super) note: Option<String>,
+    pub(super) presentment_currency_code: CurrencyCodeSchema,
     pub(super) order_id: Option<String>,
     pub(super) completed_at: Option<DateTime<Utc>>,
     pub(super) created_at: DateTime<Utc>,
