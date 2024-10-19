@@ -7,8 +7,8 @@ use crate::{
 };
 
 use super::schema::{
-    DraftOrderSchema, GetDraftOrdersResponse, GetDraftOrdersResponseError, PostDraftOrderResponse,
-    PostDraftOrderResponseError,
+    DraftOrderSchema, GetDraftOrdersErrorResponse, GetDraftOrdersResponse,
+    PostDraftOrderErrorResponse, PostDraftOrderResponse,
 };
 
 /// Generate a response schema for the draft orders.
@@ -22,24 +22,24 @@ impl DraftOrderPresenterImpl {
 #[async_trait]
 impl DraftOrderPresenter for DraftOrderPresenterImpl {
     type GetDraftOrdersResponse = Json<GetDraftOrdersResponse>;
-    type GetDraftOrdersResponseError = GetDraftOrdersResponseError;
+    type GetDraftOrdersErrorResponse = GetDraftOrdersErrorResponse;
     /// Generate a list response of draft order information.
     async fn present_get_draft_orders(
         &self,
         result: Result<Vec<DraftOrder>, DomainError>,
-    ) -> Result<Self::GetDraftOrdersResponse, Self::GetDraftOrdersResponseError> {
+    ) -> Result<Self::GetDraftOrdersResponse, Self::GetDraftOrdersErrorResponse> {
         let draft_orders = match result {
             Ok(draft_orders) => draft_orders,
             Err(DomainError::ValidationError) => {
-                return Err(GetDraftOrdersResponseError::BadRequest)
+                return Err(GetDraftOrdersErrorResponse::BadRequest)
             }
             Err(DomainError::InvalidRequest) => {
-                return Err(GetDraftOrdersResponseError::BadRequest)
+                return Err(GetDraftOrdersErrorResponse::BadRequest)
             }
-            Err(_) => return Err(GetDraftOrdersResponseError::ServiceUnavailable),
+            Err(_) => return Err(GetDraftOrdersErrorResponse::ServiceUnavailable),
         };
         if draft_orders.is_empty() {
-            return Err(GetDraftOrdersResponseError::NotFound);
+            return Err(GetDraftOrdersErrorResponse::NotFound);
         }
 
         let response: Vec<DraftOrderSchema> = draft_orders
@@ -53,21 +53,21 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
     }
 
     type PostDraftOrderResponse = Json<PostDraftOrderResponse>;
-    type PostDraftOrderResponseError = PostDraftOrderResponseError;
+    type PostDraftOrderErrorResponse = PostDraftOrderErrorResponse;
     /// Generate an create response for draft order.
     async fn present_post_draft_order(
         &self,
         result: Result<DraftOrder, DomainError>,
-    ) -> Result<Self::PostDraftOrderResponse, Self::PostDraftOrderResponseError> {
+    ) -> Result<Self::PostDraftOrderResponse, Self::PostDraftOrderErrorResponse> {
         let draft_order = match result {
             Ok(draft_order) => draft_order,
             Err(DomainError::ValidationError) => {
-                return Err(PostDraftOrderResponseError::BadRequest)
+                return Err(PostDraftOrderErrorResponse::BadRequest)
             }
             Err(DomainError::InvalidRequest) => {
-                return Err(PostDraftOrderResponseError::BadRequest)
+                return Err(PostDraftOrderErrorResponse::BadRequest)
             }
-            Err(_) => return Err(PostDraftOrderResponseError::ServiceUnavailable),
+            Err(_) => return Err(PostDraftOrderErrorResponse::ServiceUnavailable),
         };
 
         Ok(web::Json(PostDraftOrderResponse {
@@ -204,7 +204,7 @@ mod tests {
 
         let result = presenter.present_get_draft_orders(Ok(vec![])).await;
 
-        assert!(matches!(result, Err(GetDraftOrdersResponseError::NotFound)));
+        assert!(matches!(result, Err(GetDraftOrdersErrorResponse::NotFound)));
     }
 
     #[actix_web::test]
@@ -217,7 +217,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(GetDraftOrdersResponseError::BadRequest)
+            Err(GetDraftOrdersErrorResponse::BadRequest)
         ));
     }
 
@@ -231,7 +231,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(GetDraftOrdersResponseError::ServiceUnavailable)
+            Err(GetDraftOrdersErrorResponse::ServiceUnavailable)
         ));
     }
 
@@ -260,7 +260,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(PostDraftOrderResponseError::BadRequest)
+            Err(PostDraftOrderErrorResponse::BadRequest)
         ));
     }
 
@@ -274,7 +274,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(PostDraftOrderResponseError::ServiceUnavailable)
+            Err(PostDraftOrderErrorResponse::ServiceUnavailable)
         ));
     }
 }

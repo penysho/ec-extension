@@ -5,7 +5,7 @@ use actix_web::{
 use serde::Serialize;
 
 #[derive(Serialize)]
-struct ErrorResponse {
+struct ErrorResponseSchema {
     code: String,
     message: String,
     status: u16,
@@ -14,7 +14,7 @@ struct ErrorResponse {
 pub trait GenericResponseError: std::fmt::Display {
     fn error_response(&self) -> HttpResponse {
         let status_code = self.status_code();
-        let error_response = ErrorResponse {
+        let error_response = ErrorResponseSchema {
             code: status_code
                 .canonical_reason()
                 .unwrap_or_default()

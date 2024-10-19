@@ -60,7 +60,7 @@ pub struct GetProductResponse {
 }
 
 #[derive(Debug, Display, Error)]
-pub enum GetProductResponseError {
+pub enum GetProductErrorResponse {
     #[display(fmt = "Product not found.")]
     NotFound,
     #[display(fmt = "Bad request.")]
@@ -69,17 +69,17 @@ pub enum GetProductResponseError {
     ServiceUnavailable,
 }
 
-impl GenericResponseError for GetProductResponseError {
+impl GenericResponseError for GetProductErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
-            GetProductResponseError::NotFound => StatusCode::NOT_FOUND,
-            GetProductResponseError::BadRequest => StatusCode::BAD_REQUEST,
-            GetProductResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+            GetProductErrorResponse::NotFound => StatusCode::NOT_FOUND,
+            GetProductErrorResponse::BadRequest => StatusCode::BAD_REQUEST,
+            GetProductErrorResponse::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 }
 
-impl ResponseError for GetProductResponseError {
+impl ResponseError for GetProductErrorResponse {
     fn error_response(&self) -> HttpResponse {
         <Self as GenericResponseError>::error_response(self)
     }
@@ -95,7 +95,7 @@ pub struct GetProductsResponse {
 }
 
 #[derive(Debug, Display, Error)]
-pub enum GetProductsResponseError {
+pub enum GetProductsErrorResponse {
     #[display(fmt = "Product not found.")]
     NotFound,
     #[display(fmt = "Bad request.")]
@@ -104,17 +104,17 @@ pub enum GetProductsResponseError {
     ServiceUnavailable,
 }
 
-impl GenericResponseError for GetProductsResponseError {
+impl GenericResponseError for GetProductsErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
-            GetProductsResponseError::NotFound => StatusCode::NOT_FOUND,
-            GetProductsResponseError::BadRequest => StatusCode::BAD_REQUEST,
-            GetProductsResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+            GetProductsErrorResponse::NotFound => StatusCode::NOT_FOUND,
+            GetProductsErrorResponse::BadRequest => StatusCode::BAD_REQUEST,
+            GetProductsErrorResponse::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 }
 
-impl ResponseError for GetProductsResponseError {
+impl ResponseError for GetProductsErrorResponse {
     fn error_response(&self) -> HttpResponse {
         <Self as GenericResponseError>::error_response(self)
     }

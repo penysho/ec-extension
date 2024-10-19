@@ -50,7 +50,7 @@ pub struct GetDraftOrdersResponse {
 }
 
 #[derive(Debug, Display, Error)]
-pub enum GetDraftOrdersResponseError {
+pub enum GetDraftOrdersErrorResponse {
     #[display(fmt = "Draft order not found.")]
     NotFound,
     #[display(fmt = "Bad request.")]
@@ -59,17 +59,17 @@ pub enum GetDraftOrdersResponseError {
     ServiceUnavailable,
 }
 
-impl GenericResponseError for GetDraftOrdersResponseError {
+impl GenericResponseError for GetDraftOrdersErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
-            GetDraftOrdersResponseError::NotFound => StatusCode::NOT_FOUND,
-            GetDraftOrdersResponseError::BadRequest => StatusCode::BAD_REQUEST,
-            GetDraftOrdersResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+            GetDraftOrdersErrorResponse::NotFound => StatusCode::NOT_FOUND,
+            GetDraftOrdersErrorResponse::BadRequest => StatusCode::BAD_REQUEST,
+            GetDraftOrdersErrorResponse::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 }
 
-impl ResponseError for GetDraftOrdersResponseError {
+impl ResponseError for GetDraftOrdersErrorResponse {
     fn error_response(&self) -> HttpResponse {
         <Self as GenericResponseError>::error_response(self)
     }
@@ -85,23 +85,23 @@ pub struct PostDraftOrderResponse {
 }
 
 #[derive(Debug, Display, Error)]
-pub enum PostDraftOrderResponseError {
+pub enum PostDraftOrderErrorResponse {
     #[display(fmt = "Bad request.")]
     BadRequest,
     #[display(fmt = "Service unavailable. Give it some time and try again.")]
     ServiceUnavailable,
 }
 
-impl GenericResponseError for PostDraftOrderResponseError {
+impl GenericResponseError for PostDraftOrderErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
-            PostDraftOrderResponseError::BadRequest => StatusCode::BAD_REQUEST,
-            PostDraftOrderResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+            PostDraftOrderErrorResponse::BadRequest => StatusCode::BAD_REQUEST,
+            PostDraftOrderErrorResponse::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 }
 
-impl ResponseError for PostDraftOrderResponseError {
+impl ResponseError for PostDraftOrderErrorResponse {
     fn error_response(&self) -> HttpResponse {
         <Self as GenericResponseError>::error_response(self)
     }

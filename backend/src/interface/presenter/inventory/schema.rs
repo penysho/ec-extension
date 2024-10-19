@@ -47,7 +47,7 @@ pub struct GetInventoriesResponse {
 }
 
 #[derive(Debug, Display, Error)]
-pub enum GetInventoriesResponseError {
+pub enum GetInventoriesErrorResponse {
     #[display(fmt = "Inventory not found.")]
     NotFound,
     #[display(fmt = "Bad request.")]
@@ -56,17 +56,17 @@ pub enum GetInventoriesResponseError {
     ServiceUnavailable,
 }
 
-impl GenericResponseError for GetInventoriesResponseError {
+impl GenericResponseError for GetInventoriesErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
-            GetInventoriesResponseError::NotFound => StatusCode::NOT_FOUND,
-            GetInventoriesResponseError::BadRequest => StatusCode::BAD_REQUEST,
-            GetInventoriesResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+            GetInventoriesErrorResponse::NotFound => StatusCode::NOT_FOUND,
+            GetInventoriesErrorResponse::BadRequest => StatusCode::BAD_REQUEST,
+            GetInventoriesErrorResponse::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 }
 
-impl ResponseError for GetInventoriesResponseError {
+impl ResponseError for GetInventoriesErrorResponse {
     fn error_response(&self) -> HttpResponse {
         <Self as GenericResponseError>::error_response(self)
     }
@@ -82,7 +82,7 @@ pub struct PutInventoryResponse {
 }
 
 #[derive(Debug, Display, Error)]
-pub enum PutInventoryResponseError {
+pub enum PutInventoryErrorResponse {
     #[display(fmt = "Inventory level not found.")]
     NotFound,
     #[display(fmt = "Bad request.")]
@@ -91,17 +91,17 @@ pub enum PutInventoryResponseError {
     ServiceUnavailable,
 }
 
-impl GenericResponseError for PutInventoryResponseError {
+impl GenericResponseError for PutInventoryErrorResponse {
     fn status_code(&self) -> StatusCode {
         match *self {
-            PutInventoryResponseError::NotFound => StatusCode::NOT_FOUND,
-            PutInventoryResponseError::BadRequest => StatusCode::BAD_REQUEST,
-            PutInventoryResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+            PutInventoryErrorResponse::NotFound => StatusCode::NOT_FOUND,
+            PutInventoryErrorResponse::BadRequest => StatusCode::BAD_REQUEST,
+            PutInventoryErrorResponse::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 }
 
-impl ResponseError for PutInventoryResponseError {
+impl ResponseError for PutInventoryErrorResponse {
     fn error_response(&self) -> HttpResponse {
         <Self as GenericResponseError>::error_response(self)
     }
