@@ -47,16 +47,6 @@ macro_rules! define_error_response {
             ServiceUnavailable,
         }
 
-        impl ErrorResponseBuilder for $name {
-            fn status_code(&self) -> StatusCode {
-                match self {
-                    $name::NotFound { .. } => StatusCode::NOT_FOUND,
-                    $name::BadRequest => StatusCode::BAD_REQUEST,
-                    $name::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
-                }
-            }
-        }
-
         impl From<DomainError> for $name {
             fn from(err: DomainError) -> Self {
                 match err {
@@ -65,6 +55,16 @@ macro_rules! define_error_response {
                     },
                     DomainError::InvalidRequest | DomainError::ValidationError => $name::BadRequest,
                     _ => $name::ServiceUnavailable,
+                }
+            }
+        }
+
+        impl ErrorResponseBuilder for $name {
+            fn status_code(&self) -> StatusCode {
+                match self {
+                    $name::NotFound { .. } => StatusCode::NOT_FOUND,
+                    $name::BadRequest => StatusCode::BAD_REQUEST,
+                    $name::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
                 }
             }
         }

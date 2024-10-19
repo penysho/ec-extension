@@ -32,7 +32,7 @@ impl Controller {
     pub async fn post_draft_order(&self, body: web::Json<PostDraftOrderRequest>) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
 
-        let line_items_result = body
+        let line_items = body
             .line_items
             .iter()
             .map(|li| {
@@ -44,14 +44,8 @@ impl Controller {
                 // TODO: Allow customized products to be accepted.
                 LineItem::create(false, li.variant_id.to_owned(), li.quantity, discount)
             })
-            .collect::<Result<Vec<_>, _>>();
-        if line_items_result.is_err() {
-            return presenter
-                .present_post_draft_order(Err(DomainError::InvalidRequest))
-                .await;
-        };
+            .collect::<Result<Vec<_>, _>>()?;
 
-        let line_items = line_items_result.unwrap();
         if line_items.is_empty() {
             log::error!("Line items cannot be empty.");
             return presenter
@@ -59,46 +53,28 @@ impl Controller {
                 .await;
         }
 
-        let billing_address_result = body
+        let billing_address = body
             .billing_address
             .to_owned()
             .map(|a| a.to_domain())
-            .transpose();
-        if billing_address_result.is_err() {
-            return presenter
-                .present_post_draft_order(Err(DomainError::InvalidRequest))
-                .await;
-        }
-        let billing_address = billing_address_result.unwrap();
+            .transpose()?;
 
-        let shipping_address_result = body
+        let shipping_address = body
             .shipping_address
             .to_owned()
             .map(|a| a.to_domain())
-            .transpose();
-        if shipping_address_result.is_err() {
-            return presenter
-                .present_post_draft_order(Err(DomainError::InvalidRequest))
-                .await;
-        }
-        let shipping_address = shipping_address_result.unwrap();
+            .transpose()?;
+
+        let presentment_currency_code = body
+            .presentment_currency_code
+            .to_owned()
+            .map(|c| c.to_domain())
+            .transpose()?;
 
         let interactor = self
             .interact_provider
             .provide_draft_order_interactor()
             .await;
-
-        let presentment_currency_code_result = body
-            .presentment_currency_code
-            .to_owned()
-            .map(|c| c.to_domain())
-            .transpose();
-        if presentment_currency_code_result.is_err() {
-            return presenter
-                .present_post_draft_order(Err(DomainError::InvalidRequest))
-                .await;
-        }
-        let presentment_currency_code = presentment_currency_code_result.unwrap();
 
         let result = interactor
             .create_draft_order(
