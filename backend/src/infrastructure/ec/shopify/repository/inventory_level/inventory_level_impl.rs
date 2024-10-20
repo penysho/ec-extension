@@ -83,6 +83,24 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
                                     quantity
                                 }}
                             }}
+                            inventoryLevels({first_query}) {{
+                                edges {{
+                                    node {{
+                                        id
+                                        item {{
+                                            id
+                                        }}
+                                        location {{
+                                            id
+                                        }}
+                                        quantities(names: {inventory_names}) {{
+                                            name
+                                            quantity
+                                        }}
+                                    }}
+                                }}
+                                {page_info}
+                            }}
                         }}
                     }}
                     {page_info}
@@ -189,7 +207,9 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         }
 
         match data.inventory_adjustment_group {
-            Some(inventory_adjustment_group) => inventory_adjustment_group.to_level_domains(),
+            Some(inventory_adjustment_group) => {
+                inventory_adjustment_group.to_inventory_level_domains()
+            }
             None => {
                 log::error!("No draft order returned.");
                 Err(DomainError::QueryError)
@@ -242,56 +262,48 @@ mod tests {
             variant: VariantIdNode {
                 id: format!("gid://shopify/ProductVariant/{id}"),
             },
-            inventory_level: Some(InventoryLevelNode {
-                id: format!("gid://shopify/InventoryLevel/{id}"),
-                item: InventoryItemIdNode {
-                    id: format!("gid://shopify/InventoryItem/{id}"),
+            inventory_level: Some(mock_inventory_level_node(id)),
+            inventory_levels: Edges {
+                edges: vec![Node {
+                    node: mock_inventory_level_node(id),
+                }],
+                page_info: PageInfo {
+                    has_previous_page: false,
+                    has_next_page: false,
+                    start_cursor: None,
+                    end_cursor: None,
                 },
-                location: LocationNode {
-                    id: format!("gid://shopify/Location/{id}"),
-                },
-                quantities: vec![
-                    QuantityNode {
-                        quantity: 1,
-                        name: "available".to_string(),
-                    },
-                    QuantityNode {
-                        quantity: 2,
-                        name: "committed".to_string(),
-                    },
-                    QuantityNode {
-                        quantity: 3,
-                        name: "reserved".to_string(),
-                    },
-                ],
-            }),
-            inventory_levels: vec![InventoryLevelNode {
-                id: format!("gid://shopify/InventoryLevel/{id}"),
-                item: InventoryItemIdNode {
-                    id: format!("gid://shopify/InventoryItem/{id}"),
-                },
-                location: LocationNode {
-                    id: format!("gid://shopify/Location/{id}"),
-                },
-                quantities: vec![
-                    QuantityNode {
-                        quantity: 1,
-                        name: "available".to_string(),
-                    },
-                    QuantityNode {
-                        quantity: 2,
-                        name: "committed".to_string(),
-                    },
-                    QuantityNode {
-                        quantity: 3,
-                        name: "reserved".to_string(),
-                    },
-                ],
-            }],
+            },
             requires_shipping: true,
             tracked: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+        }
+    }
+
+    fn mock_inventory_level_node(id: u32) -> InventoryLevelNode {
+        InventoryLevelNode {
+            id: format!("gid://shopify/InventoryLevel/{id}"),
+            item: InventoryItemIdNode {
+                id: format!("gid://shopify/InventoryItem/{id}"),
+            },
+            location: LocationNode {
+                id: format!("gid://shopify/Location/{id}"),
+            },
+            quantities: vec![
+                QuantityNode {
+                    quantity: 1,
+                    name: "available".to_string(),
+                },
+                QuantityNode {
+                    quantity: 2,
+                    name: "committed".to_string(),
+                },
+                QuantityNode {
+                    quantity: 3,
+                    name: "reserved".to_string(),
+                },
+            ],
         }
     }
 

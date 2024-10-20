@@ -121,6 +121,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
             .update(inventory_change)
             .await?;
 
+        // Only one inventoryLevel is returned for a single location.
         Ok(updated_levels.into_iter().next().unwrap())
     }
 }

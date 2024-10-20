@@ -97,11 +97,20 @@ pub struct InventoryChangeInput {
 }
 
 impl InventoryAdjustmentGroupNode {
-    pub fn to_level_domains(self) -> Result<Vec<InventoryLevel>, DomainError> {
+    pub fn to_inventory_level_domains(self) -> Result<Vec<InventoryLevel>, DomainError> {
         let changes = self
             .changes
             .into_iter()
-            .map(|c| InventoryLevelNode::to_domains(c.item.inventory_levels))
+            .map(|c| {
+                let level_nodes = c
+                    .item
+                    .inventory_levels
+                    .edges
+                    .into_iter()
+                    .map(|node| node.node)
+                    .collect();
+                InventoryLevelNode::to_domains(level_nodes)
+            })
             .collect::<Result<Vec<Vec<_>>, _>>()? // Nested Vec
             .into_iter()
             .flatten()
