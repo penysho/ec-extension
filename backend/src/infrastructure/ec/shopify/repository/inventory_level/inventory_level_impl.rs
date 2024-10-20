@@ -46,7 +46,7 @@ impl<C: ECClient> InventoryLevelRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepositoryImpl<C> {
     /// Get inventory level information by sku.
-    async fn find_inventory_level_by_sku(
+    async fn find_inventory_level_by_sku_with_location_id(
         &self,
         sku: &Sku,
         location_id: &LocationId,
@@ -391,7 +391,10 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku_with_location_id(
+                &Sku::new("0".to_string()).unwrap(),
+                &"0".to_string(),
+            )
             .await;
 
         assert!(result.is_ok());
@@ -439,7 +442,10 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku_with_location_id(
+                &Sku::new("0".to_string()).unwrap(),
+                &"0".to_string(),
+            )
             .await;
 
         assert!(result.is_err());
@@ -462,7 +468,10 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku_with_location_id(
+                &Sku::new("0".to_string()).unwrap(),
+                &"0".to_string(),
+            )
             .await;
 
         assert!(result.is_err());
@@ -485,7 +494,10 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku_with_location_id(
+                &Sku::new("0".to_string()).unwrap(),
+                &"0".to_string(),
+            )
             .await;
 
         assert!(result.is_err());

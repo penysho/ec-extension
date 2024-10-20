@@ -74,7 +74,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
                 for location_id in location_ids {
                     let inventory_level = self
                         .inventory_level_repository
-                        .find_inventory_level_by_sku(sku, &location_id)
+                        .find_inventory_level_by_sku_with_location_id(sku, &location_id)
                         .await?;
 
                     if let Some(inventory_level) = inventory_level {
@@ -102,7 +102,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
     ) -> Result<InventoryLevel, DomainError> {
         let inventory_level = self
             .inventory_level_repository
-            .find_inventory_level_by_sku(sku, location_id)
+            .find_inventory_level_by_sku_with_location_id(sku, location_id)
             .await?
             .ok_or_else(|| {
                 log::error!(
