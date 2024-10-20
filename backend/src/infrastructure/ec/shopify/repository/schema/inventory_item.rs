@@ -50,8 +50,11 @@ pub struct InventoryItemsData {
 pub struct InventoryItemNode {
     pub id: String,
     pub variant: VariantIdNode,
+    // Used when obtaining a single InventoryLevel.
     #[serde(rename = "inventoryLevel")]
     pub inventory_level: Option<InventoryLevelNode>,
+    // Used when acquiring multiple InventoryLevels.
+    #[serde(default)]
     #[serde(rename = "inventoryLevels")]
     pub inventory_levels: Edges<InventoryLevelNode>,
     #[serde(rename = "requiresShipping")]

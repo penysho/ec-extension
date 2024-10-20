@@ -111,7 +111,7 @@ impl InventoryAdjustmentGroupNode {
                     .collect();
                 InventoryLevelNode::to_domains(level_nodes)
             })
-            .collect::<Result<Vec<Vec<_>>, _>>()? // Nested Vec
+            .collect::<Result<Vec<Vec<_>>, _>>()?
             .into_iter()
             .flatten()
             .collect::<Vec<_>>();

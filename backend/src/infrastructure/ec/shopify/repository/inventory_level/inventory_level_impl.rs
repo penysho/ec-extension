@@ -41,11 +41,29 @@ impl<C: ECClient> InventoryLevelRepositoryImpl<C> {
     pub fn new(client: C) -> Self {
         Self { client }
     }
+
+    fn inventory_level_fields() -> String {
+        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
+
+        format!(
+            "id
+            item {{
+                id
+            }}
+            location {{
+                id
+            }}
+            quantities(names: {inventory_names}) {{
+                name
+                quantity
+            }}"
+        )
+    }
 }
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepositoryImpl<C> {
-    /// Get inventory level information by sku.
+    /// Get inventory level information by sku with location id.
     async fn find_inventory_level_by_sku_with_location_id(
         &self,
         sku: &Sku,
@@ -53,9 +71,9 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
     ) -> Result<Option<InventoryLevel>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
-        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
         let sku = sku.value();
         let location_id = ShopifyGQLQueryHelper::add_location_gid_prefix(location_id);
+        let inventory_level_fields = Self::inventory_level_fields();
 
         let query = format!(
             "query {{
@@ -71,35 +89,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
                             createdAt
                             updatedAt
                             inventoryLevel(locationId: \"{location_id}\") {{
-                                id
-                                item {{
-                                    id
-                                }}
-                                location {{
-                                    id
-                                }}
-                                quantities(names: {inventory_names}) {{
-                                    name
-                                    quantity
-                                }}
-                            }}
-                            inventoryLevels({first_query}) {{
-                                edges {{
-                                    node {{
-                                        id
-                                        item {{
-                                            id
-                                        }}
-                                        location {{
-                                            id
-                                        }}
-                                        quantities(names: {inventory_names}) {{
-                                            name
-                                            quantity
-                                        }}
-                                    }}
-                                }}
-                                {page_info}
+                                {inventory_level_fields}
                             }}
                         }}
                     }}
@@ -146,8 +136,8 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
 
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
-        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
         let user_errors = ShopifyGQLQueryHelper::user_errors();
+        let inventory_level_fields = Self::inventory_level_fields();
 
         let query = format!(
             "mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {{
@@ -166,17 +156,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
                                 inventoryLevels({first_query}) {{
                                     edges {{
                                         node {{
-                                            id
-                                            item {{
-                                                id
-                                            }}
-                                            location {{
-                                                id
-                                            }}
-                                            quantities(names: {inventory_names}) {{
-                                                name
-                                                quantity
-                                            }}
+                                            {inventory_level_fields}
                                         }}
                                     }}
                                     {page_info}
@@ -211,7 +191,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
                 inventory_adjustment_group.to_inventory_level_domains()
             }
             None => {
-                log::error!("No draft order returned.");
+                log::error!("No inventory level returned.");
                 Err(DomainError::QueryError)
             }
         }
