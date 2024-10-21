@@ -62,53 +62,39 @@ impl DraftOrderNode {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DraftOrdersData {
-    #[serde(rename = "draftOrders")]
     pub draft_orders: Edges<DraftOrderNode>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DraftOrderNode {
     pub id: String,
     pub name: String,
     pub status: String,
 
     pub customer: Option<CustomerIdNode>,
-    #[serde(rename = "billingAddress")]
     pub billing_address: Option<AddressNode>,
-    #[serde(rename = "shippingAddress")]
     pub shipping_address: Option<AddressNode>,
     pub note2: Option<String>,
 
-    #[serde(rename = "lineItems")]
     pub line_items: Edges<LineItemNode>,
-    #[serde(rename = "reserveInventoryUntil")]
     pub reserve_inventory_until: Option<DateTime<Utc>>,
 
-    #[serde(rename = "subtotalPriceSet")]
     pub subtotal_price_set: MoneyBagNode,
-    #[serde(rename = "taxesIncluded")]
     pub taxes_included: bool,
-    #[serde(rename = "taxExempt")]
     pub tax_exempt: bool,
-    #[serde(rename = "totalTaxSet")]
     pub total_tax_set: MoneyBagNode,
-    #[serde(rename = "totalDiscountsSet")]
     pub total_discounts_set: MoneyBagNode,
-    #[serde(rename = "totalShippingPriceSet")]
     pub total_shipping_price_set: MoneyBagNode,
-    #[serde(rename = "totalPriceSet")]
     pub total_price_set: MoneyBagNode,
-    #[serde(rename = "presentmentCurrencyCode")]
     pub presentment_currency_code: CurrencyCodeNode,
 
     pub order: Option<OrderIdNode>,
 
-    #[serde(rename = "completedAt")]
     pub completed_at: Option<DateTime<Utc>>,
-    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
-    #[serde(rename = "updatedAt")]
     pub update_at: DateTime<Utc>,
 }
 

@@ -23,15 +23,15 @@ impl MoneyNode {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MoneyBagNode {
-    #[serde(rename = "shopMoney")]
     pub shop_money: MoneyNode,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MoneyNode {
     pub amount: String,
-    #[serde(rename = "currencyCode")]
     pub currency_code: CurrencyCodeNode,
 }
 

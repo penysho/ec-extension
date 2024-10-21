@@ -47,16 +47,14 @@ impl DiscountNode {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LineItemNode {
     pub id: String,
     pub custom: bool,
     pub variant: Option<VariantIdNode>,
     pub quantity: i32,
-    #[serde(rename = "appliedDiscount")]
     pub applied_discount: Option<DiscountNode>,
-    #[serde(rename = "discountedTotalSet")]
     pub discounted_total_set: MoneyBagNode,
-    #[serde(rename = "originalTotalSet")]
     pub original_total_set: MoneyBagNode,
 }
 
@@ -66,12 +64,11 @@ pub struct VariantIdNode {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiscountNode {
     pub title: Option<String>,
     pub description: String,
     pub value: f32,
-    #[serde(rename = "valueType")]
     pub value_type: String,
-    #[serde(rename = "amountSet")]
     pub amount_set: MoneyBagNode,
 }

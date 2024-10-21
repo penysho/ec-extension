@@ -53,21 +53,20 @@ impl From<CustomerId> for PurchasingEntityInput {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PurchasingEntityInput {
-    #[serde(rename = "customerId")]
     pub customer_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DraftOrderCreateData {
-    #[serde(rename = "draftOrderCreate")]
     pub draft_order_create: DraftOrderCreate,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DraftOrderCreate {
-    #[serde(rename = "draftOrder")]
     pub draft_order: Option<DraftOrderNode>,
-    #[serde(rename = "userErrors")]
     pub user_errors: Vec<UserError>,
 }

@@ -86,13 +86,11 @@ pub struct InventoryAdjustQuantitiesInput {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InventoryChangeInput {
     pub delta: i32,
-    #[serde(rename = "inventoryItemId")]
     pub inventory_item_id: String,
-    #[serde(rename = "ledgerDocumentUri")]
     pub ledger_document_uri: Option<String>,
-    #[serde(rename = "locationId")]
     pub location_id: String,
 }
 
@@ -121,16 +119,15 @@ impl InventoryAdjustmentGroupNode {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InventoryAdjustQuantitiesData {
-    #[serde(rename = "inventoryAdjustQuantities")]
     pub inventory_adjust_quantities: InventoryAdjustQuantities,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InventoryAdjustQuantities {
-    #[serde(rename = "inventoryAdjustmentGroup")]
     pub inventory_adjustment_group: Option<InventoryAdjustmentGroupNode>,
-    #[serde(rename = "userErrors")]
     pub user_errors: Vec<UserError>,
 }
 

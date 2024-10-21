@@ -45,21 +45,19 @@ impl From<DiscountValueType> for String {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LineItemInput {
-    #[serde(rename = "variantId")]
     pub variant_id: Option<String>,
     pub quantity: i32,
-    #[serde(rename = "appliedDiscount")]
     pub applied_discount: Option<DiscountInput>,
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiscountInput {
     pub title: Option<String>,
     pub description: Option<String>,
     pub value: f32,
-    #[serde(rename = "valueType")]
     pub value_type: String,
-    #[serde(rename = "amountWithCurrency")]
     pub amount_with_currency: Option<MoneyInput>,
 }

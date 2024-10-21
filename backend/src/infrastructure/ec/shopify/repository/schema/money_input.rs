@@ -23,8 +23,8 @@ impl From<CurrencyCode> for String {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MoneyInput {
     pub amount: String,
-    #[serde(rename = "currencyCode")]
     pub currency_code: String,
 }

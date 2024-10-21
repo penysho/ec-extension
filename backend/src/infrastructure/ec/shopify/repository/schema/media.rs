@@ -71,15 +71,13 @@ pub struct MediaData {
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MediaNode {
     pub id: String,
-    #[serde(rename = "fileStatus")]
     pub file_status: String,
     pub alt: Option<String>,
     pub preview: Option<MediaPreviewImage>,
-    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
-    #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
 }
 
@@ -90,9 +88,9 @@ pub struct MediaPreviewImage {
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImageNode {
     pub id: Option<String>,
-    #[serde(rename = "altText")]
     pub alt_text: Option<String>,
     pub height: Option<i32>,
     pub width: Option<i32>,
