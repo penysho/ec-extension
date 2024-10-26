@@ -29,35 +29,36 @@ impl InventoryItemNode {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VariantsDataForInventory {
-    #[serde(rename = "productVariants")]
     pub product_variants: Edges<VariantNodeForInventory>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VariantNodeForInventory {
-    #[serde(rename = "inventoryItem")]
     pub inventory_item: InventoryItemNode,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InventoryItemsData {
-    #[serde(rename = "inventoryItems")]
     pub inventory_items: Edges<InventoryItemNode>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InventoryItemNode {
     pub id: String,
     pub variant: VariantIdNode,
-    #[serde(rename = "inventoryLevel")]
+    // Used when obtaining a single InventoryLevel.
     pub inventory_level: Option<InventoryLevelNode>,
-    #[serde(rename = "requiresShipping")]
+    // Used when acquiring multiple InventoryLevels.
+    #[serde(default)]
+    pub inventory_levels: Edges<InventoryLevelNode>,
     pub requires_shipping: bool,
     pub tracked: bool,
-    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
-    #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
 }
 

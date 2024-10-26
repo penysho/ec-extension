@@ -50,19 +50,6 @@ impl InventoryInteractorImpl {
 
 #[async_trait]
 impl InventoryInteractor for InventoryInteractorImpl {
-    /// get inventory information for all locations.
-    ///
-    /// # Arguments
-    ///
-    /// * `query` - get inventories query
-    ///
-    /// # Returns
-    ///
-    /// * `Result<(Vec<InventoryItem>, HashMap<InventoryItemId, Vec<InventoryLevel>>), DomainError>` - inventory items and inventory levels
-    ///
-    /// # Errors
-    ///
-    /// Returns a domain error if the media repository fails.
     async fn get_inventories_from_all_locations(
         &self,
         query: &GetInventoriesQuery,
@@ -87,7 +74,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
                 for location_id in location_ids {
                     let inventory_level = self
                         .inventory_level_repository
-                        .find_inventory_level_by_sku(sku, &location_id)
+                        .find_inventory_level_by_sku_with_location_id(sku, &location_id)
                         .await?;
 
                     if let Some(inventory_level) = inventory_level {
@@ -104,24 +91,6 @@ impl InventoryInteractor for InventoryInteractorImpl {
         }
     }
 
-    /// allocate inventory by sku with location.
-    ///
-    /// # Arguments
-    ///
-    /// * `sku` - sku
-    /// * `name` - inventory type
-    /// * `reason` - inventory change reason
-    /// * `delta` - delta
-    /// * `ledger_document_uri` - ledger document uri
-    /// * `location_id` - location id
-    ///
-    /// # Returns
-    ///
-    /// * `Result<InventoryLevel, DomainError>` - inventory level
-    ///
-    /// # Errors
-    ///
-    /// Returns a domain error if the media repository fails.
     async fn allocate_inventory_by_sku_with_location(
         &self,
         sku: &Sku,
@@ -131,9 +100,9 @@ impl InventoryInteractor for InventoryInteractorImpl {
         ledger_document_uri: &Option<LedgerDocumentUri>,
         location_id: &LocationId,
     ) -> Result<InventoryLevel, DomainError> {
-        let mut inventory_level = self
+        let inventory_level = self
             .inventory_level_repository
-            .find_inventory_level_by_sku(sku, location_id)
+            .find_inventory_level_by_sku_with_location_id(sku, location_id)
             .await?
             .ok_or_else(|| {
                 log::error!(
@@ -149,10 +118,6 @@ impl InventoryInteractor for InventoryInteractorImpl {
 
         self.inventory_level_repository
             .update(inventory_change)
-            .await?;
-
-        inventory_level.update_quantity_by_delta(name, delta)?;
-
-        Ok(inventory_level)
+            .await
     }
 }

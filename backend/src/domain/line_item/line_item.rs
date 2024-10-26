@@ -35,6 +35,7 @@ pub struct LineItem {
 }
 
 impl LineItem {
+    /// Constructor to be used from the repository.
     pub fn new(
         id: Id,
         is_custom: bool,
@@ -52,6 +53,24 @@ impl LineItem {
             discount,
             discounted_total_set,
             original_total_set,
+        })
+    }
+
+    /// Create an entity in its initial state.
+    pub fn create(
+        is_custom: bool,
+        variant_id: Option<impl Into<VariantId>>,
+        quantity: u32,
+        discount: Option<Discount>,
+    ) -> Result<Self, DomainError> {
+        Ok(Self {
+            id: String::new(),
+            is_custom,
+            variant_id: variant_id.map(|id| id.into()),
+            quantity,
+            discount,
+            discounted_total_set: MoneyBag::zero(),
+            original_total_set: MoneyBag::zero(),
         })
     }
 }
@@ -76,7 +95,7 @@ mod tests {
             Some("Test description".to_string()),
             10.0,
             DiscountValueType::Percentage,
-            mock_money_bag(),
+            Some(mock_money_bag()),
         )
         .expect("Failed to create mock discount")
     }

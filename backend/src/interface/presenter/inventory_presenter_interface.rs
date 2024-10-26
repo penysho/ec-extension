@@ -12,7 +12,7 @@ use crate::domain::{
 #[async_trait]
 pub trait InventoryPresenter {
     type GetInventoriesResponse;
-    type GetInventoriesResponseError;
+    type GetInventoriesErrorResponse;
     async fn present_get_inventories(
         &self,
         result: Result<
@@ -22,12 +22,12 @@ pub trait InventoryPresenter {
             ),
             DomainError,
         >,
-    ) -> Result<Self::GetInventoriesResponse, Self::GetInventoriesResponseError>;
+    ) -> Result<Self::GetInventoriesResponse, Self::GetInventoriesErrorResponse>;
 
     type PutInventoryResponse;
-    type PutInventoryResponseError;
+    type PutInventoryErrorResponse;
     async fn present_put_inventory(
         &self,
         result: Result<InventoryLevel, DomainError>,
-    ) -> Result<Self::PutInventoryResponse, Self::PutInventoryResponseError>;
+    ) -> Result<Self::PutInventoryResponse, Self::PutInventoryErrorResponse>;
 }

@@ -14,6 +14,7 @@ use derive_more::{Display, Error};
 /// - `NotFound` - Indicates that the requested resource could not be found.
 /// - `InvalidRequest` - Represents an invalid request schema.
 /// - `ConversionError` - Conversion to entity failed.
+/// - `SaveError` - Resource persistence failed.
 ///
 /// # Example
 /// ```
@@ -52,4 +53,8 @@ pub enum DomainError {
     /// Conversion to entity failed.
     #[display(fmt = "Failed to convert to entity.")]
     ConversionError,
+
+    /// Resource persistence failed.
+    #[display(fmt = "Resource save failed.")]
+    SaveError,
 }

@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AddressSchema {
-    pub id: String,
     pub address1: Option<String>,
     pub address2: Option<String>,
     pub city: Option<String>,

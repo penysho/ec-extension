@@ -6,8 +6,8 @@ use crate::{
         ec::shopify::{
             client_impl::ShopifyGQLClient,
             repository::{
-                customer::customer::CustomerRepositoryImpl,
-                draft_order::draft_order::DraftOrderRepositoryImpl,
+                customer::customer_impl::CustomerRepositoryImpl,
+                draft_order::draft_order_impl::DraftOrderRepositoryImpl,
                 inventory_item::inventory_item_impl::InventoryItemRepositoryImpl,
                 inventory_level::inventory_level_impl::InventoryLevelRepositoryImpl,
                 location::location_impl::LocationRepositoryImpl,

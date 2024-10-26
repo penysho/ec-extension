@@ -127,18 +127,18 @@ pub struct TaxonomyCategory {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VariantsData {
-    #[serde(rename = "productVariants")]
     pub product_variants: Edges<VariantNode>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VariantNode {
     pub id: String,
     pub title: String,
     pub sku: Option<String>,
     pub barcode: Option<String>,
-    #[serde(rename = "availableForSale")]
     pub available_for_sale: bool,
     pub position: i32,
 
@@ -151,12 +151,9 @@ pub struct VariantNode {
 
     pub price: String, // Money objcets. Define with string because it is not MoneyV2.
     pub taxable: bool,
-    #[serde(rename = "taxCode")]
     pub tax_code: Option<String>,
 
-    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
-    #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
 
     pub product: ProductNode,

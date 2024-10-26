@@ -14,8 +14,8 @@ use crate::{
     },
     interface::presenter::{
         product::schema::{
-            GetProductResponse, GetProductResponseError, GetProductsResponse,
-            GetProductsResponseError, ProductSchema,
+            GetProductErrorResponse, GetProductResponse, GetProductsErrorResponse,
+            GetProductsResponse, ProductSchema,
         },
         product_presenter_interface::ProductPresenter,
     },
@@ -32,18 +32,13 @@ impl ProductPresenterImpl {
 #[async_trait]
 impl ProductPresenter for ProductPresenterImpl {
     type GetProductResponse = Json<GetProductResponse>;
-    type GetProductResponseError = GetProductResponseError;
+    type GetProductErrorResponse = GetProductErrorResponse;
     /// Generate a response with detailed product information.
     async fn present_get_product(
         &self,
         result: Result<(Product, Vec<Media>), DomainError>,
-    ) -> Result<Self::GetProductResponse, Self::GetProductResponseError> {
-        let (product, media) = match result {
-            Ok((product, media)) => (product, media),
-            Err(DomainError::NotFound) => return Err(GetProductResponseError::NotFound),
-            Err(DomainError::ValidationError) => return Err(GetProductResponseError::BadRequest),
-            Err(_) => return Err(GetProductResponseError::ServiceUnavailable),
-        };
+    ) -> Result<Self::GetProductResponse, Self::GetProductErrorResponse> {
+        let (product, media) = result?;
 
         for medium in media.iter() {
             let image = match medium.content() {
@@ -65,19 +60,17 @@ impl ProductPresenter for ProductPresenterImpl {
     }
 
     type GetProductsResponse = Json<GetProductsResponse>;
-    type GetProductsResponseError = GetProductsResponseError;
+    type GetProductsErrorResponse = GetProductsErrorResponse;
     /// Generate a response for the product list.
     async fn present_get_products(
         &self,
         result: Result<(Vec<Product>, Vec<Media>), DomainError>,
-    ) -> Result<Self::GetProductsResponse, Self::GetProductsResponseError> {
-        let (products, media) = match result {
-            Ok((products, media)) => (products, media),
-            Err(DomainError::ValidationError) => return Err(GetProductsResponseError::BadRequest),
-            Err(_) => return Err(GetProductsResponseError::ServiceUnavailable),
-        };
+    ) -> Result<Self::GetProductsResponse, Self::GetProductsErrorResponse> {
+        let (products, media) = result?;
         if products.is_empty() {
-            return Err(GetProductsResponseError::NotFound);
+            return Err(GetProductsErrorResponse::NotFound {
+                object_name: "Products".to_string(),
+            });
         }
 
         let mut media_map: HashMap<AssociatedId, Vec<Media>> =
@@ -234,7 +227,10 @@ mod tests {
             .present_get_product(Err(DomainError::NotFound))
             .await;
 
-        assert!(matches!(result, Err(GetProductResponseError::NotFound)));
+        assert!(matches!(
+            result,
+            Err(GetProductErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]
@@ -245,7 +241,7 @@ mod tests {
             .present_get_product(Err(DomainError::ValidationError))
             .await;
 
-        assert!(matches!(result, Err(GetProductResponseError::BadRequest)));
+        assert!(matches!(result, Err(GetProductErrorResponse::BadRequest)));
     }
 
     #[actix_web::test]
@@ -258,7 +254,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(GetProductResponseError::ServiceUnavailable)
+            Err(GetProductErrorResponse::ServiceUnavailable)
         ));
     }
 
@@ -285,7 +281,10 @@ mod tests {
 
         let result = presenter.present_get_products(Ok((vec![], vec![]))).await;
 
-        assert!(matches!(result, Err(GetProductsResponseError::NotFound)));
+        assert!(matches!(
+            result,
+            Err(GetProductsErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]
@@ -296,7 +295,7 @@ mod tests {
             .present_get_products(Err(DomainError::ValidationError))
             .await;
 
-        assert!(matches!(result, Err(GetProductsResponseError::BadRequest)));
+        assert!(matches!(result, Err(GetProductsErrorResponse::BadRequest)));
     }
 
     #[actix_web::test]
@@ -309,7 +308,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(GetProductsResponseError::ServiceUnavailable)
+            Err(GetProductsErrorResponse::ServiceUnavailable)
         ));
     }
 }

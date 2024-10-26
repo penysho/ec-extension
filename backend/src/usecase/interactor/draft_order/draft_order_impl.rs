@@ -1,7 +1,15 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 
 use crate::{
-    domain::{draft_order::draft_order::DraftOrder, error::error::DomainError},
+    domain::{
+        address::address::Address,
+        customer::customer::Id as CustomerId,
+        draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
+        error::error::DomainError,
+        line_item::line_item::LineItem,
+        money::money_bag::CurrencyCode,
+    },
     usecase::{
         interactor::draft_order_interactor_interface::{DraftOrderInteractor, GetDraftOrdersQuery},
         repository::{
@@ -46,5 +54,41 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
                     .await
             }
         }
+    }
+
+    async fn create_draft_order(
+        &self,
+        customer_id: Option<CustomerId>,
+        billing_address: Option<Address>,
+        shipping_address: Option<Address>,
+        note: Option<String>,
+        line_items: Vec<LineItem>,
+        reserve_inventory_until: Option<DateTime<Utc>>,
+        tax_exempt: Option<bool>,
+        presentment_currency_code: Option<CurrencyCode>,
+    ) -> Result<DraftOrder, DomainError> {
+        let draft_order = DraftOrder::create(
+            customer_id,
+            billing_address,
+            shipping_address,
+            note,
+            line_items,
+            reserve_inventory_until,
+            tax_exempt,
+            presentment_currency_code,
+        )?;
+
+        self.draft_order_repository.create(draft_order).await
+    }
+
+    async fn complete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError> {
+        let mut draft_order = self
+            .draft_order_repository
+            .find_draft_order_by_id(id)
+            .await?;
+
+        draft_order.complete()?;
+
+        self.draft_order_repository.update(draft_order).await
     }
 }

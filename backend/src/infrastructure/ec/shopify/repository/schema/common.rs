@@ -16,22 +16,33 @@ pub struct Node<T> {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Edges<T> {
     pub edges: Vec<Node<T>>,
-    #[serde(rename = "pageInfo")]
     pub page_info: PageInfo,
+}
+
+impl<T> Default for Edges<T> {
+    fn default() -> Self {
+        Edges {
+            edges: Vec::new(),
+            page_info: PageInfo {
+                has_previous_page: false,
+                has_next_page: false,
+                start_cursor: None,
+                end_cursor: None,
+            },
+        }
+    }
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PageInfo {
-    #[serde(rename = "hasPreviousPage")]
     pub has_previous_page: bool,
-    #[serde(rename = "hasNextPage")]
     pub has_next_page: bool,
-    #[serde(rename = "startCursor")]
     pub start_cursor: Option<String>,
-    #[serde(rename = "endCursor")]
     pub end_cursor: Option<String>,
 }
 
@@ -50,15 +61,7 @@ pub struct GraphQLErrorExtensions {
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-pub struct UserErrors {
-    #[serde(rename = "userErrors")]
-    pub user_errors: Vec<UserError>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Deserialize)]
 pub struct UserError {
-    pub code: Option<String>,
     pub field: Vec<String>,
     pub message: String,
 }

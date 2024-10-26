@@ -17,26 +17,35 @@ impl MoneyBagNode {
 impl MoneyNode {
     pub fn to_domain(self) -> Result<MoneyBag, DomainError> {
         let amount = Money::new(self.amount.parse::<f64>().unwrap_or(0.0))?;
-        let currency_code = match self.currency_code.as_str() {
-            "USD" => Ok(CurrencyCode::USD),
-            "EUR" => Ok(CurrencyCode::EUR),
-            "GBP" => Ok(CurrencyCode::GBP),
-            "JPY" => Ok(CurrencyCode::JPY),
-            _ => Err(DomainError::ConversionError),
-        }?;
+        let currency_code = self.currency_code.to_domain()?;
         MoneyBag::new(currency_code, amount)
     }
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MoneyBagNode {
-    #[serde(rename = "shopMoney")]
     pub shop_money: MoneyNode,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MoneyNode {
     pub amount: String,
-    #[serde(rename = "currencyCode")]
-    pub currency_code: String,
+    pub currency_code: CurrencyCodeNode,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CurrencyCodeNode(pub String);
+
+impl CurrencyCodeNode {
+    pub fn to_domain(self) -> Result<CurrencyCode, DomainError> {
+        match self.0.as_str() {
+            "USD" => Ok(CurrencyCode::USD),
+            "EUR" => Ok(CurrencyCode::EUR),
+            "GBP" => Ok(CurrencyCode::GBP),
+            "JPY" => Ok(CurrencyCode::JPY),
+            _ => Err(DomainError::ConversionError),
+        }
+    }
 }

@@ -29,7 +29,7 @@ pub struct Discount {
     description: Option<String>,
     value: f32,
     value_type: DiscountValueType,
-    amount_set: MoneyBag,
+    amount_set: Option<MoneyBag>,
 }
 
 impl Discount {
@@ -38,7 +38,7 @@ impl Discount {
         description: Option<impl Into<String>>,
         value: f32,
         value_type: DiscountValueType,
-        amount_set: MoneyBag,
+        amount_set: Option<MoneyBag>,
     ) -> Result<Self, DomainError> {
         if value < 0.0 {
             return Err(DomainError::ValidationError);

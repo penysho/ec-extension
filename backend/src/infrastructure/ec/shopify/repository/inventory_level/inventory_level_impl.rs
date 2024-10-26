@@ -16,11 +16,11 @@ use crate::{
                 query_helper::ShopifyGQLQueryHelper,
                 repository::schema::{
                     common::GraphQLResponse,
-                    inventory_item::InventoryItemsData,
-                    inventory_level::{
+                    inventory_change::{
                         InventoryAdjustQuantitiesData, InventoryAdjustQuantitiesInput,
-                        InventoryLevelNode,
                     },
+                    inventory_item::InventoryItemsData,
+                    inventory_level::InventoryLevelNode,
                 },
             },
         },
@@ -41,21 +41,39 @@ impl<C: ECClient> InventoryLevelRepositoryImpl<C> {
     pub fn new(client: C) -> Self {
         Self { client }
     }
+
+    fn inventory_level_fields() -> String {
+        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
+
+        format!(
+            "id
+            item {{
+                id
+            }}
+            location {{
+                id
+            }}
+            quantities(names: {inventory_names}) {{
+                name
+                quantity
+            }}"
+        )
+    }
 }
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepositoryImpl<C> {
-    /// Get inventory level information by sku.
-    async fn find_inventory_level_by_sku(
+    /// Get inventory level information by sku with location id.
+    async fn find_inventory_level_by_sku_with_location_id(
         &self,
         sku: &Sku,
         location_id: &LocationId,
     ) -> Result<Option<InventoryLevel>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
-        let inventory_names = Self::SHOPIFY_ALL_INVENTORY_NAMES_FOR_QUERY;
         let sku = sku.value();
         let location_id = ShopifyGQLQueryHelper::add_location_gid_prefix(location_id);
+        let inventory_level_fields = Self::inventory_level_fields();
 
         let query = format!(
             "query {{
@@ -71,17 +89,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
                             createdAt
                             updatedAt
                             inventoryLevel(locationId: \"{location_id}\") {{
-                                id
-                                item {{
-                                    id
-                                }}
-                                location {{
-                                    id
-                                }}
-                                quantities(names: {inventory_names}) {{
-                                    name
-                                    quantity
-                                }}
+                                {inventory_level_fields}
                             }}
                         }}
                     }}
@@ -116,18 +124,50 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
     }
 
     /// Update inventory quantity.
-    async fn update(&self, inventory_change: InventoryChange) -> Result<(), DomainError> {
+    async fn update(
+        &self,
+        inventory_change: InventoryChange,
+    ) -> Result<InventoryLevel, DomainError> {
         let schema = InventoryAdjustQuantitiesInput::from(inventory_change);
+        if schema.changes.len() != 1 {
+            log::error!(
+                "Only one change is supported. Changes: {:?}",
+                schema.changes
+            );
+            return Err(DomainError::SystemError);
+        }
+        let quantity_name = schema.name.clone();
+        let location_id = schema.changes[0].location_id.clone();
+
         let input = serde_json::to_value(schema).map_err(|e| {
             log::error!("Failed to parse the request structure. Error: {:?}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
         })?;
 
         let user_errors = ShopifyGQLQueryHelper::user_errors();
+        let inventory_level_fields = Self::inventory_level_fields();
 
+        // NOTE: By specifying quantityNames, only the results of the specified name will be responded to, so that the results acquired in the inventoryLevels field will not be duplicated.
         let query = format!(
             "mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {{
                 inventoryAdjustQuantities(input: $input) {{
+                    inventoryAdjustmentGroup {{
+                        changes(quantityNames: \"{quantity_name}\") {{
+                            item {{
+                                id
+                                variant {{
+                                    id
+                                }}
+                                requiresShipping
+                                tracked
+                                createdAt
+                                updatedAt
+                                inventoryLevel(locationId: \"{location_id}\") {{
+                                    {inventory_level_fields}
+                                }}
+                            }}
+                        }}
+                    }}
                     {user_errors}
                 }}
             }}",
@@ -137,21 +177,28 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             self.client.mutation(&query, &input).await?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response: {:?}", errors);
-            return Err(DomainError::QueryError);
+            return Err(DomainError::SaveError);
         }
 
-        let user_errors = graphql_response
+        let data = graphql_response
             .data
-            .ok_or(DomainError::QueryError)?
-            .inventory_adjust_quantities
-            .user_errors;
+            .ok_or(DomainError::SaveError)?
+            .inventory_adjust_quantities;
 
-        if !user_errors.is_empty() {
+        if !data.user_errors.is_empty() {
             log::error!("UserErrors returned. userErrors: {:?}", user_errors);
-            return Err(DomainError::QueryError);
+            return Err(DomainError::SaveError);
         }
 
-        Ok(())
+        match data.inventory_adjustment_group {
+            Some(inventory_adjustment_group) => {
+                inventory_adjustment_group.to_inventory_level_domain()
+            }
+            None => {
+                log::error!("No inventory level returned.");
+                Err(DomainError::SaveError)
+            }
+        }
     }
 }
 
@@ -179,14 +226,13 @@ mod tests {
             shopify::repository::{
                 inventory_level::inventory_level_impl::InventoryLevelRepositoryImpl,
                 schema::{
-                    common::{
-                        Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError, UserErrors,
+                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
+                    inventory_change::{
+                        InventoryAdjustQuantities, InventoryAdjustQuantitiesData,
+                        InventoryAdjustmentGroupNode, InventoryChangeNode,
                     },
                     inventory_item::{InventoryItemNode, InventoryItemsData, VariantIdNode},
-                    inventory_level::{
-                        InventoryAdjustQuantitiesData, InventoryItemIdNode, InventoryLevelNode,
-                        QuantityNode,
-                    },
+                    inventory_level::{InventoryItemIdNode, InventoryLevelNode, QuantityNode},
                     location::LocationNode,
                 },
             },
@@ -194,35 +240,24 @@ mod tests {
         usecase::repository::inventory_level_repository_interface::InventoryLevelRepository,
     };
 
-    fn mock_inventory_item(id: u32) -> InventoryItemNode {
+    fn mock_inventory_item_node(id: u32) -> InventoryItemNode {
         InventoryItemNode {
             id: format!("gid://shopify/InventoryItem/{id}"),
             variant: VariantIdNode {
                 id: format!("gid://shopify/ProductVariant/{id}"),
             },
-            inventory_level: Some(InventoryLevelNode {
-                id: format!("gid://shopify/InventoryLevel/{id}"),
-                item: InventoryItemIdNode {
-                    id: format!("gid://shopify/InventoryItem/{id}"),
+            inventory_level: Some(mock_inventory_level_node(id)),
+            inventory_levels: Edges {
+                edges: vec![Node {
+                    node: mock_inventory_level_node(id),
+                }],
+                page_info: PageInfo {
+                    has_previous_page: false,
+                    has_next_page: false,
+                    start_cursor: None,
+                    end_cursor: None,
                 },
-                location: LocationNode {
-                    id: format!("gid://shopify/Location/{id}"),
-                },
-                quantities: vec![
-                    QuantityNode {
-                        quantity: 1,
-                        name: "available".to_string(),
-                    },
-                    QuantityNode {
-                        quantity: 2,
-                        name: "committed".to_string(),
-                    },
-                    QuantityNode {
-                        quantity: 3,
-                        name: "reserved".to_string(),
-                    },
-                ],
-            }),
+            },
             requires_shipping: true,
             tracked: true,
             created_at: Utc::now(),
@@ -230,10 +265,36 @@ mod tests {
         }
     }
 
+    fn mock_inventory_level_node(id: u32) -> InventoryLevelNode {
+        InventoryLevelNode {
+            id: format!("gid://shopify/InventoryLevel/{id}"),
+            item: InventoryItemIdNode {
+                id: format!("gid://shopify/InventoryItem/{id}"),
+            },
+            location: LocationNode {
+                id: format!("gid://shopify/Location/{id}"),
+            },
+            quantities: vec![
+                QuantityNode {
+                    quantity: 1,
+                    name: "available".to_string(),
+                },
+                QuantityNode {
+                    quantity: 2,
+                    name: "committed".to_string(),
+                },
+                QuantityNode {
+                    quantity: 3,
+                    name: "reserved".to_string(),
+                },
+            ],
+        }
+    }
+
     fn mock_inventory_items_response(count: usize) -> GraphQLResponse<InventoryItemsData> {
         let nodes: Vec<Node<InventoryItemNode>> = (0..count)
             .map(|i: usize| Node {
-                node: mock_inventory_item(i as u32),
+                node: mock_inventory_item_node(i as u32),
             })
             .collect();
 
@@ -253,7 +314,7 @@ mod tests {
         }
     }
 
-    fn mock_inventory_change() -> InventoryChange {
+    fn mock_inventory_change_domain() -> InventoryChange {
         InventoryChange::new(
             InventoryType::Committed,
             InventoryChangeReason::Correction,
@@ -272,24 +333,13 @@ mod tests {
     {
         GraphQLResponse {
             data: Some(InventoryAdjustQuantitiesData {
-                inventory_adjust_quantities: UserErrors {
+                inventory_adjust_quantities: InventoryAdjustQuantities {
+                    inventory_adjustment_group: Some(InventoryAdjustmentGroupNode {
+                        changes: vec![InventoryChangeNode {
+                            item: mock_inventory_item_node(0),
+                        }],
+                    }),
                     user_errors: vec![],
-                },
-            }),
-            errors: None,
-        }
-    }
-
-    fn mock_inventory_adjust_quantities_response_with_user_errors(
-    ) -> GraphQLResponse<InventoryAdjustQuantitiesData> {
-        GraphQLResponse {
-            data: Some(InventoryAdjustQuantitiesData {
-                inventory_adjust_quantities: UserErrors {
-                    user_errors: vec![UserError {
-                        code: None,
-                        field: vec!["quantity".to_string()],
-                        message: "Quantity must be positive".to_string(),
-                    }],
                 },
             }),
             errors: None,
@@ -325,7 +375,10 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku_with_location_id(
+                &Sku::new("0".to_string()).unwrap(),
+                &"0".to_string(),
+            )
             .await;
 
         assert!(result.is_ok());
@@ -373,7 +426,10 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku_with_location_id(
+                &Sku::new("0".to_string()).unwrap(),
+                &"0".to_string(),
+            )
             .await;
 
         assert!(result.is_err());
@@ -396,7 +452,10 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku_with_location_id(
+                &Sku::new("0".to_string()).unwrap(),
+                &"0".to_string(),
+            )
             .await;
 
         assert!(result.is_err());
@@ -419,7 +478,10 @@ mod tests {
         let repo = InventoryLevelRepositoryImpl::new(client);
 
         let result = repo
-            .find_inventory_level_by_sku(&Sku::new("0".to_string()).unwrap(), &"0".to_string())
+            .find_inventory_level_by_sku_with_location_id(
+                &Sku::new("0".to_string()).unwrap(),
+                &"0".to_string(),
+            )
             .await;
 
         assert!(result.is_err());
@@ -441,29 +503,40 @@ mod tests {
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
-        let result = repo.update(mock_inventory_change()).await;
+        let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_ok());
     }
 
     #[tokio::test]
-    async fn test_update_success_with_user_errors() {
+    async fn test_update_with_user_errors() {
         let mut client = MockECClient::new();
+
+        let mut response = mock_inventory_adjust_quantities_response();
+        response
+            .data
+            .as_mut()
+            .unwrap()
+            .inventory_adjust_quantities
+            .user_errors = vec![UserError {
+            field: vec!["quantity".to_string()],
+            message: "Quantity must be positive".to_string(),
+        }];
 
         client
             .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
             .times(1)
-            .return_once(|_, _| Ok(mock_inventory_adjust_quantities_response_with_user_errors()));
+            .return_once(|_, _| Ok(response));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
-        let result = repo.update(mock_inventory_change()).await;
+        let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::SaveError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::SaveError, but got something else");
         }
     }
 
@@ -474,17 +547,17 @@ mod tests {
         client
             .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
             .times(1)
-            .return_once(|_, _| Ok(mock_with_no_data()));
+            .return_once(|_, _| Ok(mock_with_error()));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
-        let result = repo.update(mock_inventory_change()).await;
+        let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::SaveError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::SaveError, but got something else");
         }
     }
 
@@ -495,17 +568,17 @@ mod tests {
         client
             .expect_mutation::<Value, GraphQLResponse<InventoryAdjustQuantitiesData>>()
             .times(1)
-            .return_once(|_, _| Ok(mock_with_error()));
+            .return_once(|_, _| Ok(mock_with_no_data()));
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
-        let result = repo.update(mock_inventory_change()).await;
+        let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::SaveError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::SaveError, but got something else");
         }
     }
 }

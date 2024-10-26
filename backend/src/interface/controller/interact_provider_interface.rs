@@ -7,6 +7,7 @@ use crate::usecase::interactor::media_interactor_interface::MediaInteractor;
 use crate::usecase::interactor::product_interactor_interface::ProductInteractor;
 
 /// Factory interface providing Interactor.
+#[allow(dead_code)]
 #[automock]
 #[async_trait]
 pub trait InteractProvider: Send + Sync {

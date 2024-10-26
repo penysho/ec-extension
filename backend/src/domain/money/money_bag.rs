@@ -13,17 +13,24 @@ pub enum CurrencyCode {
     JPY,
 }
 
+impl Default for CurrencyCode {
+    fn default() -> Self {
+        CurrencyCode::JPY
+    }
+}
+
 /// MoneyBag value object.
 ///
 /// # Examples
 ///
 /// ```
-/// use backend::domain::money::money_bug::{MoneyBug,CurrencyCode};
+/// use backend::domain::money::money_bag::MoneyBag;
+/// use backend::domain::money::money_bag::CurrencyCode;
 /// use backend::domain::money::money::money::Money;
 ///
 /// let money = Money::new(100.0).unwrap();
-/// let money_bag = MoneyBag::new(CurrencyCode::USD, money);
-/// assert_eq!(money_bag.money().value(), 100.0);
+/// let money_bag = MoneyBag::new(CurrencyCode::USD, money).unwrap();
+/// assert_eq!(money_bag.amount().value(), &100.0);
 /// ```
 ///
 #[derive(Debug, Getters, Clone, PartialEq)]
@@ -38,5 +45,12 @@ impl MoneyBag {
             currency_code,
             amount,
         })
+    }
+
+    pub fn zero() -> Self {
+        Self {
+            currency_code: CurrencyCode::default(),
+            amount: Money::zero(),
+        }
     }
 }

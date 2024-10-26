@@ -110,7 +110,7 @@ mod tests {
         infrastructure::ec::{
             ec_client_interface::MockECClient,
             shopify::repository::{
-                customer::customer::CustomerRepositoryImpl,
+                customer::customer_impl::CustomerRepositoryImpl,
                 schema::{
                     address::AddressNode,
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
@@ -125,9 +125,9 @@ mod tests {
     fn mock_customer(id: u32) -> CustomerNode {
         CustomerNode {
             id: format!("gid://shopify/Customer/{id}"),
-            addresses: vec![mock_address(id), mock_address(id + 1)],
+            addresses: vec![mock_address(Some("123")), mock_address(Some("456"))],
             can_delete: true,
-            default_address: Some(mock_address(id)),
+            default_address: Some(mock_address(Some("123"))),
             display_name: "Test Customer".to_string(),
             email: Some("test@example.com".to_string()),
             first_name: Some("Test".to_string()),
@@ -142,11 +142,11 @@ mod tests {
         }
     }
 
-    fn mock_address(id: u32) -> AddressNode {
+    fn mock_address(address1: Option<impl Into<String>>) -> AddressNode {
+        let address1 = address1.map(|a| a.into());
         AddressNode {
-            id: format!("gid://shopify/Address/{id}"),
-            address1: Some("123 Test Street".to_string()),
-            address2: Some("Apt 456".to_string()),
+            address1: address1,
+            address2: Some("Apt 123".to_string()),
             city: Some("Test City".to_string()),
             coordinates_validated: true,
             country: Some("Test Country".to_string()),
@@ -237,7 +237,6 @@ mod tests {
         assert_eq!(*customer.status(), CustomerStatus::Active);
         assert!(customer.verified_email());
         assert_eq!(customer.addresses().len(), 2);
-        assert_eq!(customer.default_address_id().clone().unwrap(), "0");
     }
 
     #[tokio::test]

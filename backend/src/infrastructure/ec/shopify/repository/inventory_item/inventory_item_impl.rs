@@ -185,6 +185,15 @@ mod tests {
                     },
                 ],
             }),
+            inventory_levels: Edges {
+                edges: vec![],
+                page_info: PageInfo {
+                    has_previous_page: false,
+                    has_next_page: false,
+                    start_cursor: None,
+                    end_cursor: None,
+                },
+            },
             requires_shipping: true,
             tracked: true,
             created_at: Utc::now(),

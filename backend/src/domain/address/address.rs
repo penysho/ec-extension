@@ -2,12 +2,9 @@ use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
 
-pub type Id = String;
-
 /// Represent the address that each entity has.
 ///
 /// # Fields
-/// * `id` - The unique identifier of the address.
 /// * `address1` - The first line of the address.
 /// * `address2` - The second line of the address.
 /// * `city` - The city of the address.
@@ -18,9 +15,8 @@ pub type Id = String;
 /// * `province` - The province of the address.
 /// * `zip` - The zip code of the address.
 /// * `phone` - The phone number of the address.
-#[derive(Debug, Getters)]
+#[derive(Debug, Getters, Clone, PartialEq)]
 pub struct Address {
-    id: Id,
     address1: Option<String>,
     address2: Option<String>,
     city: Option<String>,
@@ -35,7 +31,6 @@ pub struct Address {
 
 impl Address {
     pub fn new(
-        id: impl Into<String>,
         address1: Option<impl Into<String>>,
         address2: Option<impl Into<String>>,
         city: Option<impl Into<String>>,
@@ -47,14 +42,7 @@ impl Address {
         zip: Option<impl Into<String>>,
         phone: Option<impl Into<String>>,
     ) -> Result<Self, DomainError> {
-        let id = id.into();
-        if id.is_empty() {
-            log::error!("Id cannot be empty");
-            return Err(DomainError::ValidationError);
-        }
-
         Ok(Self {
-            id: id.into(),
             address1: address1.map(|a| a.into()),
             address2: address2.map(|a| a.into()),
             city: city.map(|a| a.into()),
@@ -76,7 +64,6 @@ mod tests {
     #[test]
     fn test_new_success() {
         let address = Address::new(
-            "123",               // id
             Some("123 Main St"), // address1
             None::<String>,      // address2
             Some("City"),        // city
@@ -92,7 +79,6 @@ mod tests {
         assert!(address.is_ok());
 
         let address = address.unwrap();
-        assert_eq!(address.id(), "123");
         assert_eq!(address.address1().clone().unwrap(), "123 Main St");
         assert_eq!(address.city().clone().unwrap(), "City");
         assert_eq!(*address.coordinates_validated(), true);
@@ -102,25 +88,5 @@ mod tests {
         assert_eq!(address.province().clone().unwrap(), "Province");
         assert_eq!(address.zip().clone().unwrap(), "12345");
         assert_eq!(address.phone().clone().unwrap(), "+1234567890");
-    }
-
-    #[test]
-    fn test_new_error_empty_id() {
-        let address = Address::new(
-            "",                  // id is empty
-            Some("123 Main St"), // address1
-            None::<String>,      // address2
-            Some("City"),        // city
-            true,                // coordinates_validated
-            Some("Country"),     // country
-            Some("John"),        // first_name
-            Some("Doe"),         // last_name
-            Some("Province"),    // province
-            Some("12345"),       // zip
-            Some("+1234567890"), // phone
-        );
-
-        assert!(address.is_err());
-        assert_eq!(address.unwrap_err(), DomainError::ValidationError);
     }
 }

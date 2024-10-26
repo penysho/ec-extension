@@ -13,8 +13,8 @@ use crate::{
 };
 
 use super::schema::{
-    GetInventoriesResponse, GetInventoriesResponseError, InventorySchema, PutInventoryResponse,
-    PutInventoryResponseError,
+    GetInventoriesErrorResponse, GetInventoriesResponse, InventorySchema,
+    PutInventoryErrorResponse, PutInventoryResponse,
 };
 
 /// Generate a response schema for the inventory.
@@ -28,7 +28,7 @@ impl InventoryPresenterImpl {
 #[async_trait]
 impl InventoryPresenter for InventoryPresenterImpl {
     type GetInventoriesResponse = Json<GetInventoriesResponse>;
-    type GetInventoriesResponseError = GetInventoriesResponseError;
+    type GetInventoriesErrorResponse = GetInventoriesErrorResponse;
     /// Generate a list response of inventory information.
     async fn present_get_inventories(
         &self,
@@ -39,19 +39,12 @@ impl InventoryPresenter for InventoryPresenterImpl {
             ),
             DomainError,
         >,
-    ) -> Result<Self::GetInventoriesResponse, Self::GetInventoriesResponseError> {
-        let (inventory_items, mut inventory_levels) = match result {
-            Ok((inventory_items, inventory_levels)) => (inventory_items, inventory_levels),
-            Err(DomainError::ValidationError) => {
-                return Err(GetInventoriesResponseError::BadRequest)
-            }
-            Err(DomainError::InvalidRequest) => {
-                return Err(GetInventoriesResponseError::BadRequest)
-            }
-            Err(_) => return Err(GetInventoriesResponseError::ServiceUnavailable),
-        };
+    ) -> Result<Self::GetInventoriesResponse, Self::GetInventoriesErrorResponse> {
+        let (inventory_items, mut inventory_levels) = result?;
         if inventory_items.is_empty() {
-            return Err(GetInventoriesResponseError::NotFound);
+            return Err(GetInventoriesErrorResponse::NotFound {
+                object_name: "Inventories".to_string(),
+            });
         }
 
         let response: Vec<InventorySchema> = inventory_items
@@ -68,22 +61,14 @@ impl InventoryPresenter for InventoryPresenterImpl {
     }
 
     type PutInventoryResponse = Json<PutInventoryResponse>;
-    type PutInventoryResponseError = PutInventoryResponseError;
+    type PutInventoryErrorResponse = PutInventoryErrorResponse;
     /// Generate an update response for inventory information.
     async fn present_put_inventory(
         &self,
         result: Result<InventoryLevel, DomainError>,
-    ) -> Result<Self::PutInventoryResponse, Self::PutInventoryResponseError> {
-        let inventory_level = match result {
-            Ok(inventory_level) => inventory_level,
-            Err(DomainError::NotFound) => return Err(PutInventoryResponseError::NotFound),
-            Err(DomainError::ValidationError) => return Err(PutInventoryResponseError::BadRequest),
-            Err(DomainError::InvalidRequest) => return Err(PutInventoryResponseError::BadRequest),
-            Err(_) => return Err(PutInventoryResponseError::ServiceUnavailable),
-        };
-
+    ) -> Result<Self::PutInventoryResponse, Self::PutInventoryErrorResponse> {
         Ok(web::Json(PutInventoryResponse {
-            inventory_level: inventory_level.into(),
+            inventory_level: result?.into(),
         }))
     }
 }
@@ -183,7 +168,10 @@ mod tests {
             .present_get_inventories(Ok((vec![], HashMap::new())))
             .await;
 
-        assert!(matches!(result, Err(GetInventoriesResponseError::NotFound)));
+        assert!(matches!(
+            result,
+            Err(GetInventoriesErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]
@@ -196,7 +184,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(GetInventoriesResponseError::BadRequest)
+            Err(GetInventoriesErrorResponse::BadRequest)
         ));
     }
 
@@ -210,7 +198,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(GetInventoriesResponseError::ServiceUnavailable)
+            Err(GetInventoriesErrorResponse::ServiceUnavailable)
         ));
     }
 
@@ -235,7 +223,10 @@ mod tests {
             .present_put_inventory(Err(DomainError::NotFound))
             .await;
 
-        assert!(matches!(result, Err(PutInventoryResponseError::NotFound)));
+        assert!(matches!(
+            result,
+            Err(PutInventoryErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]
@@ -246,7 +237,7 @@ mod tests {
             .present_put_inventory(Err(DomainError::InvalidRequest))
             .await;
 
-        assert!(matches!(result, Err(PutInventoryResponseError::BadRequest)));
+        assert!(matches!(result, Err(PutInventoryErrorResponse::BadRequest)));
     }
 
     #[actix_web::test]
@@ -259,7 +250,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(PutInventoryResponseError::ServiceUnavailable)
+            Err(PutInventoryErrorResponse::ServiceUnavailable)
         ));
     }
 }

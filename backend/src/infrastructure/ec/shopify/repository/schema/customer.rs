@@ -38,7 +38,8 @@ impl CustomerNode {
                 .collect::<Result<Vec<_>, _>>()?,
             self.can_delete,
             self.default_address
-                .map(|address| ShopifyGQLQueryHelper::remove_gid_prefix(&address.id)),
+                .map(|address| address.to_domain())
+                .transpose()?,
             self.display_name,
             self.email.map(|email| Email::new(email)).transpose()?,
             self.first_name,
@@ -67,28 +68,21 @@ pub struct CustomersData {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CustomerNode {
     pub id: String,
     pub addresses: Vec<AddressNode>,
-    #[serde(rename = "canDelete")]
     pub can_delete: bool,
-    #[serde(rename = "defaultAddress")]
     pub default_address: Option<AddressNode>,
-    #[serde(rename = "displayName")]
     pub display_name: String,
     pub email: Option<String>,
-    #[serde(rename = "firstName")]
     pub first_name: Option<String>,
-    #[serde(rename = "lastName")]
     pub last_name: Option<String>,
     pub image: ImageNode,
     pub phone: Option<String>,
     pub note: Option<String>,
     pub state: String,
-    #[serde(rename = "verifiedEmail")]
     pub verified_email: bool,
-    #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
-    #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
 }

@@ -1,11 +1,16 @@
 pub mod address;
+pub mod address_input;
 pub mod common;
 pub mod customer;
 pub mod draft_order;
+pub mod draft_order_input;
+pub mod inventory_change;
 pub mod inventory_item;
 pub mod inventory_level;
 pub mod line_item;
+pub mod line_item_input;
 pub mod location;
 pub mod media;
 pub mod money;
+pub mod money_input;
 pub mod product;

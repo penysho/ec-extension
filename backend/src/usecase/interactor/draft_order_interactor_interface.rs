@@ -1,8 +1,12 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use mockall::automock;
 
 use crate::domain::{
-    draft_order::draft_order::DraftOrder, email::email::Email, error::error::DomainError,
+    address::address::Address, customer::customer::Id as CustomerId,
+    draft_order::draft_order::DraftOrder, draft_order::draft_order::Id as DraftOrderId,
+    email::email::Email, error::error::DomainError, line_item::line_item::LineItem,
+    money::money_bag::CurrencyCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -14,8 +18,74 @@ pub enum GetDraftOrdersQuery {
 #[automock]
 #[async_trait]
 pub trait DraftOrderInteractor {
+    /// Get draft orders by query.
+    ///
+    /// # Arguments
+    ///
+    /// * `query` - The query to get draft orders.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<DraftOrder>, DomainError>` - The result of the operation.
+    ///   - `Ok(Vec<DraftOrder>)` - The draft orders.
+    ///   - `Err(DomainError)` - The error.
+    ///
+    /// # Errors
+    ///
+    /// * Returns a domain error if the draft order repository fails.
     async fn get_draft_orders(
         &self,
         query: &GetDraftOrdersQuery,
     ) -> Result<Vec<DraftOrder>, DomainError>;
+
+    /// Create draft order.
+    ///
+    /// # Arguments
+    ///
+    /// * `customer_id` - The customer id.
+    /// * `billing_address` - The billing address.
+    /// * `shipping_address` - The shipping address.
+    /// * `note` - The note.
+    /// * `line_items` - The line items.
+    /// * `reserve_inventory_until` - The reserve inventory until.
+    /// * `tax_exempt` - The tax exempt.
+    /// * `presentment_currency_code` - Currency code to be applied to the order. If not specified, the store's default currency code is used.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<DraftOrder, DomainError>` - The result of the operation.
+    ///   - `Ok(DraftOrder)` - The draft order.
+    ///   - `Err(DomainError)` - The error.
+    ///
+    /// # Errors
+    ///
+    /// * Returns a domain error if the draft order repository fails.
+    async fn create_draft_order(
+        &self,
+        customer_id: Option<CustomerId>,
+        billing_address: Option<Address>,
+        shipping_address: Option<Address>,
+        note: Option<String>,
+        line_items: Vec<LineItem>,
+        reserve_inventory_until: Option<DateTime<Utc>>,
+        tax_exempt: Option<bool>,
+        presentment_currency_code: Option<CurrencyCode>,
+    ) -> Result<DraftOrder, DomainError>;
+
+    /// Complete draft order.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The draft order id.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<DraftOrder, DomainError>` - The result of the operation.
+    ///   - `Ok(DraftOrder)` - The draft order.
+    ///   - `Err(DomainError)` - The error.
+    ///
+    /// # Errors
+    ///
+    /// * Returns a domain error if the draft order repository fails.
+    async fn complete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError>;
 }

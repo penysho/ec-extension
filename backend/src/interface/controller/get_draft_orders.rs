@@ -104,7 +104,7 @@ mod tests {
             Some("Test description".to_string()),
             10.0,
             DiscountValueType::Percentage,
-            mock_money_bag(),
+            Some(mock_money_bag()),
         )
         .expect("Failed to create mock discount")
     }
@@ -131,21 +131,22 @@ mod tests {
             .collect()
     }
 
-    fn mock_address() -> Address {
-        Address::new(
-            "123",
-            Some("123 Main St"),
-            None::<String>,
-            Some("City"),
-            true,
-            Some("Country"),
-            Some("John"),
-            Some("Doe"),
-            Some("Province"),
-            Some("12345"),
-            Some("+1234567890"),
+    fn mock_address() -> Option<Address> {
+        Some(
+            Address::new(
+                Some("123 Main St"),
+                None::<String>,
+                Some("City"),
+                true,
+                Some("Country"),
+                Some("John"),
+                Some("Doe"),
+                Some("Province"),
+                Some("12345"),
+                Some("+1234567890"),
+            )
+            .expect("Failed to create mock address"),
         )
-        .expect("Failed to create mock address")
     }
 
     #[actix_web::test]
@@ -161,6 +162,10 @@ mod tests {
                     "0",
                     "Test Order",
                     DraftOrderStatus::Open,
+                    None,
+                    mock_address(),
+                    mock_address(),
+                    None,
                     mock_line_items(2),
                     None,
                     mock_money_bag(),
@@ -170,10 +175,7 @@ mod tests {
                     mock_money_bag(),
                     mock_money_bag(),
                     mock_money_bag(),
-                    None,
-                    mock_address(),
-                    mock_address(),
-                    None,
+                    CurrencyCode::JPY,
                     None,
                     None,
                     Utc::now(),

@@ -8,6 +8,10 @@ impl From<DraftOrder> for DraftOrderSchema {
             id: draft_order.id().to_string(),
             name: draft_order.name().to_string(),
             status: draft_order.status().to_owned().into(),
+            customer_id: draft_order.customer_id().as_ref().map(|id| id.to_string()),
+            billing_address: draft_order.billing_address().to_owned().map(|a| a.into()),
+            shipping_address: draft_order.shipping_address().to_owned().map(|a| a.into()),
+            note: draft_order.note().as_ref().map(|note| note.to_string()),
             line_items: draft_order
                 .line_items()
                 .iter()
@@ -21,14 +25,11 @@ impl From<DraftOrder> for DraftOrderSchema {
             total_discounts_set: draft_order.total_discounts_set().to_owned().into(),
             total_shipping_price_set: draft_order.total_shipping_price_set().to_owned().into(),
             total_price_set: draft_order.total_price_set().to_owned().into(),
-            customer_id: draft_order.customer_id().as_ref().map(|id| id.to_string()),
-            billing_address: draft_order.billing_address().into(),
-            shipping_address: draft_order.shipping_address().into(),
-            note: draft_order.note().as_ref().map(|note| note.to_string()),
+            presentment_currency_code: draft_order.presentment_currency_code().to_owned().into(),
             order_id: draft_order.order_id().as_ref().map(|id| id.to_string()),
             completed_at: *draft_order.completed_at(),
             created_at: *draft_order.created_at(),
-            update_at: *draft_order.update_at(),
+            updated_at: *draft_order.updated_at(),
         }
     }
 }

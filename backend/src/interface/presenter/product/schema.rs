@@ -3,7 +3,8 @@ use chrono::{DateTime, Utc};
 use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
-use crate::interface::presenter::common::exception::GenericResponseError;
+use crate::domain::error::error::DomainError;
+use crate::{define_error_response, interface::presenter::common::exception::ErrorResponseBuilder};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ProductStatusEnum {
@@ -59,67 +60,11 @@ pub struct GetProductResponse {
     pub(super) product: ProductSchema,
 }
 
-#[derive(Debug, Display, Error)]
-pub enum GetProductResponseError {
-    #[display(fmt = "Product not found.")]
-    NotFound,
-    #[display(fmt = "Bad request.")]
-    BadRequest,
-    #[display(fmt = "Service unavailable. Give it some time and try again.")]
-    ServiceUnavailable,
-}
-
-impl GenericResponseError for GetProductResponseError {
-    fn status_code(&self) -> StatusCode {
-        match *self {
-            GetProductResponseError::NotFound => StatusCode::NOT_FOUND,
-            GetProductResponseError::BadRequest => StatusCode::BAD_REQUEST,
-            GetProductResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
-        }
-    }
-}
-
-impl ResponseError for GetProductResponseError {
-    fn error_response(&self) -> HttpResponse {
-        <Self as GenericResponseError>::error_response(self)
-    }
-
-    fn status_code(&self) -> StatusCode {
-        <Self as GenericResponseError>::status_code(self)
-    }
-}
+define_error_response!(GetProductErrorResponse, "Product");
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetProductsResponse {
     pub products: Vec<ProductSchema>,
 }
 
-#[derive(Debug, Display, Error)]
-pub enum GetProductsResponseError {
-    #[display(fmt = "Product not found.")]
-    NotFound,
-    #[display(fmt = "Bad request.")]
-    BadRequest,
-    #[display(fmt = "Service unavailable. Give it some time and try again.")]
-    ServiceUnavailable,
-}
-
-impl GenericResponseError for GetProductsResponseError {
-    fn status_code(&self) -> StatusCode {
-        match *self {
-            GetProductsResponseError::NotFound => StatusCode::NOT_FOUND,
-            GetProductsResponseError::BadRequest => StatusCode::BAD_REQUEST,
-            GetProductsResponseError::ServiceUnavailable => StatusCode::SERVICE_UNAVAILABLE,
-        }
-    }
-}
-
-impl ResponseError for GetProductsResponseError {
-    fn error_response(&self) -> HttpResponse {
-        <Self as GenericResponseError>::error_response(self)
-    }
-
-    fn status_code(&self) -> StatusCode {
-        <Self as GenericResponseError>::status_code(self)
-    }
-}
+define_error_response!(GetProductsErrorResponse, "Products");

@@ -42,10 +42,7 @@ impl Controller {
     ) -> impl Responder {
         let presenter = InventoryPresenterImpl::new();
 
-        let sku = match Sku::new(path.into_inner().0) {
-            Ok(sku) => sku,
-            Err(err) => return presenter.present_put_inventory(Err(err)).await,
-        };
+        let sku = Sku::new(path.into_inner().0)?;
 
         let name = match body.name.as_str() {
             "available" => InventoryType::Available,
@@ -56,9 +53,7 @@ impl Controller {
             "reserved" => InventoryType::Reserved,
             _ => {
                 log::error!("Invalid inventory type: {}", body.name);
-                return presenter
-                    .present_put_inventory(Err(DomainError::InvalidRequest))
-                    .await;
+                Err(DomainError::InvalidRequest)?
             }
         };
 
@@ -79,21 +74,15 @@ impl Controller {
             "reservation_updated" => InventoryChangeReason::ReservationUpdated,
             _ => {
                 log::error!("Invalid inventory change reason: {}", body.reason);
-                return presenter
-                    .present_put_inventory(Err(DomainError::InvalidRequest))
-                    .await;
+                Err(DomainError::InvalidRequest)?
             }
         };
 
-        if let Some(ledger_document_uri_str) = body.ledger_document_uri.as_ref() {
-            if let Err(err) = LedgerDocumentUri::new(ledger_document_uri_str.to_string()) {
-                return presenter.present_put_inventory(Err(err)).await;
-            }
-        }
         let ledger_document_uri = body
             .ledger_document_uri
             .as_ref()
-            .map(|uri| LedgerDocumentUri::new(uri).unwrap());
+            .map(|uri| LedgerDocumentUri::new(uri))
+            .transpose()?;
 
         let interactor = self.interact_provider.provide_inventory_interactor().await;
 

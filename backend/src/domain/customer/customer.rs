@@ -2,22 +2,24 @@ use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use crate::domain::{
-    address::address::{Address, Id as AddressId},
-    email::email::Email,
-    error::error::DomainError,
-    media::media_content::image::image::Image,
-    phone::phone::Phone,
+    address::address::Address, email::email::Email, error::error::DomainError,
+    media::media_content::image::image::Image, phone::phone::Phone,
 };
 
 pub type Id = String;
 
+/// Represents the status of a customer.
+///
+/// # Variants
+/// - `Active` - The customer is active and can perform certain actions.
+/// - `Inactive` - The customer is inactive and cannot perform certain actions.
 #[derive(Debug, Clone, PartialEq)]
 pub enum CustomerStatus {
     Active,
     Inactive,
 }
 
-/// Representing Customers on an E-Commerce Site.
+/// Representing Customers.
 ///
 /// A `Customer` contains various details such as addresses, contact information,
 /// and status. It provides core customer-related attributes and ensures that
@@ -27,7 +29,7 @@ pub enum CustomerStatus {
 /// - `id` - A unique identifier for the customer.
 /// - `addresses` - A list of addresses associated with the customer.
 /// - `can_delete` - A flag indicating whether the customer can be deleted.
-/// - `default_address_id` - The default address id for the customer, if applicable.
+/// - `default_address` - The default address for the customer, if applicable.
 /// - `display_name` - The name displayed for the customer.
 /// - `email` - The customer's email address (optional).
 /// - `first_name` - The customer's first name (optional).
@@ -44,7 +46,7 @@ pub struct Customer {
     id: Id,
     addresses: Vec<Address>,
     can_delete: bool,
-    default_address_id: Option<AddressId>,
+    default_address: Option<Address>,
     display_name: String,
     email: Option<Email>,
     first_name: Option<String>,
@@ -59,11 +61,12 @@ pub struct Customer {
 }
 
 impl Customer {
+    /// Constructor to be used from the repository.
     pub fn new(
         id: impl Into<String>,
         addresses: Vec<Address>,
         can_delete: bool,
-        default_address_id: Option<impl Into<AddressId>>,
+        default_address: Option<Address>,
         display_name: impl Into<String>,
         email: Option<Email>,
         first_name: Option<impl Into<String>>,
@@ -86,11 +89,10 @@ impl Customer {
             log::error!("Display name cannot be empty");
             return Err(DomainError::ValidationError);
         }
-        let default_address_id = default_address_id.map(|id| id.into());
-        if let Some(default_address_id) = &default_address_id {
+        if let Some(default_address) = &default_address {
             if !addresses
                 .iter()
-                .any(|a| a.id().clone() == default_address_id.clone())
+                .any(|a| a.clone() == default_address.clone())
             {
                 log::error!("Default address ID is invalid");
                 return Err(DomainError::ValidationError);
@@ -101,7 +103,7 @@ impl Customer {
             id,
             addresses,
             can_delete,
-            default_address_id,
+            default_address,
             display_name,
             email,
             first_name: first_name.map(|f| f.into()),
@@ -122,9 +124,8 @@ mod tests {
     use super::*;
     use chrono::Utc;
 
-    fn mock_address(id: &str) -> Address {
+    fn mock_address() -> Address {
         Address::new(
-            id,
             Some("123 Main St"),
             None::<String>,
             Some("City"),
@@ -136,19 +137,16 @@ mod tests {
             Some("12345"),
             Some("+1234567890"),
         )
-        .unwrap()
+        .expect("Failed to create mock address")
     }
 
     #[test]
     fn test_new_success() {
-        let address = mock_address("1");
-        let addresses = vec![address];
-
         let customer = Customer::new(
             "123",
-            addresses,
+            vec![mock_address()],
             true,
-            Some("1"),
+            Some(mock_address()),
             "John Doe",
             Some(Email::new("john@example.com").unwrap()),
             Some("John"),
@@ -177,19 +175,15 @@ mod tests {
         assert_eq!(customer.note().as_ref().unwrap(), "Note");
         assert!(customer.verified_email());
         assert_eq!(customer.addresses().len(), 1);
-        assert_eq!(customer.default_address_id().as_ref().unwrap(), "1",);
     }
 
     #[test]
     fn test_new_error_empty_id() {
-        let address = mock_address("1");
-        let addresses = vec![address];
-
         let customer = Customer::new(
             "",
-            addresses,
+            vec![mock_address()],
             true,
-            Some("1"),
+            Some(mock_address()),
             "John Doe",
             Some(Email::new("john@example.com").unwrap()),
             Some("John"),
@@ -209,14 +203,11 @@ mod tests {
 
     #[test]
     fn test_new_error_empty_display_name() {
-        let address = mock_address("1");
-        let addresses = vec![address];
-
         let customer = Customer::new(
             "123",
-            addresses,
+            vec![mock_address()],
             true,
-            Some("1"),
+            Some(mock_address()),
             "",
             Some(Email::new("john@example.com").unwrap()),
             Some("John"),
@@ -236,14 +227,25 @@ mod tests {
 
     #[test]
     fn test_new_error_invalid_default_address() {
-        let address = mock_address("1");
-        let addresses = vec![address];
-
         let customer = Customer::new(
             "123",
-            addresses,
+            vec![mock_address()],
             true,
-            Some("invalid"),
+            Some(
+                Address::new(
+                    None::<String>, // Different value from mock_address()
+                    None::<String>,
+                    Some("City"),
+                    true,
+                    Some("Country"),
+                    Some("John"),
+                    Some("Doe"),
+                    Some("Province"),
+                    Some("12345"),
+                    Some("+1234567890"),
+                )
+                .expect("Failed to create mock address"),
+            ),
             "John Doe",
             Some(Email::new("john@example.com").unwrap()),
             Some("John"),

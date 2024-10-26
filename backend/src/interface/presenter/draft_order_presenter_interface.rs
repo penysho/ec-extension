@@ -6,9 +6,23 @@ use crate::domain::{draft_order::draft_order::DraftOrder, error::error::DomainEr
 #[async_trait]
 pub trait DraftOrderPresenter {
     type GetDraftOrdersResponse;
-    type GetDraftOrdersResponseError;
+    type GetDraftOrdersErrorResponse;
     async fn present_get_draft_orders(
         &self,
         result: Result<Vec<DraftOrder>, DomainError>,
-    ) -> Result<Self::GetDraftOrdersResponse, Self::GetDraftOrdersResponseError>;
+    ) -> Result<Self::GetDraftOrdersResponse, Self::GetDraftOrdersErrorResponse>;
+
+    type PostDraftOrderResponse;
+    type PostDraftOrderErrorResponse;
+    async fn present_post_draft_order(
+        &self,
+        result: Result<DraftOrder, DomainError>,
+    ) -> Result<Self::PostDraftOrderResponse, Self::PostDraftOrderErrorResponse>;
+
+    type CompleteDraftOrderResponse;
+    type CompleteDraftOrderErrorResponse;
+    async fn present_complete_draft_order(
+        &self,
+        result: Result<DraftOrder, DomainError>,
+    ) -> Result<Self::CompleteDraftOrderResponse, Self::CompleteDraftOrderErrorResponse>;
 }

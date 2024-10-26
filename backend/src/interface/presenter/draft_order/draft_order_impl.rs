@@ -6,7 +6,11 @@ use crate::{
     interface::presenter::draft_order_presenter_interface::DraftOrderPresenter,
 };
 
-use super::schema::{DraftOrderSchema, GetDraftOrdersResponse, GetDraftOrdersResponseError};
+use super::schema::{
+    CompleteDraftOrderErrorResponse, CompleteDraftOrderResponse, DraftOrderSchema,
+    GetDraftOrdersErrorResponse, GetDraftOrdersResponse, PostDraftOrderErrorResponse,
+    PostDraftOrderResponse,
+};
 
 /// Generate a response schema for the draft orders.
 pub struct DraftOrderPresenterImpl;
@@ -19,24 +23,17 @@ impl DraftOrderPresenterImpl {
 #[async_trait]
 impl DraftOrderPresenter for DraftOrderPresenterImpl {
     type GetDraftOrdersResponse = Json<GetDraftOrdersResponse>;
-    type GetDraftOrdersResponseError = GetDraftOrdersResponseError;
+    type GetDraftOrdersErrorResponse = GetDraftOrdersErrorResponse;
     /// Generate a list response of draft order information.
     async fn present_get_draft_orders(
         &self,
         result: Result<Vec<DraftOrder>, DomainError>,
-    ) -> Result<Self::GetDraftOrdersResponse, Self::GetDraftOrdersResponseError> {
-        let draft_orders = match result {
-            Ok(draft_orders) => draft_orders,
-            Err(DomainError::ValidationError) => {
-                return Err(GetDraftOrdersResponseError::BadRequest)
-            }
-            Err(DomainError::InvalidRequest) => {
-                return Err(GetDraftOrdersResponseError::BadRequest)
-            }
-            Err(_) => return Err(GetDraftOrdersResponseError::ServiceUnavailable),
-        };
+    ) -> Result<Self::GetDraftOrdersResponse, Self::GetDraftOrdersErrorResponse> {
+        let draft_orders = result?;
         if draft_orders.is_empty() {
-            return Err(GetDraftOrdersResponseError::NotFound);
+            return Err(GetDraftOrdersErrorResponse::NotFound {
+                object_name: "DraftOrder".to_string(),
+            });
         }
 
         let response: Vec<DraftOrderSchema> = draft_orders
@@ -46,6 +43,30 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
 
         Ok(web::Json(GetDraftOrdersResponse {
             draft_orders: response,
+        }))
+    }
+
+    type PostDraftOrderResponse = Json<PostDraftOrderResponse>;
+    type PostDraftOrderErrorResponse = PostDraftOrderErrorResponse;
+    /// Generate an create response for draft order.
+    async fn present_post_draft_order(
+        &self,
+        result: Result<DraftOrder, DomainError>,
+    ) -> Result<Self::PostDraftOrderResponse, Self::PostDraftOrderErrorResponse> {
+        Ok(web::Json(PostDraftOrderResponse {
+            draft_order: result?.into(),
+        }))
+    }
+
+    type CompleteDraftOrderResponse = Json<CompleteDraftOrderResponse>;
+    type CompleteDraftOrderErrorResponse = CompleteDraftOrderErrorResponse;
+    /// Generate an complete response for draft order.
+    async fn present_complete_draft_order(
+        &self,
+        result: Result<DraftOrder, DomainError>,
+    ) -> Result<Self::CompleteDraftOrderResponse, Self::CompleteDraftOrderErrorResponse> {
+        Ok(web::Json(CompleteDraftOrderResponse {
+            draft_order: result?.into(),
         }))
     }
 }
@@ -75,7 +96,7 @@ mod tests {
             Some("Test description".to_string()),
             10.0,
             DiscountValueType::Percentage,
-            mock_money_bag(),
+            Some(mock_money_bag()),
         )
         .expect("Failed to create mock discount")
     }
@@ -102,21 +123,22 @@ mod tests {
             .collect()
     }
 
-    fn mock_address() -> Address {
-        Address::new(
-            "123",
-            Some("123 Main St"),
-            None::<String>,
-            Some("City"),
-            true,
-            Some("Country"),
-            Some("John"),
-            Some("Doe"),
-            Some("Province"),
-            Some("12345"),
-            Some("+1234567890"),
+    fn mock_address() -> Option<Address> {
+        Some(
+            Address::new(
+                Some("123 Main St"),
+                None::<String>,
+                Some("City"),
+                true,
+                Some("Country"),
+                Some("John"),
+                Some("Doe"),
+                Some("Province"),
+                Some("12345"),
+                Some("+1234567890"),
+            )
+            .expect("Failed to create mock address"),
         )
-        .expect("Failed to create mock address")
     }
 
     fn mock_draft_orders(count: usize) -> Vec<DraftOrder> {
@@ -126,6 +148,10 @@ mod tests {
                     format!("{i}"),
                     format!("Test Order {i}"),
                     DraftOrderStatus::Open,
+                    None,
+                    mock_address(),
+                    mock_address(),
+                    None,
                     mock_line_items(2),
                     None,
                     mock_money_bag(),
@@ -135,10 +161,7 @@ mod tests {
                     mock_money_bag(),
                     mock_money_bag(),
                     mock_money_bag(),
-                    None,
-                    mock_address(),
-                    mock_address(),
-                    None,
+                    CurrencyCode::JPY,
                     None,
                     None,
                     Utc::now(),
@@ -176,7 +199,10 @@ mod tests {
 
         let result = presenter.present_get_draft_orders(Ok(vec![])).await;
 
-        assert!(matches!(result, Err(GetDraftOrdersResponseError::NotFound)));
+        assert!(matches!(
+            result,
+            Err(GetDraftOrdersErrorResponse::NotFound { .. })
+        ));
     }
 
     #[actix_web::test]
@@ -189,7 +215,7 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(GetDraftOrdersResponseError::BadRequest)
+            Err(GetDraftOrdersErrorResponse::BadRequest)
         ));
     }
 
@@ -203,7 +229,93 @@ mod tests {
 
         assert!(matches!(
             result,
-            Err(GetDraftOrdersResponseError::ServiceUnavailable)
+            Err(GetDraftOrdersErrorResponse::ServiceUnavailable)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_post_draft_order_success() {
+        let presenter = DraftOrderPresenterImpl::new();
+        let draft_order = mock_draft_orders(1).remove(0);
+
+        let result = presenter
+            .present_post_draft_order(Ok(draft_order))
+            .await
+            .unwrap();
+
+        assert_eq!(result.draft_order.id, "0");
+        assert_eq!(result.draft_order.name, "Test Order 0");
+        assert_eq!(result.draft_order.total_price_set.amount, 100.0);
+    }
+
+    #[actix_web::test]
+    async fn test_present_post_draft_order_bad_request() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_post_draft_order(Err(DomainError::ValidationError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(PostDraftOrderErrorResponse::BadRequest)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_post_draft_order_service_unavailable() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_post_draft_order(Err(DomainError::SystemError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(PostDraftOrderErrorResponse::ServiceUnavailable)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_complete_draft_order_success() {
+        let presenter = DraftOrderPresenterImpl::new();
+        let draft_order = mock_draft_orders(1).remove(0);
+
+        let result = presenter
+            .present_complete_draft_order(Ok(draft_order))
+            .await
+            .unwrap();
+
+        assert_eq!(result.draft_order.id, "0");
+        assert_eq!(result.draft_order.name, "Test Order 0");
+        assert_eq!(result.draft_order.total_price_set.amount, 100.0);
+    }
+
+    #[actix_web::test]
+    async fn test_present_complete_draft_order_bad_request() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_complete_draft_order(Err(DomainError::ValidationError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(CompleteDraftOrderErrorResponse::BadRequest)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_complete_draft_order_service_unavailable() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_complete_draft_order(Err(DomainError::SystemError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(CompleteDraftOrderErrorResponse::ServiceUnavailable)
         ));
     }
 }

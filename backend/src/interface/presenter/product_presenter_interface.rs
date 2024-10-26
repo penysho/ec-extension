@@ -6,16 +6,16 @@ use crate::domain::{error::error::DomainError, media::media::Media, product::pro
 #[async_trait]
 pub trait ProductPresenter {
     type GetProductResponse;
-    type GetProductResponseError;
+    type GetProductErrorResponse;
     async fn present_get_product(
         &self,
         result: Result<(Product, Vec<Media>), DomainError>,
-    ) -> Result<Self::GetProductResponse, Self::GetProductResponseError>;
+    ) -> Result<Self::GetProductResponse, Self::GetProductErrorResponse>;
 
     type GetProductsResponse;
-    type GetProductsResponseError;
+    type GetProductsErrorResponse;
     async fn present_get_products(
         &self,
         result: Result<(Vec<Product>, Vec<Media>), DomainError>,
-    ) -> Result<Self::GetProductsResponse, Self::GetProductsResponseError>;
+    ) -> Result<Self::GetProductsResponse, Self::GetProductsErrorResponse>;
 }
