@@ -95,6 +95,8 @@ pub struct InventoryChangeInput {
 }
 
 impl InventoryAdjustmentGroupNode {
+    #[allow(dead_code)]
+    /// Convert to multiple InventoryLevels (multiple SKUs, multiple locations)
     pub fn to_inventory_level_domains(self) -> Result<Vec<InventoryLevel>, DomainError> {
         let changes = self
             .changes
@@ -115,6 +117,30 @@ impl InventoryAdjustmentGroupNode {
             .collect::<Vec<_>>();
 
         Ok(changes)
+    }
+
+    /// Convert to a single InventoryLevel (single SKU, single location).
+    pub fn to_inventory_level_domain(self) -> Result<InventoryLevel, DomainError> {
+        let changes = self
+            .changes
+            .into_iter()
+            .map(|c| {
+                c.item
+                    .inventory_level
+                    .map(|node| node.to_domain())
+                    .transpose()
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .filter_map(|level| level)
+            .collect::<Vec<_>>();
+
+        if changes.is_empty() {
+            log::error!("Unable to retrieve inventory update results.");
+            return Err(DomainError::SaveError);
+        }
+
+        Ok(changes.into_iter().next().unwrap())
     }
 }
 

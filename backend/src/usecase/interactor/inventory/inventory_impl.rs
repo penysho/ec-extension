@@ -116,12 +116,8 @@ impl InventoryInteractor for InventoryInteractorImpl {
         let inventory_change =
             inventory_level.create_inventory_change(name, reason, delta, ledger_document_uri)?;
 
-        let updated_levels = self
-            .inventory_level_repository
+        self.inventory_level_repository
             .update(inventory_change)
-            .await?;
-
-        // Only one inventoryLevel is returned for a single location.
-        Ok(updated_levels.into_iter().next().unwrap())
+            .await
     }
 }

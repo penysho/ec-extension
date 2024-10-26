@@ -127,23 +127,32 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
     async fn update(
         &self,
         inventory_change: InventoryChange,
-    ) -> Result<Vec<InventoryLevel>, DomainError> {
+    ) -> Result<InventoryLevel, DomainError> {
         let schema = InventoryAdjustQuantitiesInput::from(inventory_change);
+        if schema.changes.len() != 1 {
+            log::error!(
+                "Only one change is supported. Changes: {:?}",
+                schema.changes
+            );
+            return Err(DomainError::SystemError);
+        }
+        let quantity_name = schema.name.clone();
+        let location_id = schema.changes[0].location_id.clone();
+
         let input = serde_json::to_value(schema).map_err(|e| {
             log::error!("Failed to parse the request structure. Error: {:?}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
         })?;
 
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
         let user_errors = ShopifyGQLQueryHelper::user_errors();
         let inventory_level_fields = Self::inventory_level_fields();
 
+        // NOTE: By specifying quantityNames, only the results of the specified name will be responded to, so that the results acquired in the inventoryLevels field will not be duplicated.
         let query = format!(
             "mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {{
                 inventoryAdjustQuantities(input: $input) {{
                     inventoryAdjustmentGroup {{
-                        changes {{
+                        changes(quantityNames: \"{quantity_name}\") {{
                             item {{
                                 id
                                 variant {{
@@ -153,13 +162,8 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
                                 tracked
                                 createdAt
                                 updatedAt
-                                inventoryLevels({first_query}) {{
-                                    edges {{
-                                        node {{
-                                            {inventory_level_fields}
-                                        }}
-                                    }}
-                                    {page_info}
+                                inventoryLevel(locationId: \"{location_id}\") {{
+                                    {inventory_level_fields}
                                 }}
                             }}
                         }}
@@ -188,11 +192,11 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
 
         match data.inventory_adjustment_group {
             Some(inventory_adjustment_group) => {
-                inventory_adjustment_group.to_inventory_level_domains()
+                inventory_adjustment_group.to_inventory_level_domain()
             }
             None => {
                 log::error!("No inventory level returned.");
-                Err(DomainError::QueryError)
+                Err(DomainError::SaveError)
             }
         }
     }

@@ -20,5 +20,5 @@ pub trait InventoryLevelRepository: Send + Sync {
     async fn update(
         &self,
         inventory_change: InventoryChange,
-    ) -> Result<Vec<InventoryLevel>, DomainError>;
+    ) -> Result<InventoryLevel, DomainError>;
 }
