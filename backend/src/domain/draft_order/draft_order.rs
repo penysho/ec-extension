@@ -89,7 +89,7 @@ pub struct DraftOrder {
 
     completed_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
-    update_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl DraftOrder {
@@ -115,7 +115,7 @@ impl DraftOrder {
         order_id: Option<OrderId>,
         completed_at: Option<DateTime<Utc>>,
         created_at: DateTime<Utc>,
-        update_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
     ) -> Result<Self, DomainError> {
         let instance = Self {
             id: id.into(),
@@ -138,7 +138,7 @@ impl DraftOrder {
             order_id,
             completed_at,
             created_at,
-            update_at,
+            updated_at,
         };
 
         instance.validate()?;
@@ -196,7 +196,7 @@ impl DraftOrder {
             order_id: None,
             completed_at: None,
             created_at: now,
-            update_at: now,
+            updated_at: now,
         })
     }
 }

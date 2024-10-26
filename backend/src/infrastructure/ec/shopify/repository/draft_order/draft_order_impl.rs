@@ -268,7 +268,7 @@ mod tests {
             }),
             completed_at: None,
             created_at: Utc::now(),
-            update_at: Utc::now(),
+            updated_at: Utc::now(),
         }
     }
 

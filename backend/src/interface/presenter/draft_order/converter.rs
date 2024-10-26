@@ -29,7 +29,7 @@ impl From<DraftOrder> for DraftOrderSchema {
             order_id: draft_order.order_id().as_ref().map(|id| id.to_string()),
             completed_at: *draft_order.completed_at(),
             created_at: *draft_order.created_at(),
-            update_at: *draft_order.update_at(),
+            updated_at: *draft_order.updated_at(),
         }
     }
 }

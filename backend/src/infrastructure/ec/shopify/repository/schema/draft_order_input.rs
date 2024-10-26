@@ -26,21 +26,16 @@ impl From<DraftOrder> for DraftOrderInput {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DraftOrderInput {
-    #[serde(rename = "purchasingEntity")]
     pub purchasing_entity: Option<PurchasingEntityInput>,
-    #[serde(rename = "billingAddress")]
     pub billing_address: Option<AddressInput>,
-    #[serde(rename = "shippingAddress")]
     pub shipping_address: Option<AddressInput>,
     pub note: Option<String>,
 
-    #[serde(rename = "lineItems")]
     pub line_items: Vec<LineItemInput>,
-    #[serde(rename = "reserveInventoryUntil")]
     pub reserve_inventory_until: Option<DateTime<Utc>>,
 
-    #[serde(rename = "taxExempt")]
     pub tax_exempt: Option<bool>,
 }
 

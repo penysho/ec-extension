@@ -49,7 +49,7 @@ impl DraftOrderNode {
                 .map(|o| ShopifyGQLQueryHelper::remove_gid_prefix(&o.id)),
             self.completed_at,
             self.created_at,
-            self.update_at,
+            self.updated_at,
         )
     }
 
@@ -95,7 +95,7 @@ pub struct DraftOrderNode {
 
     pub completed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
-    pub update_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -38,7 +38,7 @@ pub struct DraftOrderSchema {
     pub(super) order_id: Option<String>,
     pub(super) completed_at: Option<DateTime<Utc>>,
     pub(super) created_at: DateTime<Utc>,
-    pub(super) update_at: DateTime<Utc>,
+    pub(super) updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
