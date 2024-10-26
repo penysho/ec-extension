@@ -13,4 +13,6 @@ pub trait DraftOrderRepository: Send + Sync {
     ) -> Result<Vec<DraftOrder>, DomainError>;
 
     async fn create(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError>;
+
+    async fn update(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError>;
 }

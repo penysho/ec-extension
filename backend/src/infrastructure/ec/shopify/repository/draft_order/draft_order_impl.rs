@@ -13,7 +13,9 @@ use crate::{
                 repository::schema::{
                     common::GraphQLResponse,
                     draft_order::{DraftOrderNode, DraftOrdersData},
-                    draft_order_input::{DraftOrderCreateData, DraftOrderInput},
+                    draft_order_input::{
+                        DraftOrderCreateData, DraftOrderInput, DraftOrderUpdateData,
+                    },
                 },
             },
         },
@@ -199,6 +201,53 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
             }
         }
     }
+
+    async fn update(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError> {
+        let schema = DraftOrderInput::from(draft_order);
+        let input = serde_json::to_value(schema).map_err(|e| {
+            log::error!("Failed to parse the request structure. Error: {:?}", e);
+            InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
+        })?;
+
+        let draft_order_fields = Self::draft_order_fields();
+        let user_errors = ShopifyGQLQueryHelper::user_errors();
+
+        let query = format!(
+            "mutation draftOrderUpdate($input: DraftOrderInput!) {{
+                draftOrderUpdate(input: $input) {{
+                    draftOrder {{
+                        {draft_order_fields}
+                    }}
+                    {user_errors}
+                }}
+            }}",
+        );
+
+        let graphql_response: GraphQLResponse<DraftOrderUpdateData> =
+            self.client.mutation(&query, &input).await?;
+        if let Some(errors) = graphql_response.errors {
+            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            return Err(DomainError::SaveError);
+        }
+
+        let data = graphql_response
+            .data
+            .ok_or(DomainError::SaveError)?
+            .draft_order_update;
+
+        if !data.user_errors.is_empty() {
+            log::error!("UserErrors returned. userErrors: {:?}", user_errors);
+            return Err(DomainError::SaveError);
+        }
+
+        match data.draft_order {
+            Some(draft_order) => draft_order.to_domain(),
+            None => {
+                log::error!("No draft order returned.");
+                Err(DomainError::SaveError)
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -223,7 +272,10 @@ mod tests {
                     address::AddressNode,
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
                     draft_order::{CustomerIdNode, DraftOrderNode, DraftOrdersData, OrderIdNode},
-                    draft_order_input::{DraftOrderCreate, DraftOrderCreateData},
+                    draft_order_input::{
+                        DraftOrderCreate, DraftOrderCreateData, DraftOrderUpdate,
+                        DraftOrderUpdateData,
+                    },
                     line_item::{DiscountNode, LineItemNode, VariantIdNode},
                     money::{CurrencyCodeNode, MoneyBagNode, MoneyNode},
                 },
@@ -380,6 +432,18 @@ mod tests {
         GraphQLResponse {
             data: Some(DraftOrderCreateData {
                 draft_order_create: DraftOrderCreate {
+                    draft_order: Some(mock_draft_order_node(0)),
+                    user_errors: vec![],
+                },
+            }),
+            errors: None,
+        }
+    }
+
+    fn mock_draft_order_update_response() -> GraphQLResponse<DraftOrderUpdateData> {
+        GraphQLResponse {
+            data: Some(DraftOrderUpdateData {
+                draft_order_update: DraftOrderUpdate {
                     draft_order: Some(mock_draft_order_node(0)),
                     user_errors: vec![],
                 },
@@ -597,6 +661,95 @@ mod tests {
         let repo = DraftOrderRepositoryImpl::new(client);
 
         let result = repo.create(mock_draft_order_domain()).await;
+        assert!(result.is_err());
+        if let Err(DomainError::SaveError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::SaveError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_update_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<DraftOrderUpdateData>>()
+            .times(1)
+            .return_once(|_, _| Ok(mock_draft_order_update_response()));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.update(mock_draft_order_domain()).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_with_user_errors() {
+        let mut client = MockECClient::new();
+
+        let mut response = mock_draft_order_update_response();
+        response
+            .data
+            .as_mut()
+            .unwrap()
+            .draft_order_update
+            .user_errors = vec![UserError {
+            field: vec!["quantity".to_string()],
+            message: "Quantity must be positive".to_string(),
+        }];
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<DraftOrderUpdateData>>()
+            .times(1)
+            .return_once(|_, _| Ok(response));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.update(mock_draft_order_domain()).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::SaveError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::SaveError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_update_with_graphql_error() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<DraftOrderUpdateData>>()
+            .times(1)
+            .return_once(|_, _| Ok(mock_with_error()));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.update(mock_draft_order_domain()).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::SaveError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::SaveError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_update_with_no_data() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<DraftOrderUpdateData>>()
+            .times(1)
+            .return_once(|_, _| Ok(mock_with_no_data()));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.update(mock_draft_order_domain()).await;
         assert!(result.is_err());
         if let Err(DomainError::SaveError) = result {
             // Test passed

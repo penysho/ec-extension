@@ -65,3 +65,16 @@ pub struct DraftOrderCreate {
     pub draft_order: Option<DraftOrderNode>,
     pub user_errors: Vec<UserError>,
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftOrderUpdateData {
+    pub draft_order_update: DraftOrderUpdate,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftOrderUpdate {
+    pub draft_order: Option<DraftOrderNode>,
+    pub user_errors: Vec<UserError>,
+}
