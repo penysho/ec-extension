@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::infrastructure::ec::ec_client_interface::ECClientResponse;
 
@@ -64,4 +64,16 @@ pub struct GraphQLErrorExtensions {
 pub struct UserError {
     pub field: Vec<String>,
     pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IdInput {
+    pub id: String,
+}
+
+impl From<String> for IdInput {
+    fn from(id: String) -> Self {
+        IdInput { id }
+    }
 }
