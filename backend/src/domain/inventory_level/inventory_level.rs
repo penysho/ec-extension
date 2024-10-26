@@ -70,30 +70,6 @@ impl InventoryLevel {
 
         InventoryChange::new(name.to_owned(), reason.to_owned(), vec![change])
     }
-
-    pub fn update_quantity_by_delta(
-        &mut self,
-        name: &InventoryType,
-        delta: i32,
-    ) -> Result<(), DomainError> {
-        let index = self
-            .quantities
-            .iter()
-            .position(|q| q.inventory_type() == name);
-
-        match index {
-            Some(index) => {
-                let quantity = self.quantities[index].quantity() + delta;
-                self.quantities[index] = Quantity::new(quantity, name.to_owned())?;
-                Ok(())
-            }
-            None => {
-                let quantity = Quantity::new(delta, name.to_owned())?;
-                self.quantities.push(quantity);
-                Ok(())
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -132,30 +108,5 @@ mod tests {
         );
 
         assert!(inventory_change.is_ok());
-    }
-
-    #[test]
-    fn test_update_quantity_by_delta() {
-        let quantities = vec![Quantity::new(10, InventoryType::Available).unwrap()];
-        let mut inventory_level =
-            InventoryLevel::new("level_id", "item_id", "location_id", quantities).unwrap();
-
-        let result = inventory_level.update_quantity_by_delta(&InventoryType::Available, 5);
-
-        assert!(result.is_ok());
-        assert_eq!(*inventory_level.quantities()[0].quantity(), 15);
-    }
-
-    #[test]
-    fn test_update_quantity_by_delta_new_type() {
-        let quantities = vec![Quantity::new(10, InventoryType::Available).unwrap()];
-        let mut inventory_level =
-            InventoryLevel::new("level_id", "item_id", "location_id", quantities).unwrap();
-
-        let result = inventory_level.update_quantity_by_delta(&InventoryType::Reserved, 5);
-
-        assert!(result.is_ok());
-        assert_eq!(inventory_level.quantities().len(), 2);
-        assert_eq!(*inventory_level.quantities()[1].quantity(), 5);
     }
 }
