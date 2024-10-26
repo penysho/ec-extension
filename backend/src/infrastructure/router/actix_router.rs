@@ -53,6 +53,12 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                  web::post().to(|controller: web::Data<Arc<Controller>>, body: web::Json<PostDraftOrderRequest>| async move {
                     controller.post_draft_order(body).await
                 }),
+            )
+            .route(
+                "/orders/draft/complete/{id}",
+                 web::put().to(|controller: web::Data<Arc<Controller>>, path: web::Path<(String,)>| async move {
+                    controller.complete_draft_order(path).await
+                }),
             ),
     );
 }

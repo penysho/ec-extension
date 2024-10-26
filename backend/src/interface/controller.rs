@@ -1,3 +1,4 @@
+pub mod complete_draft_order;
 pub mod controller;
 pub mod get_draft_orders;
 pub mod get_inventories;

@@ -81,7 +81,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         self.draft_order_repository.create(draft_order).await
     }
 
-    async fn complate_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError> {
+    async fn complete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError> {
         let mut draft_order = self
             .draft_order_repository
             .find_draft_order_by_id(id)

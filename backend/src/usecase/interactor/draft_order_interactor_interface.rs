@@ -87,5 +87,5 @@ pub trait DraftOrderInteractor {
     /// # Errors
     ///
     /// * Returns a domain error if the draft order repository fails.
-    async fn complate_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError>;
+    async fn complete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError>;
 }
