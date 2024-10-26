@@ -177,17 +177,17 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             self.client.mutation(&query, &input).await?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response: {:?}", errors);
-            return Err(DomainError::QueryError);
+            return Err(DomainError::SaveError);
         }
 
         let data = graphql_response
             .data
-            .ok_or(DomainError::QueryError)?
+            .ok_or(DomainError::SaveError)?
             .inventory_adjust_quantities;
 
         if !data.user_errors.is_empty() {
             log::error!("UserErrors returned. userErrors: {:?}", user_errors);
-            return Err(DomainError::QueryError);
+            return Err(DomainError::SaveError);
         }
 
         match data.inventory_adjustment_group {
@@ -533,10 +533,10 @@ mod tests {
         let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::SaveError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::SaveError, but got something else");
         }
     }
 
@@ -554,10 +554,10 @@ mod tests {
         let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::SaveError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::SaveError, but got something else");
         }
     }
 
@@ -575,10 +575,10 @@ mod tests {
         let result = repo.update(mock_inventory_change_domain()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::SaveError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::SaveError, but got something else");
         }
     }
 }

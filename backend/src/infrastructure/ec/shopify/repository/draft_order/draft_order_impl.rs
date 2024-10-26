@@ -178,24 +178,24 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
             self.client.mutation(&query, &input).await?;
         if let Some(errors) = graphql_response.errors {
             log::error!("Error returned in GraphQL response. Response: {:?}", errors);
-            return Err(DomainError::QueryError);
+            return Err(DomainError::SaveError);
         }
 
         let data = graphql_response
             .data
-            .ok_or(DomainError::QueryError)?
+            .ok_or(DomainError::SaveError)?
             .draft_order_create;
 
         if !data.user_errors.is_empty() {
             log::error!("UserErrors returned. userErrors: {:?}", user_errors);
-            return Err(DomainError::QueryError);
+            return Err(DomainError::SaveError);
         }
 
         match data.draft_order {
             Some(draft_order) => draft_order.to_domain(),
             None => {
                 log::error!("No draft order returned.");
-                Err(DomainError::QueryError)
+                Err(DomainError::SaveError)
             }
         }
     }
@@ -557,10 +557,10 @@ mod tests {
         let result = repo.create(mock_draft_order_domain()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::SaveError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::SaveError, but got something else");
         }
     }
 
@@ -578,10 +578,10 @@ mod tests {
         let result = repo.create(mock_draft_order_domain()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::SaveError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::SaveError, but got something else");
         }
     }
 
@@ -598,10 +598,10 @@ mod tests {
 
         let result = repo.create(mock_draft_order_domain()).await;
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::SaveError) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::SaveError, but got something else");
         }
     }
 }
