@@ -13,7 +13,7 @@ use crate::{
             shopify::{
                 query_helper::ShopifyGQLQueryHelper,
                 repository::schema::{
-                    common::{GraphQLResponse, IdInput},
+                    common::GraphQLResponse,
                     draft_order::{DraftOrderData, DraftOrderNode, DraftOrdersData},
                     draft_order_input::{
                         DraftOrderCompleteData, DraftOrderCreateData, DraftOrderInput,
@@ -122,7 +122,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
         let query = format!(
             "query {{
-                draftOrder(id: {id}) {{
+                draftOrder(id: \"{id}\") {{
                     {draft_order_fields}
                 }}
             }}"
@@ -234,20 +234,14 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         let completed_at = draft_order.completed_at().clone();
         match completed_at {
             Some(completed_at) if completed_at == DateTime::<Utc>::default() => {
-                let input = serde_json::to_value(IdInput::from(
-                    ShopifyGQLQueryHelper::add_draft_order_gid_prefix(draft_order.id()),
-                ))
-                .map_err(|e| {
-                    log::error!("Failed to parse the request structure. Error: {:?}", e);
-                    InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
-                })?;
+                let id = ShopifyGQLQueryHelper::add_draft_order_gid_prefix(draft_order.id());
 
                 let draft_order_fields = Self::draft_order_fields();
                 let user_errors = ShopifyGQLQueryHelper::user_errors();
 
                 let query = format!(
-                    "mutation draftOrderComplete($id: ID!) {{
-                        draftOrderComplete(id: $id) {{
+                    "mutation draftOrderComplete {{
+                        draftOrderComplete(id: \"{id}\") {{
                             draftOrder {{
                                 {draft_order_fields}
                             }}
@@ -256,8 +250,10 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                     }}",
                 );
 
-                let graphql_response: GraphQLResponse<DraftOrderCompleteData> =
-                    self.client.mutation(&query, &input).await?;
+                let graphql_response: GraphQLResponse<DraftOrderCompleteData> = self
+                    .client
+                    .mutation(&query, &serde_json::to_value("").unwrap())
+                    .await?;
                 if let Some(errors) = graphql_response.errors {
                     log::error!("Error returned in GraphQL response. Response: {:?}", errors);
                     return Err(DomainError::SaveError);
