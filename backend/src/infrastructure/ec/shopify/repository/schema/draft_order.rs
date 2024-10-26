@@ -63,6 +63,12 @@ impl DraftOrderNode {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct DraftOrderData {
+    pub draft_order: DraftOrderNode,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DraftOrdersData {
     pub draft_orders: Edges<DraftOrderNode>,
 }

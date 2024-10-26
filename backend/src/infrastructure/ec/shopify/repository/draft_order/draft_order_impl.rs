@@ -2,7 +2,8 @@ use async_trait::async_trait;
 
 use crate::{
     domain::{
-        customer::customer::Id as CustomerId, draft_order::draft_order::DraftOrder,
+        customer::customer::Id as CustomerId,
+        draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
         error::error::DomainError,
     },
     infrastructure::{
@@ -12,7 +13,7 @@ use crate::{
                 query_helper::ShopifyGQLQueryHelper,
                 repository::schema::{
                     common::{GraphQLResponse, IdInput},
-                    draft_order::{DraftOrderNode, DraftOrdersData},
+                    draft_order::{DraftOrderData, DraftOrderNode, DraftOrdersData},
                     draft_order_input::{
                         DraftOrderCompleteData, DraftOrderCreateData, DraftOrderInput,
                         DraftOrderUpdateData,
@@ -114,6 +115,31 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImpl<C> {
+    async fn find_draft_order_by_id(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError> {
+        let id = ShopifyGQLQueryHelper::add_draft_order_gid_prefix(id);
+        let draft_order_fields = Self::draft_order_fields();
+
+        let query = format!(
+            "query {{
+                draftOrder(id: {id}) {{
+                    {draft_order_fields}
+                }}
+            }}"
+        );
+
+        let graphql_response: GraphQLResponse<DraftOrderData> = self.client.query(&query).await?;
+        if let Some(errors) = graphql_response.errors {
+            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            return Err(DomainError::QueryError);
+        }
+
+        DraftOrderNode::to_domain(
+            graphql_response
+                .data
+                .ok_or(DomainError::QueryError)?
+                .draft_order,
+        )
+    }
     /// Retrieve draft order information by customer id.
     async fn find_draft_orders_by_customer_id(
         &self,
@@ -325,7 +351,10 @@ mod tests {
                 schema::{
                     address::AddressNode,
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
-                    draft_order::{CustomerIdNode, DraftOrderNode, DraftOrdersData, OrderIdNode},
+                    draft_order::{
+                        CustomerIdNode, DraftOrderData, DraftOrderNode, DraftOrdersData,
+                        OrderIdNode,
+                    },
                     draft_order_input::{
                         DraftOrderComplete, DraftOrderCompleteData, DraftOrderCreate,
                         DraftOrderCreateData, DraftOrderUpdate, DraftOrderUpdateData,
@@ -464,6 +493,15 @@ mod tests {
         .expect("Failed to create mock draft order domain")
     }
 
+    fn mock_draft_order_response() -> GraphQLResponse<DraftOrderData> {
+        GraphQLResponse {
+            data: Some(DraftOrderData {
+                draft_order: mock_draft_order_node(0),
+            }),
+            errors: None,
+        }
+    }
+
     fn mock_draft_orders_response(count: usize) -> GraphQLResponse<DraftOrdersData> {
         let nodes: Vec<Node<DraftOrderNode>> = (0..count)
             .map(|i| Node {
@@ -537,6 +575,83 @@ mod tests {
         GraphQLResponse {
             data: None,
             errors: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_find_draft_order_by_id_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<GraphQLResponse<DraftOrderData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_draft_order_response()));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.find_draft_order_by_id(&"1".to_string()).await;
+
+        assert!(result.is_ok());
+        let draft_order = result.unwrap();
+        assert_eq!(draft_order.id(), "0");
+        assert_eq!(draft_order.name(), "Test Order");
+        assert_eq!(draft_order.status(), &DraftOrderStatus::Open);
+        assert_eq!(draft_order.line_items().len(), 1);
+        assert_eq!(draft_order.subtotal_price_set().amount().value(), &100.0);
+        assert_eq!(draft_order.taxes_included(), &true);
+        assert_eq!(draft_order.tax_exempt(), &false);
+        assert_eq!(draft_order.total_tax_set().amount().value(), &5.0);
+        assert_eq!(draft_order.total_discounts_set().amount().value(), &10.0);
+        assert_eq!(
+            draft_order.total_shipping_price_set().amount().value(),
+            &15.0
+        );
+        assert_eq!(draft_order.total_price_set().amount().value(), &110.0);
+        assert_eq!(draft_order.customer_id(), &Some("0".to_string()));
+        assert_eq!(draft_order.note(), &Some("Test note".to_string()));
+        assert_eq!(draft_order.order_id(), &Some("0".to_string()));
+        assert_eq!(draft_order.completed_at(), &None);
+    }
+
+    #[tokio::test]
+    async fn test_find_draft_order_by_id_with_graphql_error() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<GraphQLResponse<DraftOrderData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_with_error()));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.find_draft_order_by_id(&"1".to_string()).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_find_draft_order_by_id_with_missing_data() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<GraphQLResponse<DraftOrderData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_with_no_data()));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.find_draft_order_by_id(&"1".to_string()).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
         }
     }
 
