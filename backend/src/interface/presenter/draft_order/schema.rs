@@ -61,3 +61,10 @@ pub struct PostDraftOrderResponse {
 }
 
 define_error_response!(PostDraftOrderErrorResponse, "DraftOrder");
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CompleteDraftOrderResponse {
+    pub draft_order: DraftOrderSchema,
+}
+
+define_error_response!(CompleteDraftOrderErrorResponse, "DraftOrder");

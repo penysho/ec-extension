@@ -7,8 +7,9 @@ use crate::{
 };
 
 use super::schema::{
-    DraftOrderSchema, GetDraftOrdersErrorResponse, GetDraftOrdersResponse,
-    PostDraftOrderErrorResponse, PostDraftOrderResponse,
+    CompleteDraftOrderErrorResponse, CompleteDraftOrderResponse, DraftOrderSchema,
+    GetDraftOrdersErrorResponse, GetDraftOrdersResponse, PostDraftOrderErrorResponse,
+    PostDraftOrderResponse,
 };
 
 /// Generate a response schema for the draft orders.
@@ -53,6 +54,18 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
         result: Result<DraftOrder, DomainError>,
     ) -> Result<Self::PostDraftOrderResponse, Self::PostDraftOrderErrorResponse> {
         Ok(web::Json(PostDraftOrderResponse {
+            draft_order: result?.into(),
+        }))
+    }
+
+    type CompleteDraftOrderResponse = Json<CompleteDraftOrderResponse>;
+    type CompleteDraftOrderErrorResponse = CompleteDraftOrderErrorResponse;
+    /// Generate an complete response for draft order.
+    async fn present_complete_draft_order(
+        &self,
+        result: Result<DraftOrder, DomainError>,
+    ) -> Result<Self::CompleteDraftOrderResponse, Self::CompleteDraftOrderErrorResponse> {
+        Ok(web::Json(CompleteDraftOrderResponse {
             draft_order: result?.into(),
         }))
     }
@@ -260,6 +273,49 @@ mod tests {
         assert!(matches!(
             result,
             Err(PostDraftOrderErrorResponse::ServiceUnavailable)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_complete_draft_order_success() {
+        let presenter = DraftOrderPresenterImpl::new();
+        let draft_order = mock_draft_orders(1).remove(0);
+
+        let result = presenter
+            .present_complete_draft_order(Ok(draft_order))
+            .await
+            .unwrap();
+
+        assert_eq!(result.draft_order.id, "0");
+        assert_eq!(result.draft_order.name, "Test Order 0");
+        assert_eq!(result.draft_order.total_price_set.amount, 100.0);
+    }
+
+    #[actix_web::test]
+    async fn test_present_complete_draft_order_bad_request() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_complete_draft_order(Err(DomainError::ValidationError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(CompleteDraftOrderErrorResponse::BadRequest)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_complete_draft_order_service_unavailable() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_complete_draft_order(Err(DomainError::SystemError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(CompleteDraftOrderErrorResponse::ServiceUnavailable)
         ));
     }
 }

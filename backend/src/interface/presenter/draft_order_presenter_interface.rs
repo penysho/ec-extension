@@ -18,4 +18,11 @@ pub trait DraftOrderPresenter {
         &self,
         result: Result<DraftOrder, DomainError>,
     ) -> Result<Self::PostDraftOrderResponse, Self::PostDraftOrderErrorResponse>;
+
+    type CompleteDraftOrderResponse;
+    type CompleteDraftOrderErrorResponse;
+    async fn present_complete_draft_order(
+        &self,
+        result: Result<DraftOrder, DomainError>,
+    ) -> Result<Self::CompleteDraftOrderResponse, Self::CompleteDraftOrderErrorResponse>;
 }
