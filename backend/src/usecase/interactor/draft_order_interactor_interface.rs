@@ -4,8 +4,9 @@ use mockall::automock;
 
 use crate::domain::{
     address::address::Address, customer::customer::Id as CustomerId,
-    draft_order::draft_order::DraftOrder, email::email::Email, error::error::DomainError,
-    line_item::line_item::LineItem, money::money_bag::CurrencyCode,
+    draft_order::draft_order::DraftOrder, draft_order::draft_order::Id as DraftOrderId,
+    email::email::Email, error::error::DomainError, line_item::line_item::LineItem,
+    money::money_bag::CurrencyCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,7 +38,7 @@ pub trait DraftOrderInteractor {
         query: &GetDraftOrdersQuery,
     ) -> Result<Vec<DraftOrder>, DomainError>;
 
-    /// create draft order.
+    /// Create draft order.
     ///
     /// # Arguments
     ///
@@ -70,4 +71,21 @@ pub trait DraftOrderInteractor {
         tax_exempt: Option<bool>,
         presentment_currency_code: Option<CurrencyCode>,
     ) -> Result<DraftOrder, DomainError>;
+
+    /// Complete draft order.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The draft order id.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<DraftOrder, DomainError>` - The result of the operation.
+    ///   - `Ok(DraftOrder)` - The draft order.
+    ///   - `Err(DomainError)` - The error.
+    ///
+    /// # Errors
+    ///
+    /// * Returns a domain error if the draft order repository fails.
+    async fn complate_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError>;
 }

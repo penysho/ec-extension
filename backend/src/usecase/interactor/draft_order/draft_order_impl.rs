@@ -3,9 +3,12 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     domain::{
-        address::address::Address, customer::customer::Id as CustomerId,
-        draft_order::draft_order::DraftOrder, error::error::DomainError,
-        line_item::line_item::LineItem, money::money_bag::CurrencyCode,
+        address::address::Address,
+        customer::customer::Id as CustomerId,
+        draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
+        error::error::DomainError,
+        line_item::line_item::LineItem,
+        money::money_bag::CurrencyCode,
     },
     usecase::{
         interactor::draft_order_interactor_interface::{DraftOrderInteractor, GetDraftOrdersQuery},
@@ -76,5 +79,16 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         )?;
 
         self.draft_order_repository.create(draft_order).await
+    }
+
+    async fn complate_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError> {
+        let mut draft_order = self
+            .draft_order_repository
+            .find_draft_order_by_id(id)
+            .await?;
+
+        draft_order.complete()?;
+
+        self.draft_order_repository.update(draft_order).await
     }
 }

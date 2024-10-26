@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 
 use crate::{
     domain::{
@@ -232,7 +233,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
     async fn update(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError> {
         let completed_at = draft_order.completed_at().clone();
         match completed_at {
-            Some(_) => {
+            Some(completed_at) if completed_at == DateTime::<Utc>::default() => {
                 let input = serde_json::to_value(IdInput::from(
                     ShopifyGQLQueryHelper::add_draft_order_gid_prefix(draft_order.id()),
                 ))
@@ -280,7 +281,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                     }
                 }
             }
-            None => {
+            _ => {
                 let input =
                     serde_json::to_value(DraftOrderInput::from(draft_order)).map_err(|e| {
                         log::error!("Failed to parse the request structure. Error: {:?}", e);
@@ -332,7 +333,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
+    use chrono::{DateTime, Utc};
     use serde_json::Value;
 
     use crate::{
@@ -464,7 +465,7 @@ mod tests {
     fn mock_draft_order_domain(completed: bool) -> DraftOrder {
         let mut completed_at = None;
         if completed {
-            completed_at = Some(Utc::now());
+            completed_at = Some(DateTime::<Utc>::default());
         }
 
         DraftOrder::new(

@@ -199,6 +199,18 @@ impl DraftOrder {
             updated_at: now,
         })
     }
+
+    pub fn complete(&mut self) -> Result<(), DomainError> {
+        if self.status == DraftOrderStatus::Completed {
+            log::error!("Draft order is already completed");
+            return Err(DomainError::ValidationError);
+        }
+        self.status = DraftOrderStatus::Completed;
+
+        let default_date = DateTime::<Utc>::default();
+        self.completed_at = Some(default_date);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -372,5 +384,15 @@ mod tests {
 
         assert_eq!(draft_order.id(), "");
         assert_eq!(draft_order.name(), "");
+    }
+
+    #[test]
+    fn test_complete() {
+        let mut draft_order = mock_draft_order();
+        draft_order
+            .complete()
+            .expect("Failed to complete draft order");
+
+        assert_eq!(draft_order.status(), &DraftOrderStatus::Completed);
     }
 }
