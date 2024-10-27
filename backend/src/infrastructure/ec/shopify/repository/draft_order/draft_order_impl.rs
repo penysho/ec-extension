@@ -232,6 +232,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
     async fn update(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError> {
         let completed_at = draft_order.completed_at().clone();
+
         match completed_at {
             Some(completed_at) if completed_at == DateTime::<Utc>::default() => {
                 let id = ShopifyGQLQueryHelper::add_draft_order_gid_prefix(draft_order.id());
