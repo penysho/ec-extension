@@ -363,7 +363,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         }
 
         match data.deleted_id {
-            Some(deleted_id) => Ok(deleted_id),
+            Some(deleted_id) => Ok(ShopifyGQLQueryHelper::remove_gid_prefix(&deleted_id)),
             None => {
                 log::error!("No draft order returned.");
                 Err(DomainError::DeleteError)
@@ -1029,6 +1029,7 @@ mod tests {
         let result = repo.delete(mock_draft_order_domain(false)).await;
 
         assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "0".to_string());
     }
 
     #[tokio::test]
