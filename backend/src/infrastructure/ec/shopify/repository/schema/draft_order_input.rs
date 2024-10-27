@@ -7,8 +7,10 @@ use crate::{
 };
 
 use super::{
-    address_input::AddressInput, common::UserError, draft_order::DraftOrderNode,
-    line_item_input::LineItemInput,
+    address_input::AddressInput,
+    common::UserError,
+    draft_order::DraftOrderNode,
+    line_item_input::{DiscountInput, LineItemInput},
 };
 
 impl From<DraftOrder> for DraftOrderInput {
@@ -20,6 +22,7 @@ impl From<DraftOrder> for DraftOrderInput {
             note: draft_order.note().to_owned(),
             line_items: draft_order.line_items().iter().map(|l| l.into()).collect(),
             reserve_inventory_until: draft_order.reserve_inventory_until().to_owned(),
+            applied_discount: draft_order.discount().to_owned().map(|d| d.into()),
             tax_exempt: Some(*draft_order.tax_exempt()),
         }
     }
@@ -35,6 +38,8 @@ pub struct DraftOrderInput {
 
     pub line_items: Vec<LineItemInput>,
     pub reserve_inventory_until: Option<DateTime<Utc>>,
+
+    pub applied_discount: Option<DiscountInput>,
 
     pub tax_exempt: Option<bool>,
 }

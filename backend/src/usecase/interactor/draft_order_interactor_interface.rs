@@ -3,9 +3,12 @@ use chrono::{DateTime, Utc};
 use mockall::automock;
 
 use crate::domain::{
-    address::address::Address, customer::customer::Id as CustomerId,
-    draft_order::draft_order::DraftOrder, draft_order::draft_order::Id as DraftOrderId,
-    email::email::Email, error::error::DomainError, line_item::line_item::LineItem,
+    address::address::Address,
+    customer::customer::Id as CustomerId,
+    draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
+    email::email::Email,
+    error::error::DomainError,
+    line_item::{discount::discount::Discount, line_item::LineItem},
     money::money::CurrencyCode,
 };
 
@@ -50,6 +53,7 @@ pub trait DraftOrderInteractor {
     /// * `reserve_inventory_until` - The reserve inventory until.
     /// * `tax_exempt` - The tax exempt.
     /// * `presentment_currency_code` - Currency code to be applied to the order. If not specified, the store's default currency code is used.
+    /// * `discount` - Discount applied per order.
     ///
     /// # Returns
     ///
@@ -70,6 +74,7 @@ pub trait DraftOrderInteractor {
         reserve_inventory_until: Option<DateTime<Utc>>,
         tax_exempt: Option<bool>,
         presentment_currency_code: Option<CurrencyCode>,
+        discount: Option<Discount>,
     ) -> Result<DraftOrder, DomainError>;
 
     /// Complete a draft order.
