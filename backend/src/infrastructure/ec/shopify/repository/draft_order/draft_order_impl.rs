@@ -326,6 +326,10 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
             }
         }
     }
+
+    async fn delete(&self, draft_order: DraftOrder) -> Result<DraftOrderId, DomainError> {
+        todo!()
+    }
 }
 
 #[cfg(test)]

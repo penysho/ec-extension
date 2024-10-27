@@ -18,4 +18,6 @@ pub trait DraftOrderRepository: Send + Sync {
     async fn create(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError>;
 
     async fn update(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError>;
+
+    async fn delete(&self, draft_order: DraftOrder) -> Result<DraftOrderId, DomainError>;
 }

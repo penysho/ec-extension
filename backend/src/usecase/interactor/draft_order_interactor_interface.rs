@@ -38,7 +38,7 @@ pub trait DraftOrderInteractor {
         query: &GetDraftOrdersQuery,
     ) -> Result<Vec<DraftOrder>, DomainError>;
 
-    /// Create draft order.
+    /// Create a draft order.
     ///
     /// # Arguments
     ///
@@ -72,7 +72,7 @@ pub trait DraftOrderInteractor {
         presentment_currency_code: Option<CurrencyCode>,
     ) -> Result<DraftOrder, DomainError>;
 
-    /// Complete draft order.
+    /// Complete a draft order.
     ///
     /// # Arguments
     ///
@@ -87,5 +87,23 @@ pub trait DraftOrderInteractor {
     /// # Errors
     ///
     /// * Returns a domain error if the draft order repository fails.
+    /// * If a draft order has already been completed.
     async fn complete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError>;
+
+    /// Delete a draft order.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The draft order id.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<DraftOrderId, DomainError>` - The result of the operation.
+    ///   - `Ok(DraftOrder)` - ID of deleted draft order.
+    ///   - `Err(DomainError)` - The error.
+    ///
+    /// # Errors
+    ///
+    /// * Returns a domain error if the draft order repository fails.
+    async fn delete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrderId, DomainError>;
 }

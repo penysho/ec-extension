@@ -91,4 +91,13 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
 
         self.draft_order_repository.update(draft_order).await
     }
+
+    async fn delete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrderId, DomainError> {
+        let draft_order = self
+            .draft_order_repository
+            .find_draft_order_by_id(id)
+            .await?;
+
+        self.draft_order_repository.delete(draft_order).await
+    }
 }

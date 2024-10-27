@@ -8,6 +8,7 @@ use crate::interface::presenter::{
 use super::controller::Controller;
 
 impl Controller {
+    /// Complete a draft order.
     pub async fn complete_draft_order(&self, path: Path<(String,)>) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
 
