@@ -15,13 +15,14 @@ use derive_more::{Display, Error};
 /// - `InvalidRequest` - Represents an invalid request schema.
 /// - `ConversionError` - Conversion to entity failed.
 /// - `SaveError` - Resource persistence failed.
+/// - `DeleteError` - Resource deletion failed.
 ///
 /// # Example
 /// ```
 /// use backend::domain::error::error::DomainError;
 ///
 /// let error = DomainError::ValidationError;
-/// println!("Error: {}", error); // Output: Error: Validation error in domain logic.
+/// println!("Error: {}", error); // Output: Error: Represents a domain logic validation failure.
 /// ```
 ///
 #[derive(Debug, Display, Error, PartialEq)]
@@ -57,4 +58,8 @@ pub enum DomainError {
     /// Resource persistence failed.
     #[display(fmt = "Resource save failed.")]
     SaveError,
+
+    /// Resource deletion failed.
+    #[display(fmt = "Resource deletion failed.")]
+    DeleteError,
 }

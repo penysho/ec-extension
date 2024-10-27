@@ -53,6 +53,20 @@ pub struct PurchasingEntityInput {
     pub customer_id: Option<String>,
 }
 
+impl From<DraftOrder> for DraftOrderDeleteInput {
+    fn from(draft_order: DraftOrder) -> Self {
+        Self {
+            id: ShopifyGQLQueryHelper::add_draft_order_gid_prefix(&draft_order.id()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftOrderDeleteInput {
+    pub id: String,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DraftOrderCreateData {
@@ -89,5 +103,18 @@ pub struct DraftOrderCompleteData {
 #[serde(rename_all = "camelCase")]
 pub struct DraftOrderComplete {
     pub draft_order: Option<DraftOrderNode>,
+    pub user_errors: Vec<UserError>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftOrderDeleteData {
+    pub draft_order_delete: DraftOrderDelete,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftOrderDelete {
+    pub deleted_id: Option<String>,
     pub user_errors: Vec<UserError>,
 }
