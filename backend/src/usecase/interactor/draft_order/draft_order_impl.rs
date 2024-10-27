@@ -76,6 +76,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
             reserve_inventory_until,
             tax_exempt,
             presentment_currency_code,
+            None,
         )?;
 
         self.draft_order_repository.create(draft_order).await

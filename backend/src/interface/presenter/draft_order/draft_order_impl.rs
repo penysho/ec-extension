@@ -169,6 +169,7 @@ mod tests {
                     None,
                     mock_line_items(2),
                     None,
+                    Some(mock_discount()),
                     mock_money(),
                     true,
                     false,

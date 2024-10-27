@@ -84,6 +84,7 @@ mod tests {
                 None,
                 vec![],
                 None,
+                None,
                 mock_money(),
                 true,
                 false,

@@ -9,7 +9,7 @@ use crate::{
 use super::{
     address::AddressNode,
     common::Edges,
-    line_item::LineItemNode,
+    line_item::{DiscountNode, LineItemNode},
     money::{CurrencyCodeNode, MoneyBagNode},
 };
 
@@ -37,6 +37,7 @@ impl DraftOrderNode {
                 .map(|node| node.node.to_domain())
                 .collect::<Result<Vec<_>, _>>()?,
             self.reserve_inventory_until,
+            self.applied_discount.map(|d| d.to_domain()).transpose()?,
             self.subtotal_price_set.to_domain()?,
             self.taxes_included,
             self.tax_exempt,
@@ -87,6 +88,8 @@ pub struct DraftOrderNode {
 
     pub line_items: Edges<LineItemNode>,
     pub reserve_inventory_until: Option<DateTime<Utc>>,
+
+    pub applied_discount: Option<DiscountNode>,
 
     pub subtotal_price_set: MoneyBagNode,
     pub taxes_included: bool,

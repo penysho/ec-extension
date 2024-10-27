@@ -5,7 +5,7 @@ use crate::domain::{
     address::address::Address,
     customer::customer::Id as CustomerId,
     error::error::DomainError,
-    line_item::line_item::LineItem,
+    line_item::{discount::discount::Discount, line_item::LineItem},
     money::money::{CurrencyCode, Money},
     order::order::Id as OrderId,
 };
@@ -39,6 +39,7 @@ pub enum DraftOrderStatus {
 /// - `note` - An optional note or memo related to the order.
 /// - `line_items` - The list of products or services associated with the order.
 /// - `reserve_inventory_until` - The date and time after which the reserved inventory will be automatically restocked if the order remains incomplete.
+/// - `discount` - The custom order-level discount applied.
 /// - `subtotal_price_set` - The subtotal price of all line items and applied discounts, excluding shipping and taxes.
 /// - `taxes_included` - A flag indicating whether taxes are included in the item prices.
 /// - `tax_exempt` - A flag indicating whether the order is exempt from taxes.
@@ -66,6 +67,9 @@ pub struct DraftOrder {
     line_items: Vec<LineItem>,
     /// The time after which inventory will automatically be restocked.
     reserve_inventory_until: Option<DateTime<Utc>>,
+
+    /// The custom order-level discount applied.
+    discount: Option<Discount>,
 
     /// The subtotal, of the line items and their discounts, excluding shipping charges, shipping discounts, and taxes.
     subtotal_price_set: Money,
@@ -104,6 +108,7 @@ impl DraftOrder {
         note: Option<String>,
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
+        discount: Option<Discount>,
         subtotal_price_set: Money,
         taxes_included: bool,
         tax_exempt: bool,
@@ -127,6 +132,7 @@ impl DraftOrder {
             note,
             line_items,
             reserve_inventory_until,
+            discount,
             subtotal_price_set,
             taxes_included,
             tax_exempt,
@@ -167,6 +173,7 @@ impl DraftOrder {
         reserve_inventory_until: Option<DateTime<Utc>>,
         tax_exempt: Option<bool>,
         presentment_currency_code: Option<CurrencyCode>,
+        discount: Option<Discount>,
     ) -> Result<Self, DomainError> {
         let now = Utc::now();
         let tax_exempt = tax_exempt.unwrap_or(false);
@@ -188,6 +195,7 @@ impl DraftOrder {
             subtotal_price_set: Money::zero(),
             taxes_included: false,
             tax_exempt,
+            discount,
             total_tax_set: Money::zero(),
             total_discounts_set: Money::zero(),
             total_shipping_price_set: Money::zero(),
@@ -287,6 +295,7 @@ mod tests {
             None,
             mock_line_items(2),
             None,
+            None,
             mock_money(),
             true,
             false,
@@ -322,6 +331,7 @@ mod tests {
             None,
             mock_line_items(1),
             None,
+            None,
             mock_money(),
             true,
             false,
@@ -351,6 +361,7 @@ mod tests {
             None,
             mock_line_items(1),
             None,
+            None,
             mock_money(),
             true,
             false,
@@ -378,6 +389,7 @@ mod tests {
             mock_line_items(2),
             None,
             Some(false),
+            None,
             None,
         )
         .expect("Failed to create draft order");
