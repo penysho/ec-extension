@@ -86,6 +86,15 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
                 {page_info}
             }}
             reserveInventoryUntil
+            appliedDiscount {{
+                title
+                description
+                value
+                valueType
+                amountSet {{
+                    {money_bag_fields}
+                }}
+            }}
             subtotalPriceSet {{
                 {money_bag_fields}
             }}
