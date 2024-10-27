@@ -49,7 +49,7 @@ impl ProductInteractor for ProductInteractorImpl {
         }
     }
 
-    async fn get_products(
+    async fn get_products_with_media(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,

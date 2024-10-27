@@ -40,7 +40,7 @@ pub trait ProductInteractor {
     /// # Errors
     ///
     /// * Returns a domain error if the product or media repository fails.
-    async fn get_products(
+    async fn get_products_with_media(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,
