@@ -19,27 +19,27 @@ impl Default for CurrencyCode {
     }
 }
 
-/// MoneyBag value object.
+/// Money value object.
 ///
 /// # Examples
 ///
 /// ```
-/// use backend::domain::money::money_bag::MoneyBag;
-/// use backend::domain::money::money_bag::CurrencyCode;
+/// use backend::domain::money::money::Money;
+/// use backend::domain::money::money::CurrencyCode;
 /// use backend::domain::money::amount::amount::Amount;
 ///
 /// let amount = Amount::new(100.0).unwrap();
-/// let money_bag = MoneyBag::new(CurrencyCode::USD, amount).unwrap();
+/// let money_bag = Money::new(CurrencyCode::USD, amount).unwrap();
 /// assert_eq!(money_bag.amount().value(), &100.0);
 /// ```
 ///
 #[derive(Debug, Getters, Clone, PartialEq)]
-pub struct MoneyBag {
+pub struct Money {
     currency_code: CurrencyCode,
     amount: Amount,
 }
 
-impl MoneyBag {
+impl Money {
     pub fn new(currency_code: CurrencyCode, amount: Amount) -> Result<Self, DomainError> {
         Ok(Self {
             currency_code,

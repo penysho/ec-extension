@@ -4,12 +4,12 @@ use crate::domain::{
     line_item::discount::discount::{Discount, DiscountValueType},
     money::{
         amount::amount::Amount,
-        money_bag::{CurrencyCode, MoneyBag},
+        money::{CurrencyCode, Money},
     },
 };
 
 use super::component::{
-    AddressSchema, CurrencyCodeSchema, DiscountSchema, DiscountValueTypeSchema, MoneyBagSchema,
+    AddressSchema, CurrencyCodeSchema, DiscountSchema, DiscountValueTypeSchema, MoneySchema,
 };
 
 impl AddressSchema {
@@ -57,8 +57,8 @@ impl DiscountValueTypeSchema {
     }
 }
 
-impl MoneyBagSchema {
-    pub fn to_domain(self) -> Result<MoneyBag, DomainError> {
+impl MoneySchema {
+    pub fn to_domain(self) -> Result<Money, DomainError> {
         let currency_code = match self.currency_code.to_owned() {
             CurrencyCodeSchema::USD => CurrencyCode::USD,
             CurrencyCodeSchema::EUR => CurrencyCode::EUR,
@@ -67,7 +67,7 @@ impl MoneyBagSchema {
         };
         let amount = Amount::new(self.amount.to_owned())?;
 
-        MoneyBag::new(currency_code, amount)
+        Money::new(currency_code, amount)
     }
 }
 

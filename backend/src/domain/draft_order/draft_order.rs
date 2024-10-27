@@ -6,7 +6,7 @@ use crate::domain::{
     customer::customer::Id as CustomerId,
     error::error::DomainError,
     line_item::line_item::LineItem,
-    money::money_bag::{CurrencyCode, MoneyBag},
+    money::money::{CurrencyCode, Money},
     order::order::Id as OrderId,
 };
 
@@ -68,19 +68,19 @@ pub struct DraftOrder {
     reserve_inventory_until: Option<DateTime<Utc>>,
 
     /// The subtotal, of the line items and their discounts, excluding shipping charges, shipping discounts, and taxes.
-    subtotal_price_set: MoneyBag,
+    subtotal_price_set: Money,
     /// Whether the line item prices include taxes.
     taxes_included: bool,
     /// Whether the draft order is tax exempt.
     tax_exempt: bool,
     /// The total tax.
-    total_tax_set: MoneyBag,
+    total_tax_set: Money,
     /// Total discounts.
-    total_discounts_set: MoneyBag,
+    total_discounts_set: Money,
     /// The total shipping price.
-    total_shipping_price_set: MoneyBag,
+    total_shipping_price_set: Money,
     /// The total price, includes taxes, shipping charges, and discounts.
-    total_price_set: MoneyBag,
+    total_price_set: Money,
     /// Currency code used for the order.
     /// May differ from the store's default currency code.
     presentment_currency_code: CurrencyCode,
@@ -104,13 +104,13 @@ impl DraftOrder {
         note: Option<String>,
         line_items: Vec<LineItem>,
         reserve_inventory_until: Option<DateTime<Utc>>,
-        subtotal_price_set: MoneyBag,
+        subtotal_price_set: Money,
         taxes_included: bool,
         tax_exempt: bool,
-        total_tax_set: MoneyBag,
-        total_discounts_set: MoneyBag,
-        total_shipping_price_set: MoneyBag,
-        total_price_set: MoneyBag,
+        total_tax_set: Money,
+        total_discounts_set: Money,
+        total_shipping_price_set: Money,
+        total_price_set: Money,
         presentment_currency_code: CurrencyCode,
         order_id: Option<OrderId>,
         completed_at: Option<DateTime<Utc>>,
@@ -185,13 +185,13 @@ impl DraftOrder {
             note: note.map(|n| n.into()),
             line_items,
             reserve_inventory_until,
-            subtotal_price_set: MoneyBag::zero(),
+            subtotal_price_set: Money::zero(),
             taxes_included: false,
             tax_exempt,
-            total_tax_set: MoneyBag::zero(),
-            total_discounts_set: MoneyBag::zero(),
-            total_shipping_price_set: MoneyBag::zero(),
-            total_price_set: MoneyBag::zero(),
+            total_tax_set: Money::zero(),
+            total_discounts_set: Money::zero(),
+            total_shipping_price_set: Money::zero(),
+            total_price_set: Money::zero(),
             presentment_currency_code,
             order_id: None,
             completed_at: None,
@@ -218,7 +218,7 @@ mod tests {
     use crate::domain::{
         address::address::Address,
         line_item::discount::discount::{Discount, DiscountValueType},
-        money::{amount::amount::Amount, money_bag::CurrencyCode},
+        money::{amount::amount::Amount, money::CurrencyCode},
     };
 
     use super::*;
@@ -230,14 +230,14 @@ mod tests {
             Some("Test description".to_string()),
             10.0,
             DiscountValueType::Percentage,
-            Some(mock_money_bag()),
+            Some(mock_money()),
         )
         .expect("Failed to create mock discount")
     }
 
-    fn mock_money_bag() -> MoneyBag {
+    fn mock_money() -> Money {
         let amount = Amount::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, amount).expect("Failed to create mock money bag")
+        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
     }
 
     fn mock_line_items(count: usize) -> Vec<LineItem> {
@@ -249,8 +249,8 @@ mod tests {
                     Some("variant_id"),
                     5,
                     Some(mock_discount()),
-                    mock_money_bag(),
-                    mock_money_bag(),
+                    mock_money(),
+                    mock_money(),
                 )
                 .expect("Failed to create mock line item")
             })
@@ -287,13 +287,13 @@ mod tests {
             None,
             mock_line_items(2),
             None,
-            mock_money_bag(),
+            mock_money(),
             true,
             false,
-            mock_money_bag(),
-            mock_money_bag(),
-            mock_money_bag(),
-            mock_money_bag(),
+            mock_money(),
+            mock_money(),
+            mock_money(),
+            mock_money(),
             CurrencyCode::default(),
             None,
             None,
@@ -322,13 +322,13 @@ mod tests {
             None,
             mock_line_items(1),
             None,
-            mock_money_bag(),
+            mock_money(),
             true,
             false,
-            mock_money_bag(),
-            mock_money_bag(),
-            mock_money_bag(),
-            mock_money_bag(),
+            mock_money(),
+            mock_money(),
+            mock_money(),
+            mock_money(),
             CurrencyCode::default(),
             None,
             None,
@@ -351,13 +351,13 @@ mod tests {
             None,
             mock_line_items(1),
             None,
-            mock_money_bag(),
+            mock_money(),
             true,
             false,
-            mock_money_bag(),
-            mock_money_bag(),
-            mock_money_bag(),
-            mock_money_bag(),
+            mock_money(),
+            mock_money(),
+            mock_money(),
+            mock_money(),
             CurrencyCode::default(),
             None,
             None,

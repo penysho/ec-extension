@@ -99,11 +99,11 @@ mod tests {
 
     use crate::domain::draft_order::draft_order::{DraftOrder, DraftOrderStatus};
     use crate::domain::money::amount::amount::Amount;
-    use crate::domain::money::money_bag::{CurrencyCode, MoneyBag};
+    use crate::domain::money::money::{CurrencyCode, Money};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::controller::schema::component::component::{
-        CurrencyCodeSchema, DiscountSchema, DiscountValueTypeSchema, MoneyBagSchema,
+        CurrencyCodeSchema, DiscountSchema, DiscountValueTypeSchema, MoneySchema,
     };
     use crate::usecase::interactor::draft_order_interactor_interface::DraftOrderInteractor;
     use crate::usecase::interactor::draft_order_interactor_interface::MockDraftOrderInteractor;
@@ -137,9 +137,9 @@ mod tests {
         .await
     }
 
-    fn mock_money_bag() -> MoneyBag {
+    fn mock_money() -> Money {
         let amount = Amount::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, amount).expect("Failed to create mock money bag")
+        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
     }
 
     #[actix_web::test]
@@ -160,13 +160,13 @@ mod tests {
                     None,
                     vec![],
                     None,
-                    mock_money_bag(),
+                    mock_money(),
                     true,
                     false,
-                    mock_money_bag(),
-                    mock_money_bag(),
-                    mock_money_bag(),
-                    mock_money_bag(),
+                    mock_money(),
+                    mock_money(),
+                    mock_money(),
+                    mock_money(),
                     CurrencyCode::JPY,
                     None,
                     None,
@@ -210,7 +210,7 @@ mod tests {
                         description: Some("Discount description".to_string()),
                         value_type: DiscountValueTypeSchema::Fixed,
                         value: 10.0,
-                        amount_set: Some(MoneyBagSchema {
+                        amount_set: Some(MoneySchema {
                             currency_code: CurrencyCodeSchema::USD,
                             amount: 10.0,
                         }),

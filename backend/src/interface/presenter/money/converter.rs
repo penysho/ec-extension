@@ -1,9 +1,9 @@
-use crate::domain::money::money_bag::{CurrencyCode, MoneyBag};
+use crate::domain::money::money::{CurrencyCode, Money};
 
-use super::schema::{CurrencyCodeSchema, MoneyBagSchema};
+use super::schema::{CurrencyCodeSchema, MoneySchema};
 
-impl From<MoneyBag> for MoneyBagSchema {
-    fn from(money_bag: MoneyBag) -> Self {
+impl From<Money> for MoneySchema {
+    fn from(money_bag: Money) -> Self {
         Self {
             amount: *money_bag.amount().value(),
             currency_code: money_bag.currency_code().to_owned().into(),

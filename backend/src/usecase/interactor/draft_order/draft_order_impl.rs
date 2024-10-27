@@ -8,7 +8,7 @@ use crate::{
         draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
         error::error::DomainError,
         line_item::line_item::LineItem,
-        money::money_bag::CurrencyCode,
+        money::money::CurrencyCode,
     },
     usecase::{
         interactor::draft_order_interactor_interface::{DraftOrderInteractor, GetDraftOrdersQuery},

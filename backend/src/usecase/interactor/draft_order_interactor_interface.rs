@@ -6,7 +6,7 @@ use crate::domain::{
     address::address::Address, customer::customer::Id as CustomerId,
     draft_order::draft_order::DraftOrder, draft_order::draft_order::Id as DraftOrderId,
     email::email::Email, error::error::DomainError, line_item::line_item::LineItem,
-    money::money_bag::CurrencyCode,
+    money::money::CurrencyCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]

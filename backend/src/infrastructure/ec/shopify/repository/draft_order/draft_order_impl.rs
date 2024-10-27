@@ -339,7 +339,7 @@ mod tests {
             error::error::DomainError,
             money::{
                 amount::amount::Amount,
-                money_bag::{CurrencyCode, MoneyBag},
+                money::{CurrencyCode, Money},
             },
         },
         infrastructure::ec::{
@@ -388,13 +388,13 @@ mod tests {
                 },
             },
             reserve_inventory_until: Some(Utc::now()),
-            subtotal_price_set: mock_money_bag_node("100.00", "USD"),
+            subtotal_price_set: mock_money_node("100.00", "USD"),
             taxes_included: true,
             tax_exempt: false,
-            total_tax_set: mock_money_bag_node("5.00", "USD"),
-            total_discounts_set: mock_money_bag_node("10.00", "USD"),
-            total_shipping_price_set: mock_money_bag_node("15.00", "USD"),
-            total_price_set: mock_money_bag_node("110.00", "USD"),
+            total_tax_set: mock_money_node("5.00", "USD"),
+            total_discounts_set: mock_money_node("10.00", "USD"),
+            total_shipping_price_set: mock_money_node("15.00", "USD"),
+            total_price_set: mock_money_node("110.00", "USD"),
             presentment_currency_code: CurrencyCodeNode("USD".to_string()),
             order: Some(OrderIdNode {
                 id: format!("gid://shopify/Order/{id}"),
@@ -414,8 +414,8 @@ mod tests {
             }),
             quantity: 2,
             applied_discount: Some(mock_discount_node()),
-            discounted_total_set: mock_money_bag_node("90.00", "USD"),
-            original_total_set: mock_money_bag_node("100.00", "USD"),
+            discounted_total_set: mock_money_node("90.00", "USD"),
+            original_total_set: mock_money_node("100.00", "USD"),
         }
     }
 
@@ -425,11 +425,11 @@ mod tests {
             description: "Test discount description".to_string(),
             value: 10.00,
             value_type: "FIXED_AMOUNT".to_string(),
-            amount_set: mock_money_bag_node("10.00", "USD"),
+            amount_set: mock_money_node("10.00", "USD"),
         }
     }
 
-    fn mock_money_bag_node(amount: &str, currency: &str) -> MoneyBagNode {
+    fn mock_money_node(amount: &str, currency: &str) -> MoneyBagNode {
         MoneyBagNode {
             shop_money: MoneyNode {
                 amount: amount.to_string(),
@@ -454,9 +454,9 @@ mod tests {
         })
     }
 
-    fn mock_money_bag_domain() -> MoneyBag {
+    fn mock_money_domain() -> Money {
         let amount = Amount::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, amount).expect("Failed to create mock money bag")
+        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
     }
 
     fn mock_draft_order_domain(completed: bool) -> DraftOrder {
@@ -475,13 +475,13 @@ mod tests {
             None,
             vec![],
             None,
-            mock_money_bag_domain(),
+            mock_money_domain(),
             true,
             false,
-            mock_money_bag_domain(),
-            mock_money_bag_domain(),
-            mock_money_bag_domain(),
-            mock_money_bag_domain(),
+            mock_money_domain(),
+            mock_money_domain(),
+            mock_money_domain(),
+            mock_money_domain(),
             CurrencyCode::JPY,
             None,
             completed_at,

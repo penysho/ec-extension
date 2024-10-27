@@ -84,7 +84,7 @@ mod tests {
         },
         money::{
             amount::amount::Amount,
-            money_bag::{CurrencyCode, MoneyBag},
+            money::{CurrencyCode, Money},
         },
     };
 
@@ -96,14 +96,14 @@ mod tests {
             Some("Test description".to_string()),
             10.0,
             DiscountValueType::Percentage,
-            Some(mock_money_bag()),
+            Some(mock_money()),
         )
         .expect("Failed to create mock discount")
     }
 
-    fn mock_money_bag() -> MoneyBag {
+    fn mock_money() -> Money {
         let amount = Amount::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, amount).expect("Failed to create mock money bag")
+        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
     }
 
     fn mock_line_items(count: usize) -> Vec<LineItem> {
@@ -115,8 +115,8 @@ mod tests {
                     Some("variant_id"),
                     5,
                     Some(mock_discount()),
-                    mock_money_bag(),
-                    mock_money_bag(),
+                    mock_money(),
+                    mock_money(),
                 )
                 .expect("Failed to create mock line item")
             })
@@ -154,13 +154,13 @@ mod tests {
                     None,
                     mock_line_items(2),
                     None,
-                    mock_money_bag(),
+                    mock_money(),
                     true,
                     false,
-                    mock_money_bag(),
-                    mock_money_bag(),
-                    mock_money_bag(),
-                    mock_money_bag(),
+                    mock_money(),
+                    mock_money(),
+                    mock_money(),
+                    mock_money(),
                     CurrencyCode::JPY,
                     None,
                     None,
