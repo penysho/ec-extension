@@ -2,14 +2,17 @@ use actix_web::web::{self, Json};
 use async_trait::async_trait;
 
 use crate::{
-    domain::{draft_order::draft_order::DraftOrder, error::error::DomainError},
+    domain::{
+        draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
+        error::error::DomainError,
+    },
     interface::presenter::draft_order_presenter_interface::DraftOrderPresenter,
 };
 
 use super::schema::{
-    CompleteDraftOrderErrorResponse, CompleteDraftOrderResponse, DraftOrderSchema,
-    GetDraftOrdersErrorResponse, GetDraftOrdersResponse, PostDraftOrderErrorResponse,
-    PostDraftOrderResponse,
+    CompleteDraftOrderErrorResponse, CompleteDraftOrderResponse, DeleteDraftOrderErrorResponse,
+    DeleteDraftOrderResponse, DraftOrderSchema, GetDraftOrdersErrorResponse,
+    GetDraftOrdersResponse, PostDraftOrderErrorResponse, PostDraftOrderResponse,
 };
 
 /// Generate a response schema for the draft orders.
@@ -67,6 +70,18 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
     ) -> Result<Self::CompleteDraftOrderResponse, Self::CompleteDraftOrderErrorResponse> {
         Ok(web::Json(CompleteDraftOrderResponse {
             draft_order: result?.into(),
+        }))
+    }
+
+    type DeleteDraftOrderResponse = Json<DeleteDraftOrderResponse>;
+    type DeleteDraftOrderErrorResponse = DeleteDraftOrderErrorResponse;
+    /// Generate an delete response for draft order.
+    async fn present_delete_draft_order(
+        &self,
+        result: Result<DraftOrderId, DomainError>,
+    ) -> Result<Self::DeleteDraftOrderResponse, Self::DeleteDraftOrderErrorResponse> {
+        Ok(web::Json(DeleteDraftOrderResponse {
+            id: result?.to_string(),
         }))
     }
 }
@@ -316,6 +331,46 @@ mod tests {
         assert!(matches!(
             result,
             Err(CompleteDraftOrderErrorResponse::ServiceUnavailable)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_delete_draft_order_success() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_delete_draft_order(Ok("0".to_string()))
+            .await
+            .unwrap();
+
+        assert_eq!(result.id, "0");
+    }
+
+    #[actix_web::test]
+    async fn test_present_delete_draft_order_bad_request() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_delete_draft_order(Err(DomainError::ValidationError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(DeleteDraftOrderErrorResponse::BadRequest)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_delete_draft_order_service_unavailable() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_delete_draft_order(Err(DomainError::SystemError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(DeleteDraftOrderErrorResponse::ServiceUnavailable)
         ));
     }
 }

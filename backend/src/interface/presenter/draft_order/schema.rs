@@ -68,3 +68,10 @@ pub struct CompleteDraftOrderResponse {
 }
 
 define_error_response!(CompleteDraftOrderErrorResponse, "DraftOrder");
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeleteDraftOrderResponse {
+    pub id: String,
+}
+
+define_error_response!(DeleteDraftOrderErrorResponse, "DraftOrder");

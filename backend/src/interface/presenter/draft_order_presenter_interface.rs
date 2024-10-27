@@ -1,6 +1,9 @@
 use async_trait::async_trait;
 
-use crate::domain::{draft_order::draft_order::DraftOrder, error::error::DomainError};
+use crate::domain::{
+    draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
+    error::error::DomainError,
+};
 
 /// Interface to generate response schema for draft orders.
 #[async_trait]
@@ -25,4 +28,11 @@ pub trait DraftOrderPresenter {
         &self,
         result: Result<DraftOrder, DomainError>,
     ) -> Result<Self::CompleteDraftOrderResponse, Self::CompleteDraftOrderErrorResponse>;
+
+    type DeleteDraftOrderResponse;
+    type DeleteDraftOrderErrorResponse;
+    async fn present_delete_draft_order(
+        &self,
+        result: Result<DraftOrderId, DomainError>,
+    ) -> Result<Self::DeleteDraftOrderResponse, Self::DeleteDraftOrderErrorResponse>;
 }
