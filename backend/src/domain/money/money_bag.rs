@@ -2,7 +2,7 @@ use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
 
-use super::money::money::Money;
+use super::amount::amount::Amount;
 
 /// Currency code enum.
 #[derive(Debug, Clone, PartialEq)]
@@ -26,21 +26,21 @@ impl Default for CurrencyCode {
 /// ```
 /// use backend::domain::money::money_bag::MoneyBag;
 /// use backend::domain::money::money_bag::CurrencyCode;
-/// use backend::domain::money::money::money::Money;
+/// use backend::domain::money::amount::amount::Amount;
 ///
-/// let money = Money::new(100.0).unwrap();
-/// let money_bag = MoneyBag::new(CurrencyCode::USD, money).unwrap();
+/// let amount = Amount::new(100.0).unwrap();
+/// let money_bag = MoneyBag::new(CurrencyCode::USD, amount).unwrap();
 /// assert_eq!(money_bag.amount().value(), &100.0);
 /// ```
 ///
 #[derive(Debug, Getters, Clone, PartialEq)]
 pub struct MoneyBag {
     currency_code: CurrencyCode,
-    amount: Money,
+    amount: Amount,
 }
 
 impl MoneyBag {
-    pub fn new(currency_code: CurrencyCode, amount: Money) -> Result<Self, DomainError> {
+    pub fn new(currency_code: CurrencyCode, amount: Amount) -> Result<Self, DomainError> {
         Ok(Self {
             currency_code,
             amount,
@@ -50,7 +50,7 @@ impl MoneyBag {
     pub fn zero() -> Self {
         Self {
             currency_code: CurrencyCode::default(),
-            amount: Money::zero(),
+            amount: Amount::zero(),
         }
     }
 }

@@ -83,7 +83,7 @@ mod tests {
             line_item::LineItem,
         },
         money::{
-            money::money::Money,
+            amount::amount::Amount,
             money_bag::{CurrencyCode, MoneyBag},
         },
     };
@@ -102,8 +102,8 @@ mod tests {
     }
 
     fn mock_money_bag() -> MoneyBag {
-        let money = Money::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+        let amount = Amount::new(100.0).unwrap();
+        MoneyBag::new(CurrencyCode::USD, amount).expect("Failed to create mock money bag")
     }
 
     fn mock_line_items(count: usize) -> Vec<LineItem> {

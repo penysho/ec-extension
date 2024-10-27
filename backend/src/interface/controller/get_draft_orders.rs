@@ -60,7 +60,7 @@ mod tests {
     use crate::domain::draft_order::draft_order::{DraftOrder, DraftOrderStatus};
     use crate::domain::line_item::discount::discount::{Discount, DiscountValueType};
     use crate::domain::line_item::line_item::LineItem;
-    use crate::domain::money::money::money::Money;
+    use crate::domain::money::amount::amount::Amount;
     use crate::domain::money::money_bag::{CurrencyCode, MoneyBag};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
@@ -110,8 +110,8 @@ mod tests {
     }
 
     fn mock_money_bag() -> MoneyBag {
-        let money = Money::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+        let amount = Amount::new(100.0).unwrap();
+        MoneyBag::new(CurrencyCode::USD, amount).expect("Failed to create mock money bag")
     }
 
     fn mock_line_items(count: usize) -> Vec<LineItem> {

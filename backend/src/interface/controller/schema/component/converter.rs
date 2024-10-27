@@ -3,7 +3,7 @@ use crate::domain::{
     error::error::DomainError,
     line_item::discount::discount::{Discount, DiscountValueType},
     money::{
-        money::money::Money,
+        amount::amount::Amount,
         money_bag::{CurrencyCode, MoneyBag},
     },
 };
@@ -65,9 +65,9 @@ impl MoneyBagSchema {
             CurrencyCodeSchema::GBP => CurrencyCode::GBP,
             CurrencyCodeSchema::JPY => CurrencyCode::JPY,
         };
-        let money = Money::new(self.amount.to_owned())?;
+        let amount = Amount::new(self.amount.to_owned())?;
 
-        MoneyBag::new(currency_code, money)
+        MoneyBag::new(currency_code, amount)
     }
 }
 

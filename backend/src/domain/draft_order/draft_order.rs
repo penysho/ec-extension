@@ -218,7 +218,7 @@ mod tests {
     use crate::domain::{
         address::address::Address,
         line_item::discount::discount::{Discount, DiscountValueType},
-        money::{money::money::Money, money_bag::CurrencyCode},
+        money::{amount::amount::Amount, money_bag::CurrencyCode},
     };
 
     use super::*;
@@ -236,8 +236,8 @@ mod tests {
     }
 
     fn mock_money_bag() -> MoneyBag {
-        let money = Money::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+        let amount = Amount::new(100.0).unwrap();
+        MoneyBag::new(CurrencyCode::USD, amount).expect("Failed to create mock money bag")
     }
 
     fn mock_line_items(count: usize) -> Vec<LineItem> {

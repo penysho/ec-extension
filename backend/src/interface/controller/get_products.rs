@@ -34,7 +34,7 @@ mod tests {
     use crate::domain::media::media_content::image::image::Image;
     use crate::domain::media::media_content::media_content::MediaContent;
     use crate::domain::media::src::src::Src;
-    use crate::domain::money::money::money::Money;
+    use crate::domain::money::amount::amount::Amount;
     use crate::domain::product::product::{Product, ProductStatus};
     use crate::domain::product::variant::barcode::barcode::Barcode;
     use crate::domain::product::variant::sku::sku::Sku;
@@ -97,7 +97,7 @@ mod tests {
                                 "test_inventory_id",
                                 InventoryPolicy::Continue,
                                 Some(1),
-                                Money::new(100.0).unwrap(),
+                                Amount::new(100.0).unwrap(),
                                 true,
                                 Some("tax_code".to_string()),
                                 Utc::now(),
@@ -122,7 +122,7 @@ mod tests {
                                 "test_inventory_id",
                                 InventoryPolicy::Continue,
                                 Some(1),
-                                Money::new(100.0).unwrap(),
+                                Amount::new(100.0).unwrap(),
                                 true,
                                 Some("tax_code".to_string()),
                                 Utc::now(),

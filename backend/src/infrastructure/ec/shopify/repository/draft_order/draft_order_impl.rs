@@ -338,7 +338,7 @@ mod tests {
             draft_order::draft_order::{DraftOrder, DraftOrderStatus},
             error::error::DomainError,
             money::{
-                money::money::Money,
+                amount::amount::Amount,
                 money_bag::{CurrencyCode, MoneyBag},
             },
         },
@@ -455,8 +455,8 @@ mod tests {
     }
 
     fn mock_money_bag_domain() -> MoneyBag {
-        let money = Money::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+        let amount = Amount::new(100.0).unwrap();
+        MoneyBag::new(CurrencyCode::USD, amount).expect("Failed to create mock money bag")
     }
 
     fn mock_draft_order_domain(completed: bool) -> DraftOrder {

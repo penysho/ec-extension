@@ -119,7 +119,7 @@ mod tests {
             media_content::image::image::Image,
             src::src::Src,
         },
-        money::money::money::Money,
+        money::amount::amount::Amount,
         product::{
             product::ProductStatus,
             variant::{
@@ -150,7 +150,7 @@ mod tests {
                         "test_inventory_id",
                         InventoryPolicy::Continue,
                         Some(1),
-                        Money::new(100.0).unwrap(),
+                        Amount::new(100.0).unwrap(),
                         true,
                         Some("tax_code".to_string()),
                         Utc::now(),

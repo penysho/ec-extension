@@ -1,2 +1,2 @@
-pub mod money;
+pub mod amount;
 pub mod money_bag;

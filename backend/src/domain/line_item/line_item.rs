@@ -79,14 +79,14 @@ impl LineItem {
 mod tests {
     use crate::domain::{
         line_item::discount::discount::DiscountValueType,
-        money::{money::money::Money, money_bag::CurrencyCode},
+        money::{amount::amount::Amount, money_bag::CurrencyCode},
     };
 
     use super::*;
 
     fn mock_money_bag() -> MoneyBag {
-        let money = Money::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+        let amount = Amount::new(100.0).unwrap();
+        MoneyBag::new(CurrencyCode::USD, amount).expect("Failed to create mock money bag")
     }
 
     fn mock_discount() -> Discount {

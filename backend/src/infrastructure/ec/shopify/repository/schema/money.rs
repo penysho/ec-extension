@@ -3,7 +3,7 @@ use serde::Deserialize;
 use crate::domain::{
     error::error::DomainError,
     money::{
-        money::money::Money,
+        amount::amount::Amount,
         money_bag::{CurrencyCode, MoneyBag},
     },
 };
@@ -16,7 +16,7 @@ impl MoneyBagNode {
 
 impl MoneyNode {
     pub fn to_domain(self) -> Result<MoneyBag, DomainError> {
-        let amount = Money::new(self.amount.parse::<f64>().unwrap_or(0.0))?;
+        let amount = Amount::new(self.amount.parse::<f64>().unwrap_or(0.0))?;
         let currency_code = self.currency_code.to_domain()?;
         MoneyBag::new(currency_code, amount)
     }
