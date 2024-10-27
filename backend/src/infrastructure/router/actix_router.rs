@@ -55,6 +55,12 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                 }),
             )
             .route(
+                "/orders/draft/{id}",
+                 web::delete().to(|controller: web::Data<Arc<Controller>>, path: web::Path<(String,)>| async move {
+                    controller.delete_draft_order(path).await
+                }),
+            )
+            .route(
                 "/orders/draft/complete/{id}",
                  web::put().to(|controller: web::Data<Arc<Controller>>, path: web::Path<(String,)>| async move {
                     controller.complete_draft_order(path).await
