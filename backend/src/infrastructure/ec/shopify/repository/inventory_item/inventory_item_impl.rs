@@ -134,6 +134,8 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use chrono::Utc;
 
     use crate::{
@@ -143,6 +145,7 @@ mod tests {
             shopify::repository::{
                 inventory_item::inventory_item_impl::InventoryItemRepositoryImpl,
                 schema::{
+                    address::AddressNode,
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
                     inventory_item::{
                         InventoryItemNode, InventoryItemsData, VariantIdNode,
@@ -156,7 +159,7 @@ mod tests {
         usecase::repository::inventory_item_repository_interface::InventoryItemRepository,
     };
 
-    fn mock_inventory_item(id: u32) -> InventoryItemNode {
+    fn mock_inventory_item_node(id: u32) -> InventoryItemNode {
         InventoryItemNode {
             id: format!("gid://shopify/InventoryItem/{id}"),
             variant: VariantIdNode {
@@ -167,9 +170,7 @@ mod tests {
                 item: InventoryItemIdNode {
                     id: format!("gid://shopify/InventoryItem/{id}"),
                 },
-                location: LocationNode {
-                    id: format!("gid://shopify/Location/{id}"),
-                },
+                location: mock_location_node(id),
                 quantities: vec![
                     QuantityNode {
                         quantity: 1,
@@ -201,13 +202,40 @@ mod tests {
         }
     }
 
+    fn mock_location_node(id: u32) -> LocationNode {
+        LocationNode {
+            id: format!("gid://shopify/Location/{id}"),
+            name: "Some location".to_string(),
+            is_active: true,
+            fulfills_online_orders: true,
+            address: mock_address_node(Some(id.to_string())),
+            suggested_addresses: vec![mock_address_node(Some(id.to_string()))],
+        }
+    }
+
+    fn mock_address_node(address1: Option<impl Into<String>>) -> AddressNode {
+        let address1 = address1.map(|a| a.into());
+        AddressNode {
+            address1: address1,
+            address2: Some("Apt 123".to_string()),
+            city: Some("Test City".to_string()),
+            coordinates_validated: true,
+            country: Some("Test Country".to_string()),
+            first_name: Some("John".to_string()),
+            last_name: Some("Doe".to_string()),
+            province: Some("Test Province".to_string()),
+            zip: Some("12345".to_string()),
+            phone: Some("+1234567890".to_string()),
+        }
+    }
+
     fn mock_inventories_response_for_variant_data(
         count: usize,
     ) -> GraphQLResponse<VariantsDataForInventory> {
         let nodes: Vec<Node<VariantNodeForInventory>> = (0..count)
             .map(|i| Node {
                 node: VariantNodeForInventory {
-                    inventory_item: mock_inventory_item(i as u32),
+                    inventory_item: mock_inventory_item_node(i as u32),
                 },
             })
             .collect();
@@ -233,7 +261,7 @@ mod tests {
     ) -> GraphQLResponse<InventoryItemsData> {
         let nodes: Vec<Node<InventoryItemNode>> = (0..count)
             .map(|i: usize| Node {
-                node: mock_inventory_item(i as u32),
+                node: mock_inventory_item_node(i as u32),
             })
             .collect();
 
