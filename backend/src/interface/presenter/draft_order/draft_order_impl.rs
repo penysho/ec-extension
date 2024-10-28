@@ -2,14 +2,17 @@ use actix_web::web::{self, Json};
 use async_trait::async_trait;
 
 use crate::{
-    domain::{draft_order::draft_order::DraftOrder, error::error::DomainError},
+    domain::{
+        draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
+        error::error::DomainError,
+    },
     interface::presenter::draft_order_presenter_interface::DraftOrderPresenter,
 };
 
 use super::schema::{
-    CompleteDraftOrderErrorResponse, CompleteDraftOrderResponse, DraftOrderSchema,
-    GetDraftOrdersErrorResponse, GetDraftOrdersResponse, PostDraftOrderErrorResponse,
-    PostDraftOrderResponse,
+    CompleteDraftOrderErrorResponse, CompleteDraftOrderResponse, DeleteDraftOrderErrorResponse,
+    DeleteDraftOrderResponse, DraftOrderSchema, GetDraftOrdersErrorResponse,
+    GetDraftOrdersResponse, PostDraftOrderErrorResponse, PostDraftOrderResponse,
 };
 
 /// Generate a response schema for the draft orders.
@@ -69,6 +72,18 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
             draft_order: result?.into(),
         }))
     }
+
+    type DeleteDraftOrderResponse = Json<DeleteDraftOrderResponse>;
+    type DeleteDraftOrderErrorResponse = DeleteDraftOrderErrorResponse;
+    /// Generate an delete response for draft order.
+    async fn present_delete_draft_order(
+        &self,
+        result: Result<DraftOrderId, DomainError>,
+    ) -> Result<Self::DeleteDraftOrderResponse, Self::DeleteDraftOrderErrorResponse> {
+        Ok(web::Json(DeleteDraftOrderResponse {
+            id: result?.to_string(),
+        }))
+    }
 }
 
 #[cfg(test)]
@@ -83,8 +98,8 @@ mod tests {
             line_item::LineItem,
         },
         money::{
-            money::money::Money,
-            money_bag::{CurrencyCode, MoneyBag},
+            amount::amount::Amount,
+            money::{CurrencyCode, Money},
         },
     };
 
@@ -96,14 +111,14 @@ mod tests {
             Some("Test description".to_string()),
             10.0,
             DiscountValueType::Percentage,
-            Some(mock_money_bag()),
+            Some(mock_money()),
         )
         .expect("Failed to create mock discount")
     }
 
-    fn mock_money_bag() -> MoneyBag {
-        let money = Money::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+    fn mock_money() -> Money {
+        let amount = Amount::new(100.0).unwrap();
+        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
     }
 
     fn mock_line_items(count: usize) -> Vec<LineItem> {
@@ -115,8 +130,8 @@ mod tests {
                     Some("variant_id"),
                     5,
                     Some(mock_discount()),
-                    mock_money_bag(),
-                    mock_money_bag(),
+                    mock_money(),
+                    mock_money(),
                 )
                 .expect("Failed to create mock line item")
             })
@@ -154,13 +169,14 @@ mod tests {
                     None,
                     mock_line_items(2),
                     None,
-                    mock_money_bag(),
+                    Some(mock_discount()),
+                    mock_money(),
                     true,
                     false,
-                    mock_money_bag(),
-                    mock_money_bag(),
-                    mock_money_bag(),
-                    mock_money_bag(),
+                    mock_money(),
+                    mock_money(),
+                    mock_money(),
+                    mock_money(),
                     CurrencyCode::JPY,
                     None,
                     None,
@@ -316,6 +332,46 @@ mod tests {
         assert!(matches!(
             result,
             Err(CompleteDraftOrderErrorResponse::ServiceUnavailable)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_delete_draft_order_success() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_delete_draft_order(Ok("0".to_string()))
+            .await
+            .unwrap();
+
+        assert_eq!(result.id, "0");
+    }
+
+    #[actix_web::test]
+    async fn test_present_delete_draft_order_bad_request() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_delete_draft_order(Err(DomainError::ValidationError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(DeleteDraftOrderErrorResponse::BadRequest)
+        ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_delete_draft_order_service_unavailable() {
+        let presenter = DraftOrderPresenterImpl::new();
+
+        let result = presenter
+            .present_delete_draft_order(Err(DomainError::SystemError))
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(DeleteDraftOrderErrorResponse::ServiceUnavailable)
         ));
     }
 }

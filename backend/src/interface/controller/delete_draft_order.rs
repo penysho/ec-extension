@@ -8,8 +8,8 @@ use crate::interface::presenter::{
 use super::controller::Controller;
 
 impl Controller {
-    /// Complete a draft order.
-    pub async fn complete_draft_order(&self, path: Path<(String,)>) -> impl Responder {
+    /// Delete a draft order.
+    pub async fn delete_draft_order(&self, path: Path<(String,)>) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
 
         let interactor = self
@@ -17,9 +17,9 @@ impl Controller {
             .provide_draft_order_interactor()
             .await;
 
-        let result = interactor.complete_draft_order(&path.into_inner().0).await;
+        let result = interactor.delete_draft_order(&path.into_inner().0).await;
 
-        presenter.present_complete_draft_order(result).await
+        presenter.present_delete_draft_order(result).await
     }
 }
 
@@ -27,10 +27,7 @@ impl Controller {
 mod tests {
     use std::sync::Arc;
 
-    use crate::domain::draft_order::draft_order::{DraftOrder, DraftOrderStatus};
     use crate::domain::error::error::DomainError;
-    use crate::domain::money::amount::amount::Amount;
-    use crate::domain::money::money::{CurrencyCode, Money};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::usecase::interactor::draft_order_interactor_interface::DraftOrderInteractor;
@@ -41,9 +38,9 @@ mod tests {
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::web;
     use actix_web::{http::StatusCode, test, App, Error};
-    use chrono::Utc;
+    use mockall::predicate::eq;
 
-    const BASE_URL: &'static str = "/ec-extension/orders/draft/complete";
+    const BASE_URL: &'static str = "/ec-extension/orders/draft";
 
     async fn setup(
         interactor: MockDraftOrderInteractor,
@@ -65,42 +62,15 @@ mod tests {
         .await
     }
 
-    fn mock_money() -> Money {
-        let amount = Amount::new(100.0).unwrap();
-        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
-    }
-
     #[actix_web::test]
-    async fn test_complete_draft_order_success() {
+    async fn test_delete_draft_order_success() {
         let mut interactor = MockDraftOrderInteractor::new();
-        interactor.expect_complete_draft_order().returning(|_| {
-            DraftOrder::new(
-                format!("1"),
-                format!("Test Order 1"),
-                DraftOrderStatus::Open,
-                None,
-                None,
-                None,
-                None,
-                vec![],
-                None,
-                None,
-                mock_money(),
-                true,
-                false,
-                mock_money(),
-                mock_money(),
-                mock_money(),
-                mock_money(),
-                CurrencyCode::JPY,
-                None,
-                None,
-                Utc::now(),
-                Utc::now(),
-            )
-        });
+        interactor
+            .expect_delete_draft_order()
+            .with(eq(format!("1")))
+            .returning(|_| Ok(format!("1")));
 
-        let req = test::TestRequest::put()
+        let req = test::TestRequest::delete()
             .uri(&format!("{BASE_URL}/1"))
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -109,13 +79,13 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_complete_draft_order_bad_request() {
+    async fn test_delete_draft_order_bad_request() {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
-            .expect_complete_draft_order()
+            .expect_delete_draft_order()
             .returning(|_| Err(DomainError::ValidationError));
 
-        let req = test::TestRequest::put()
+        let req = test::TestRequest::delete()
             .uri(&format!("{BASE_URL}/1"))
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -124,13 +94,13 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_complete_draft_order_service_unavailable() {
+    async fn test_delete_draft_order_service_unavailable() {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
-            .expect_complete_draft_order()
+            .expect_delete_draft_order()
             .returning(|_| Err(DomainError::SystemError));
 
-        let req = test::TestRequest::put()
+        let req = test::TestRequest::delete()
             .uri(&format!("{BASE_URL}/1"))
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;

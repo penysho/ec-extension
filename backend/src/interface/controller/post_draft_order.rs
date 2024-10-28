@@ -12,7 +12,9 @@ use crate::{
 
 use super::{
     controller::Controller,
-    schema::component::component::{AddressSchema, CurrencyCodeSchema, LineItemSchema},
+    schema::component::component::{
+        AddressSchema, CurrencyCodeSchema, DiscountSchema, LineItemSchema,
+    },
 };
 
 #[derive(Serialize, Deserialize)]
@@ -25,6 +27,7 @@ pub struct PostDraftOrderRequest {
     reserve_inventory_until: Option<DateTime<Utc>>,
     tax_exempt: Option<bool>,
     presentment_currency_code: Option<CurrencyCodeSchema>,
+    applied_discount: Option<DiscountSchema>,
 }
 
 impl Controller {
@@ -71,6 +74,12 @@ impl Controller {
             .map(|c| c.to_domain())
             .transpose()?;
 
+        let discount = body
+            .applied_discount
+            .to_owned()
+            .map(|d| d.to_domain())
+            .transpose()?;
+
         let interactor = self
             .interact_provider
             .provide_draft_order_interactor()
@@ -86,6 +95,7 @@ impl Controller {
                 body.reserve_inventory_until,
                 body.tax_exempt,
                 presentment_currency_code,
+                discount,
             )
             .await;
 
@@ -98,12 +108,12 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::draft_order::draft_order::{DraftOrder, DraftOrderStatus};
-    use crate::domain::money::money::money::Money;
-    use crate::domain::money::money_bag::{CurrencyCode, MoneyBag};
+    use crate::domain::money::amount::amount::Amount;
+    use crate::domain::money::money::{CurrencyCode, Money};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::controller::schema::component::component::{
-        CurrencyCodeSchema, DiscountSchema, DiscountValueTypeSchema, MoneyBagSchema,
+        CurrencyCodeSchema, DiscountSchema, DiscountValueTypeSchema, MoneySchema,
     };
     use crate::usecase::interactor::draft_order_interactor_interface::DraftOrderInteractor;
     use crate::usecase::interactor::draft_order_interactor_interface::MockDraftOrderInteractor;
@@ -137,9 +147,9 @@ mod tests {
         .await
     }
 
-    fn mock_money_bag() -> MoneyBag {
-        let money = Money::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+    fn mock_money() -> Money {
+        let amount = Amount::new(100.0).unwrap();
+        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
     }
 
     #[actix_web::test]
@@ -149,7 +159,7 @@ mod tests {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
             .expect_create_draft_order()
-            .returning(|_, _, _, _, _, _, _, _| {
+            .returning(|_, _, _, _, _, _, _, _, _| {
                 DraftOrder::new(
                     format!("1"),
                     format!("Test Order 1"),
@@ -160,13 +170,14 @@ mod tests {
                     None,
                     vec![],
                     None,
-                    mock_money_bag(),
+                    None,
+                    mock_money(),
                     true,
                     false,
-                    mock_money_bag(),
-                    mock_money_bag(),
-                    mock_money_bag(),
-                    mock_money_bag(),
+                    mock_money(),
+                    mock_money(),
+                    mock_money(),
+                    mock_money(),
                     CurrencyCode::JPY,
                     None,
                     None,
@@ -210,7 +221,7 @@ mod tests {
                         description: Some("Discount description".to_string()),
                         value_type: DiscountValueTypeSchema::Fixed,
                         value: 10.0,
-                        amount_set: Some(MoneyBagSchema {
+                        amount_set: Some(MoneySchema {
                             currency_code: CurrencyCodeSchema::USD,
                             amount: 10.0,
                         }),
@@ -219,6 +230,16 @@ mod tests {
                 reserve_inventory_until: Some(Utc::now()),
                 tax_exempt: Some(true),
                 presentment_currency_code: Some(CurrencyCodeSchema::JPY),
+                applied_discount: Some(DiscountSchema {
+                    title: Some("Discount title".to_string()),
+                    description: Some("Discount description".to_string()),
+                    value_type: DiscountValueTypeSchema::Fixed,
+                    value: 10.0,
+                    amount_set: Some(MoneySchema {
+                        currency_code: CurrencyCodeSchema::USD,
+                        amount: 10.0,
+                    }),
+                }),
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -241,6 +262,7 @@ mod tests {
                 reserve_inventory_until: None,
                 tax_exempt: None,
                 presentment_currency_code: None,
+                applied_discount: None,
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -253,7 +275,7 @@ mod tests {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
             .expect_create_draft_order()
-            .returning(|_, _, _, _, _, _, _, _| Err(DomainError::ValidationError));
+            .returning(|_, _, _, _, _, _, _, _, _| Err(DomainError::ValidationError));
 
         let req = test::TestRequest::post()
             .uri(&format!("{BASE_URL}"))
@@ -270,6 +292,7 @@ mod tests {
                 reserve_inventory_until: None,
                 tax_exempt: None,
                 presentment_currency_code: None,
+                applied_discount: None,
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
@@ -282,7 +305,7 @@ mod tests {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
             .expect_create_draft_order()
-            .returning(|_, _, _, _, _, _, _, _| Err(DomainError::SystemError));
+            .returning(|_, _, _, _, _, _, _, _, _| Err(DomainError::SystemError));
 
         let req = test::TestRequest::post()
             .uri(&format!("{BASE_URL}"))
@@ -299,6 +322,7 @@ mod tests {
                 reserve_inventory_until: None,
                 tax_exempt: None,
                 presentment_currency_code: None,
+                applied_discount: None,
             })
             .to_request();
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;

@@ -39,7 +39,7 @@ impl ProductInteractor for ProductInteractorImpl {
         &self,
         id: &ProductId,
     ) -> Result<(Product, Vec<Media>), DomainError> {
-        let product_result = self.product_repository.find_product(id).await;
+        let product_result = self.product_repository.find_product_by_id(id).await;
         let media_result = self.media_repository.find_media_by_product_id(id).await;
 
         match (product_result, media_result) {
@@ -49,7 +49,7 @@ impl ProductInteractor for ProductInteractorImpl {
         }
     }
 
-    async fn get_products(
+    async fn get_products_with_media(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,

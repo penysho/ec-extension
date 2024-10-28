@@ -74,7 +74,7 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
     /// Get detailed product information.
-    async fn find_product(&self, id: &ProductId) -> Result<Product, DomainError> {
+    async fn find_product_by_id(&self, id: &ProductId) -> Result<Product, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
         let variant_fields = Self::variant_fields();
@@ -395,7 +395,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_product_success() {
+    async fn test_find_product_by_id_success() {
         let mut client = MockECClient::new();
 
         client
@@ -411,7 +411,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.find_product(&("0".to_string())).await;
+        let result = repo.find_product_by_id(&("0".to_string())).await;
 
         assert!(result.is_ok());
         let product = result.unwrap();
@@ -421,7 +421,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_product_multiple_variants_success() {
+    async fn test_find_product_by_id_multiple_variants_success() {
         let mut client = MockECClient::new();
 
         client
@@ -444,7 +444,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.find_product(&("0".to_string())).await;
+        let result = repo.find_product_by_id(&("0".to_string())).await;
 
         assert!(result.is_ok());
         let product = result.unwrap();
@@ -457,7 +457,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_product_with_invalid_domain_conversion() {
+    async fn test_find_product_by_id_with_invalid_domain_conversion() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_variants_response(PageOption {
@@ -482,7 +482,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.find_product(&("0".to_string())).await;
+        let result = repo.find_product_by_id(&("0".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ValidationError) = result {
@@ -493,7 +493,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_product_with_invalid_status() {
+    async fn test_find_product_by_id_with_invalid_status() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_variants_response(PageOption {
@@ -518,7 +518,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.find_product(&("0".to_string())).await;
+        let result = repo.find_product_by_id(&("0".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ConversionError) = result {
@@ -529,7 +529,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_product_with_invalid_inventory_policy() {
+    async fn test_find_product_by_id_with_invalid_inventory_policy() {
         let mut client = MockECClient::new();
 
         let mut invalid_response = mock_variants_response(PageOption {
@@ -553,7 +553,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.find_product(&("0".to_string())).await;
+        let result = repo.find_product_by_id(&("0".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::ConversionError) = result {
@@ -564,7 +564,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_product_with_graphql_error() {
+    async fn test_find_product_by_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -574,7 +574,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.find_product(&("123456".to_string())).await;
+        let result = repo.find_product_by_id(&("123456".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {
@@ -585,7 +585,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_product_with_missing_data() {
+    async fn test_find_product_by_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -595,7 +595,7 @@ mod tests {
 
         let repo = ProductRepositoryImpl::new(client);
 
-        let result = repo.find_product(&("123456".to_string())).await;
+        let result = repo.find_product_by_id(&("123456".to_string())).await;
 
         assert!(result.is_err());
         if let Err(DomainError::QueryError) = result {

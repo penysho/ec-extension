@@ -6,7 +6,7 @@ use serde::Deserialize;
 use crate::{
     domain::{
         error::error::DomainError,
-        money::money::money::Money,
+        money::amount::amount::Amount,
         product::{
             product::{Product, ProductStatus},
             variant::{
@@ -33,7 +33,7 @@ impl VariantNode {
             _ => Err(DomainError::ConversionError),
         }?;
 
-        let price = Money::new(self.price.parse::<f64>().unwrap_or(0.0))?;
+        let price = Amount::new(self.price.parse::<f64>().unwrap_or(0.0))?;
 
         Variant::new(
             ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),

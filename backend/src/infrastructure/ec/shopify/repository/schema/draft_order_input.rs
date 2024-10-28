@@ -7,8 +7,10 @@ use crate::{
 };
 
 use super::{
-    address_input::AddressInput, common::UserError, draft_order::DraftOrderNode,
-    line_item_input::LineItemInput,
+    address_input::AddressInput,
+    common::UserError,
+    draft_order::DraftOrderNode,
+    line_item_input::{DiscountInput, LineItemInput},
 };
 
 impl From<DraftOrder> for DraftOrderInput {
@@ -20,6 +22,7 @@ impl From<DraftOrder> for DraftOrderInput {
             note: draft_order.note().to_owned(),
             line_items: draft_order.line_items().iter().map(|l| l.into()).collect(),
             reserve_inventory_until: draft_order.reserve_inventory_until().to_owned(),
+            applied_discount: draft_order.discount().to_owned().map(|d| d.into()),
             tax_exempt: Some(*draft_order.tax_exempt()),
         }
     }
@@ -36,6 +39,8 @@ pub struct DraftOrderInput {
     pub line_items: Vec<LineItemInput>,
     pub reserve_inventory_until: Option<DateTime<Utc>>,
 
+    pub applied_discount: Option<DiscountInput>,
+
     pub tax_exempt: Option<bool>,
 }
 
@@ -51,6 +56,20 @@ impl From<CustomerId> for PurchasingEntityInput {
 #[serde(rename_all = "camelCase")]
 pub struct PurchasingEntityInput {
     pub customer_id: Option<String>,
+}
+
+impl From<DraftOrder> for DraftOrderDeleteInput {
+    fn from(draft_order: DraftOrder) -> Self {
+        Self {
+            id: ShopifyGQLQueryHelper::add_draft_order_gid_prefix(&draft_order.id()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftOrderDeleteInput {
+    pub id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -89,5 +108,18 @@ pub struct DraftOrderCompleteData {
 #[serde(rename_all = "camelCase")]
 pub struct DraftOrderComplete {
     pub draft_order: Option<DraftOrderNode>,
+    pub user_errors: Vec<UserError>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftOrderDeleteData {
+    pub draft_order_delete: DraftOrderDelete,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftOrderDelete {
+    pub deleted_id: Option<String>,
     pub user_errors: Vec<UserError>,
 }

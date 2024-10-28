@@ -1,8 +1,7 @@
 use derive_getters::Getters;
 
 use crate::domain::{
-    error::error::DomainError, money::money_bag::MoneyBag,
-    product::variant::variant::Id as VariantId,
+    error::error::DomainError, money::money::Money, product::variant::variant::Id as VariantId,
 };
 
 use super::discount::discount::Discount;
@@ -30,8 +29,8 @@ pub struct LineItem {
     variant_id: Option<VariantId>,
     quantity: u32,
     discount: Option<Discount>,
-    discounted_total_set: MoneyBag,
-    original_total_set: MoneyBag,
+    discounted_total_set: Money,
+    original_total_set: Money,
 }
 
 impl LineItem {
@@ -42,8 +41,8 @@ impl LineItem {
         variant_id: Option<impl Into<VariantId>>,
         quantity: u32,
         discount: Option<Discount>,
-        discounted_total_set: MoneyBag,
-        original_total_set: MoneyBag,
+        discounted_total_set: Money,
+        original_total_set: Money,
     ) -> Result<Self, DomainError> {
         Ok(Self {
             id,
@@ -69,8 +68,8 @@ impl LineItem {
             variant_id: variant_id.map(|id| id.into()),
             quantity,
             discount,
-            discounted_total_set: MoneyBag::zero(),
-            original_total_set: MoneyBag::zero(),
+            discounted_total_set: Money::zero(),
+            original_total_set: Money::zero(),
         })
     }
 }
@@ -79,14 +78,14 @@ impl LineItem {
 mod tests {
     use crate::domain::{
         line_item::discount::discount::DiscountValueType,
-        money::{money::money::Money, money_bag::CurrencyCode},
+        money::{amount::amount::Amount, money::CurrencyCode},
     };
 
     use super::*;
 
-    fn mock_money_bag() -> MoneyBag {
-        let money = Money::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+    fn mock_money() -> Money {
+        let amount = Amount::new(100.0).unwrap();
+        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
     }
 
     fn mock_discount() -> Discount {
@@ -95,7 +94,7 @@ mod tests {
             Some("Test description".to_string()),
             10.0,
             DiscountValueType::Percentage,
-            Some(mock_money_bag()),
+            Some(mock_money()),
         )
         .expect("Failed to create mock discount")
     }
@@ -108,8 +107,8 @@ mod tests {
             Some("variant_id"),
             5,
             Some(mock_discount()),
-            mock_money_bag(),
-            mock_money_bag(),
+            mock_money(),
+            mock_money(),
         )
         .expect("Failed to create mock line item");
 
@@ -128,8 +127,8 @@ mod tests {
             None::<String>,
             1,
             None,
-            mock_money_bag(),
-            mock_money_bag(),
+            mock_money(),
+            mock_money(),
         )
         .expect("Failed to create mock line item");
 

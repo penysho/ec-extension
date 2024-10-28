@@ -3,10 +3,13 @@ use chrono::{DateTime, Utc};
 use mockall::automock;
 
 use crate::domain::{
-    address::address::Address, customer::customer::Id as CustomerId,
-    draft_order::draft_order::DraftOrder, draft_order::draft_order::Id as DraftOrderId,
-    email::email::Email, error::error::DomainError, line_item::line_item::LineItem,
-    money::money_bag::CurrencyCode,
+    address::address::Address,
+    customer::customer::Id as CustomerId,
+    draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
+    email::email::Email,
+    error::error::DomainError,
+    line_item::{discount::discount::Discount, line_item::LineItem},
+    money::money::CurrencyCode,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -38,7 +41,7 @@ pub trait DraftOrderInteractor {
         query: &GetDraftOrdersQuery,
     ) -> Result<Vec<DraftOrder>, DomainError>;
 
-    /// Create draft order.
+    /// Create a draft order.
     ///
     /// # Arguments
     ///
@@ -50,6 +53,7 @@ pub trait DraftOrderInteractor {
     /// * `reserve_inventory_until` - The reserve inventory until.
     /// * `tax_exempt` - The tax exempt.
     /// * `presentment_currency_code` - Currency code to be applied to the order. If not specified, the store's default currency code is used.
+    /// * `discount` - Discount applied per order.
     ///
     /// # Returns
     ///
@@ -70,9 +74,10 @@ pub trait DraftOrderInteractor {
         reserve_inventory_until: Option<DateTime<Utc>>,
         tax_exempt: Option<bool>,
         presentment_currency_code: Option<CurrencyCode>,
+        discount: Option<Discount>,
     ) -> Result<DraftOrder, DomainError>;
 
-    /// Complete draft order.
+    /// Complete a draft order.
     ///
     /// # Arguments
     ///
@@ -87,5 +92,23 @@ pub trait DraftOrderInteractor {
     /// # Errors
     ///
     /// * Returns a domain error if the draft order repository fails.
+    /// * If a draft order has already been completed.
     async fn complete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError>;
+
+    /// Delete a draft order.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - The draft order id.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<DraftOrderId, DomainError>` - The result of the operation.
+    ///   - `Ok(DraftOrder)` - ID of deleted draft order.
+    ///   - `Err(DomainError)` - The error.
+    ///
+    /// # Errors
+    ///
+    /// * Returns a domain error if the draft order repository fails.
+    async fn delete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrderId, DomainError>;
 }

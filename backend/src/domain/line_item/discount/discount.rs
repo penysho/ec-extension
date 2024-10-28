@@ -1,6 +1,6 @@
 use derive_getters::Getters;
 
-use crate::domain::{error::error::DomainError, money::money_bag::MoneyBag};
+use crate::domain::{error::error::DomainError, money::money::Money};
 
 /// Represents the type of value applied by a discount.
 /// A discount can either have a fixed value or be a percentage-based value.
@@ -29,7 +29,7 @@ pub struct Discount {
     description: Option<String>,
     value: f32,
     value_type: DiscountValueType,
-    amount_set: Option<MoneyBag>,
+    amount_set: Option<Money>,
 }
 
 impl Discount {
@@ -38,7 +38,7 @@ impl Discount {
         description: Option<impl Into<String>>,
         value: f32,
         value_type: DiscountValueType,
-        amount_set: Option<MoneyBag>,
+        amount_set: Option<Money>,
     ) -> Result<Self, DomainError> {
         if value < 0.0 {
             return Err(DomainError::ValidationError);

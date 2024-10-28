@@ -16,8 +16,8 @@ use crate::{
                     common::GraphQLResponse,
                     draft_order::{DraftOrderData, DraftOrderNode, DraftOrdersData},
                     draft_order_input::{
-                        DraftOrderCompleteData, DraftOrderCreateData, DraftOrderInput,
-                        DraftOrderUpdateData,
+                        DraftOrderCompleteData, DraftOrderCreateData, DraftOrderDeleteData,
+                        DraftOrderDeleteInput, DraftOrderInput, DraftOrderUpdateData,
                     },
                 },
             },
@@ -86,6 +86,15 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
                 {page_info}
             }}
             reserveInventoryUntil
+            appliedDiscount {{
+                title
+                description
+                value
+                valueType
+                amountSet {{
+                    {money_bag_fields}
+                }}
+            }}
             subtotalPriceSet {{
                 {money_bag_fields}
             }}
@@ -137,7 +146,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         DraftOrderNode::to_domain(
             graphql_response
                 .data
-                .ok_or(DomainError::QueryError)?
+                .ok_or(DomainError::NotFound)?
                 .draft_order,
         )
     }
@@ -232,6 +241,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
     async fn update(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError> {
         let completed_at = draft_order.completed_at().clone();
+
         match completed_at {
             Some(completed_at) if completed_at == DateTime::<Utc>::default() => {
                 let id = ShopifyGQLQueryHelper::add_draft_order_gid_prefix(draft_order.id());
@@ -325,6 +335,50 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
             }
         }
     }
+
+    async fn delete(&self, draft_order: DraftOrder) -> Result<DraftOrderId, DomainError> {
+        let input =
+            serde_json::to_value(DraftOrderDeleteInput::from(draft_order)).map_err(|e| {
+                log::error!("Failed to parse the request structure. Error: {:?}", e);
+                InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
+            })?;
+
+        let user_errors = ShopifyGQLQueryHelper::user_errors();
+
+        let query = format!(
+            "mutation draftOrderDelete($input: DraftOrderDeleteInput!) {{
+                draftOrderDelete(input: $input) {{
+                    deletedId
+                    {user_errors}
+                }}
+            }}",
+        );
+
+        let graphql_response: GraphQLResponse<DraftOrderDeleteData> =
+            self.client.mutation(&query, &input).await?;
+        if let Some(errors) = graphql_response.errors {
+            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            return Err(DomainError::DeleteError);
+        }
+
+        let data = graphql_response
+            .data
+            .ok_or(DomainError::DeleteError)?
+            .draft_order_delete;
+
+        if !data.user_errors.is_empty() {
+            log::error!("UserErrors returned. userErrors: {:?}", user_errors);
+            return Err(DomainError::DeleteError);
+        }
+
+        match data.deleted_id {
+            Some(deleted_id) => Ok(ShopifyGQLQueryHelper::remove_gid_prefix(&deleted_id)),
+            None => {
+                log::error!("No draft order returned.");
+                Err(DomainError::DeleteError)
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -337,8 +391,8 @@ mod tests {
             draft_order::draft_order::{DraftOrder, DraftOrderStatus},
             error::error::DomainError,
             money::{
-                money::money::Money,
-                money_bag::{CurrencyCode, MoneyBag},
+                amount::amount::Amount,
+                money::{CurrencyCode, Money},
             },
         },
         infrastructure::ec::{
@@ -354,7 +408,8 @@ mod tests {
                     },
                     draft_order_input::{
                         DraftOrderComplete, DraftOrderCompleteData, DraftOrderCreate,
-                        DraftOrderCreateData, DraftOrderUpdate, DraftOrderUpdateData,
+                        DraftOrderCreateData, DraftOrderDelete, DraftOrderDeleteData,
+                        DraftOrderUpdate, DraftOrderUpdateData,
                     },
                     line_item::{DiscountNode, LineItemNode, VariantIdNode},
                     money::{CurrencyCodeNode, MoneyBagNode, MoneyNode},
@@ -386,14 +441,15 @@ mod tests {
                     end_cursor: None,
                 },
             },
+            applied_discount: Some(mock_discount_node()),
             reserve_inventory_until: Some(Utc::now()),
-            subtotal_price_set: mock_money_bag_node("100.00", "USD"),
+            subtotal_price_set: mock_money_node("100.00", "USD"),
             taxes_included: true,
             tax_exempt: false,
-            total_tax_set: mock_money_bag_node("5.00", "USD"),
-            total_discounts_set: mock_money_bag_node("10.00", "USD"),
-            total_shipping_price_set: mock_money_bag_node("15.00", "USD"),
-            total_price_set: mock_money_bag_node("110.00", "USD"),
+            total_tax_set: mock_money_node("5.00", "USD"),
+            total_discounts_set: mock_money_node("10.00", "USD"),
+            total_shipping_price_set: mock_money_node("15.00", "USD"),
+            total_price_set: mock_money_node("110.00", "USD"),
             presentment_currency_code: CurrencyCodeNode("USD".to_string()),
             order: Some(OrderIdNode {
                 id: format!("gid://shopify/Order/{id}"),
@@ -413,8 +469,8 @@ mod tests {
             }),
             quantity: 2,
             applied_discount: Some(mock_discount_node()),
-            discounted_total_set: mock_money_bag_node("90.00", "USD"),
-            original_total_set: mock_money_bag_node("100.00", "USD"),
+            discounted_total_set: mock_money_node("90.00", "USD"),
+            original_total_set: mock_money_node("100.00", "USD"),
         }
     }
 
@@ -424,11 +480,11 @@ mod tests {
             description: "Test discount description".to_string(),
             value: 10.00,
             value_type: "FIXED_AMOUNT".to_string(),
-            amount_set: mock_money_bag_node("10.00", "USD"),
+            amount_set: mock_money_node("10.00", "USD"),
         }
     }
 
-    fn mock_money_bag_node(amount: &str, currency: &str) -> MoneyBagNode {
+    fn mock_money_node(amount: &str, currency: &str) -> MoneyBagNode {
         MoneyBagNode {
             shop_money: MoneyNode {
                 amount: amount.to_string(),
@@ -453,9 +509,9 @@ mod tests {
         })
     }
 
-    fn mock_money_bag_domain() -> MoneyBag {
-        let money = Money::new(100.0).unwrap();
-        MoneyBag::new(CurrencyCode::USD, money).expect("Failed to create mock money bag")
+    fn mock_money_domain() -> Money {
+        let amount = Amount::new(100.0).unwrap();
+        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
     }
 
     fn mock_draft_order_domain(completed: bool) -> DraftOrder {
@@ -474,13 +530,14 @@ mod tests {
             None,
             vec![],
             None,
-            mock_money_bag_domain(),
+            None,
+            mock_money_domain(),
             true,
             false,
-            mock_money_bag_domain(),
-            mock_money_bag_domain(),
-            mock_money_bag_domain(),
-            mock_money_bag_domain(),
+            mock_money_domain(),
+            mock_money_domain(),
+            mock_money_domain(),
+            mock_money_domain(),
             CurrencyCode::JPY,
             None,
             completed_at,
@@ -551,6 +608,18 @@ mod tests {
             data: Some(DraftOrderCompleteData {
                 draft_order_complete: DraftOrderComplete {
                     draft_order: Some(mock_draft_order_node(0)),
+                    user_errors: vec![],
+                },
+            }),
+            errors: None,
+        }
+    }
+
+    fn mock_draft_order_delete_response() -> GraphQLResponse<DraftOrderDeleteData> {
+        GraphQLResponse {
+            data: Some(DraftOrderDeleteData {
+                draft_order_delete: DraftOrderDelete {
+                    deleted_id: Some("gid://shopify/DraftOrder/0".to_string()),
                     user_errors: vec![],
                 },
             }),
@@ -645,10 +714,10 @@ mod tests {
         let result = repo.find_draft_order_by_id(&"1".to_string()).await;
 
         assert!(result.is_err());
-        if let Err(DomainError::QueryError) = result {
+        if let Err(DomainError::NotFound) = result {
             // Test passed
         } else {
-            panic!("Expected DomainError::QueryError, but got something else");
+            panic!("Expected DomainError::NotFound, but got something else");
         }
     }
 
@@ -954,6 +1023,96 @@ mod tests {
             // Test passed
         } else {
             panic!("Expected DomainError::SaveError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delete_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<DraftOrderDeleteData>>()
+            .times(1)
+            .return_once(|_, _| Ok(mock_draft_order_delete_response()));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.delete(mock_draft_order_domain(false)).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "0".to_string());
+    }
+
+    #[tokio::test]
+    async fn test_delete_with_user_errors() {
+        let mut client = MockECClient::new();
+
+        let mut response = mock_draft_order_delete_response();
+        response
+            .data
+            .as_mut()
+            .unwrap()
+            .draft_order_delete
+            .user_errors = vec![UserError {
+            field: vec!["quantity".to_string()],
+            message: "Quantity must be positive".to_string(),
+        }];
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<DraftOrderDeleteData>>()
+            .times(1)
+            .return_once(|_, _| Ok(response));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.delete(mock_draft_order_domain(false)).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::DeleteError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::DeleteError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delete_with_graphql_error() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<DraftOrderDeleteData>>()
+            .times(1)
+            .return_once(|_, _| Ok(mock_with_error()));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.delete(mock_draft_order_domain(false)).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::DeleteError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::DeleteError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delete_with_no_data() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_mutation::<Value, GraphQLResponse<DraftOrderDeleteData>>()
+            .times(1)
+            .return_once(|_, _| Ok(mock_with_no_data()));
+
+        let repo = DraftOrderRepositoryImpl::new(client);
+
+        let result = repo.delete(mock_draft_order_domain(false)).await;
+        assert!(result.is_err());
+        if let Err(DomainError::DeleteError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::DeleteError, but got something else");
         }
     }
 }

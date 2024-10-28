@@ -12,7 +12,7 @@ use crate::{
         address::schema::AddressSchema,
         common::exception::ErrorResponseBuilder,
         line_item::schema::LineItemSchema,
-        money::schema::{CurrencyCodeSchema, MoneyBagSchema},
+        money::schema::{CurrencyCodeSchema, MoneySchema},
     },
 };
 
@@ -27,13 +27,13 @@ pub struct DraftOrderSchema {
     pub(super) note: Option<String>,
     pub(super) line_items: Vec<LineItemSchema>,
     pub(super) reserve_inventory_until: Option<DateTime<Utc>>,
-    pub(super) subtotal_price_set: MoneyBagSchema,
+    pub(super) subtotal_price_set: MoneySchema,
     pub(super) taxes_included: bool,
     pub(super) tax_exempt: bool,
-    pub(super) total_tax_set: MoneyBagSchema,
-    pub(super) total_discounts_set: MoneyBagSchema,
-    pub(super) total_shipping_price_set: MoneyBagSchema,
-    pub(super) total_price_set: MoneyBagSchema,
+    pub(super) total_tax_set: MoneySchema,
+    pub(super) total_discounts_set: MoneySchema,
+    pub(super) total_shipping_price_set: MoneySchema,
+    pub(super) total_price_set: MoneySchema,
     pub(super) presentment_currency_code: CurrencyCodeSchema,
     pub(super) order_id: Option<String>,
     pub(super) completed_at: Option<DateTime<Utc>>,
@@ -68,3 +68,10 @@ pub struct CompleteDraftOrderResponse {
 }
 
 define_error_response!(CompleteDraftOrderErrorResponse, "DraftOrder");
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeleteDraftOrderResponse {
+    pub id: String,
+}
+
+define_error_response!(DeleteDraftOrderErrorResponse, "DraftOrder");

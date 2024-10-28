@@ -3,7 +3,7 @@ use derive_getters::Getters;
 
 use crate::domain::{
     error::error::DomainError, inventory_item::inventory_item::Id as InventoryItemId,
-    money::money::money::Money,
+    money::amount::amount::Amount,
 };
 
 use super::{barcode::barcode::Barcode, sku::sku::Sku};
@@ -48,7 +48,7 @@ pub struct Variant {
     inventory_policy: InventoryPolicy,
     inventory_quantity: Option<u32>,
 
-    price: Money,
+    price: Amount,
     taxable: bool,
     tax_code: Option<String>,
 
@@ -67,7 +67,7 @@ impl Variant {
         inventory_item_id: impl Into<InventoryItemId>,
         inventory_policy: InventoryPolicy,
         inventory_quantity: Option<u32>,
-        price: Money,
+        price: Amount,
         taxable: bool,
         tax_code: Option<String>,
         created_at: DateTime<Utc>,
@@ -121,7 +121,7 @@ mod tests {
             "test_inventory_id",
             InventoryPolicy::Continue,
             Some(1),
-            Money::new(100.0).unwrap(),
+            Amount::new(100.0).unwrap(),
             true,
             Some("tax_code".to_string()),
             Utc::now(),
@@ -142,7 +142,7 @@ mod tests {
             "test_inventory_id",
             InventoryPolicy::Continue,
             Some(1),
-            Money::new(100.0).unwrap(),
+            Amount::new(100.0).unwrap(),
             true,
             Some("tax_code".to_string()),
             Utc::now(),
@@ -163,7 +163,7 @@ mod tests {
             "test_inventory_id",
             InventoryPolicy::Continue,
             Some(1),
-            Money::new(100.0).unwrap(),
+            Amount::new(100.0).unwrap(),
             true,
             Some("tax_code".to_string()),
             Utc::now(),

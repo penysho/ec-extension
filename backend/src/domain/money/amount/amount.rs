@@ -2,23 +2,23 @@ use derive_getters::Getters;
 
 use crate::domain::error::error::DomainError;
 
-/// Money value object.
+/// Amount value object.
 ///
 /// # Example
 ///
 /// ```
-/// use backend::domain::money::money::money::Money;
+/// use backend::domain::money::amount::amount::Amount;
 ///
-/// let money = Money::new(100.0).unwrap();
-/// assert_eq!(money.value(), &100.0);
+/// let amount = Amount::new(100.0).unwrap();
+/// assert_eq!(amount.value(), &100.0);
 /// ```
 ///
 #[derive(Debug, Getters, Clone, PartialEq)]
-pub struct Money {
+pub struct Amount {
     value: f64,
 }
 
-impl Money {
+impl Amount {
     pub fn new(value: f64) -> Result<Self, DomainError> {
         if value < 0.0 {
             log::error!("Money value cannot be negative: {}", value);

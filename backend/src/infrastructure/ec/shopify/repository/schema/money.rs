@@ -3,22 +3,22 @@ use serde::Deserialize;
 use crate::domain::{
     error::error::DomainError,
     money::{
-        money::money::Money,
-        money_bag::{CurrencyCode, MoneyBag},
+        amount::amount::Amount,
+        money::{CurrencyCode, Money},
     },
 };
 
 impl MoneyBagNode {
-    pub fn to_domain(self) -> Result<MoneyBag, DomainError> {
+    pub fn to_domain(self) -> Result<Money, DomainError> {
         self.shop_money.to_domain()
     }
 }
 
 impl MoneyNode {
-    pub fn to_domain(self) -> Result<MoneyBag, DomainError> {
-        let amount = Money::new(self.amount.parse::<f64>().unwrap_or(0.0))?;
+    pub fn to_domain(self) -> Result<Money, DomainError> {
+        let amount = Amount::new(self.amount.parse::<f64>().unwrap_or(0.0))?;
         let currency_code = self.currency_code.to_domain()?;
-        MoneyBag::new(currency_code, amount)
+        Money::new(currency_code, amount)
     }
 }
 

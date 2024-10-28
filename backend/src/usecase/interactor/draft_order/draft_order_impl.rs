@@ -7,8 +7,8 @@ use crate::{
         customer::customer::Id as CustomerId,
         draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
         error::error::DomainError,
-        line_item::line_item::LineItem,
-        money::money_bag::CurrencyCode,
+        line_item::{discount::discount::Discount, line_item::LineItem},
+        money::money::CurrencyCode,
     },
     usecase::{
         interactor::draft_order_interactor_interface::{DraftOrderInteractor, GetDraftOrdersQuery},
@@ -66,6 +66,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         reserve_inventory_until: Option<DateTime<Utc>>,
         tax_exempt: Option<bool>,
         presentment_currency_code: Option<CurrencyCode>,
+        discount: Option<Discount>,
     ) -> Result<DraftOrder, DomainError> {
         let draft_order = DraftOrder::create(
             customer_id,
@@ -76,6 +77,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
             reserve_inventory_until,
             tax_exempt,
             presentment_currency_code,
+            discount,
         )?;
 
         self.draft_order_repository.create(draft_order).await
@@ -90,5 +92,14 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         draft_order.complete()?;
 
         self.draft_order_repository.update(draft_order).await
+    }
+
+    async fn delete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrderId, DomainError> {
+        let draft_order = self
+            .draft_order_repository
+            .find_draft_order_by_id(id)
+            .await?;
+
+        self.draft_order_repository.delete(draft_order).await
     }
 }
