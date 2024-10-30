@@ -29,7 +29,6 @@ impl InventoryPresenterImpl {
 impl InventoryPresenter for InventoryPresenterImpl {
     type GetInventoriesResponse = Json<GetInventoriesResponse>;
     type GetInventoriesErrorResponse = GetInventoriesErrorResponse;
-    /// Generate a list response of inventory information.
     async fn present_get_inventories(
         &self,
         result: Result<
@@ -62,7 +61,6 @@ impl InventoryPresenter for InventoryPresenterImpl {
 
     type PutInventoryResponse = Json<PutInventoryResponse>;
     type PutInventoryErrorResponse = PutInventoryErrorResponse;
-    /// Generate an update response for inventory information.
     async fn present_put_inventory(
         &self,
         result: Result<InventoryLevel, DomainError>,

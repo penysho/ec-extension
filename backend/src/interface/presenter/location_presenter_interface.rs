@@ -7,6 +7,7 @@ use crate::domain::{error::error::DomainError, location::location::Location};
 pub trait LocationPresenter {
     type GetLocationsResponse;
     type GetLocationsErrorResponse;
+    /// Generate a list response of location information.
     async fn present_get_locations(
         &self,
         result: Result<Vec<Location>, DomainError>,

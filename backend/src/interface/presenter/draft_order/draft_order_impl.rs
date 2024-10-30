@@ -27,7 +27,6 @@ impl DraftOrderPresenterImpl {
 impl DraftOrderPresenter for DraftOrderPresenterImpl {
     type GetDraftOrdersResponse = Json<GetDraftOrdersResponse>;
     type GetDraftOrdersErrorResponse = GetDraftOrdersErrorResponse;
-    /// Generate a list response of draft order information.
     async fn present_get_draft_orders(
         &self,
         result: Result<Vec<DraftOrder>, DomainError>,
@@ -51,7 +50,6 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
 
     type PostDraftOrderResponse = Json<PostDraftOrderResponse>;
     type PostDraftOrderErrorResponse = PostDraftOrderErrorResponse;
-    /// Generate an create response for draft order.
     async fn present_post_draft_order(
         &self,
         result: Result<DraftOrder, DomainError>,
@@ -63,7 +61,6 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
 
     type CompleteDraftOrderResponse = Json<CompleteDraftOrderResponse>;
     type CompleteDraftOrderErrorResponse = CompleteDraftOrderErrorResponse;
-    /// Generate an complete response for draft order.
     async fn present_complete_draft_order(
         &self,
         result: Result<DraftOrder, DomainError>,
@@ -75,7 +72,6 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
 
     type DeleteDraftOrderResponse = Json<DeleteDraftOrderResponse>;
     type DeleteDraftOrderErrorResponse = DeleteDraftOrderErrorResponse;
-    /// Generate an delete response for draft order.
     async fn present_delete_draft_order(
         &self,
         result: Result<DraftOrderId, DomainError>,

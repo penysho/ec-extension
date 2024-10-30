@@ -10,6 +10,7 @@ use crate::domain::{
 pub trait DraftOrderPresenter {
     type GetDraftOrdersResponse;
     type GetDraftOrdersErrorResponse;
+    /// Generate a list response of draft order information.
     async fn present_get_draft_orders(
         &self,
         result: Result<Vec<DraftOrder>, DomainError>,
@@ -17,6 +18,7 @@ pub trait DraftOrderPresenter {
 
     type PostDraftOrderResponse;
     type PostDraftOrderErrorResponse;
+    /// Generate an create response for draft order.
     async fn present_post_draft_order(
         &self,
         result: Result<DraftOrder, DomainError>,
@@ -24,6 +26,7 @@ pub trait DraftOrderPresenter {
 
     type CompleteDraftOrderResponse;
     type CompleteDraftOrderErrorResponse;
+    /// Generate an complete response for draft order.
     async fn present_complete_draft_order(
         &self,
         result: Result<DraftOrder, DomainError>,
@@ -31,6 +34,7 @@ pub trait DraftOrderPresenter {
 
     type DeleteDraftOrderResponse;
     type DeleteDraftOrderErrorResponse;
+    /// Generate an delete response for draft order.
     async fn present_delete_draft_order(
         &self,
         result: Result<DraftOrderId, DomainError>,

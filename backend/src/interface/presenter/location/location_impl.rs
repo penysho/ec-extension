@@ -20,7 +20,6 @@ impl LocationPresenterImpl {
 impl LocationPresenter for LocationPresenterImpl {
     type GetLocationsResponse = Json<GetLocationsResponse>;
     type GetLocationsErrorResponse = GetLocationsErrorResponse;
-    /// Generate a list response of location information.
     async fn present_get_locations(
         &self,
         result: Result<Vec<Location>, DomainError>,

@@ -13,6 +13,7 @@ use crate::domain::{
 pub trait InventoryPresenter {
     type GetInventoriesResponse;
     type GetInventoriesErrorResponse;
+    /// Generate a list response of inventory information.
     async fn present_get_inventories(
         &self,
         result: Result<
@@ -26,6 +27,7 @@ pub trait InventoryPresenter {
 
     type PutInventoryResponse;
     type PutInventoryErrorResponse;
+    /// Generate an update response for inventory information.
     async fn present_put_inventory(
         &self,
         result: Result<InventoryLevel, DomainError>,
