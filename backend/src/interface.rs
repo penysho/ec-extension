@@ -1,3 +1,3 @@
 pub mod controller;
-pub mod mock;
+mod mock;
 pub mod presenter;

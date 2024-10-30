@@ -105,10 +105,10 @@ impl Controller {
 mod tests {
     use std::sync::Arc;
 
-    use crate::domain::inventory_level::inventory_level::InventoryLevel;
-    use crate::domain::inventory_level::quantity::quantity::{InventoryType, Quantity};
+    use crate::domain::inventory_level::quantity::quantity::InventoryType;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::mock::domain_mock::mock_inventory_levels;
     use crate::usecase::interactor::inventory_interactor_interface::{
         InventoryInteractor, MockInventoryInteractor,
     };
@@ -160,21 +160,7 @@ mod tests {
                 eq(ledger_document_uri),
                 eq(location_id.to_string()),
             )
-            .returning(|_, _, _, _, _, _| {
-                InventoryLevel::new(
-                    "0",
-                    "0",
-                    "location_id",
-                    vec![
-                        Quantity::new(10, InventoryType::Available).unwrap(),
-                        Quantity::new(20, InventoryType::Committed).unwrap(),
-                        Quantity::new(30, InventoryType::Incoming).unwrap(),
-                        Quantity::new(40, InventoryType::Reserved).unwrap(),
-                        Quantity::new(50, InventoryType::SafetyStock).unwrap(),
-                        Quantity::new(60, InventoryType::Damaged).unwrap(),
-                    ],
-                )
-            });
+            .returning(|_, _, _, _, _, _| Ok(mock_inventory_levels(1).remove(0)));
 
         let req = test::TestRequest::put()
             .uri(&format!("{BASE_URL}/{sku}"))

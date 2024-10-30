@@ -27,12 +27,10 @@ impl Controller {
 mod tests {
     use std::sync::Arc;
 
-    use crate::domain::draft_order::draft_order::{DraftOrder, DraftOrderStatus};
     use crate::domain::error::error::DomainError;
-    use crate::domain::money::amount::amount::Amount;
-    use crate::domain::money::money::{CurrencyCode, Money};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::mock::domain_mock::mock_draft_orders;
     use crate::usecase::interactor::draft_order_interactor_interface::DraftOrderInteractor;
     use crate::usecase::interactor::draft_order_interactor_interface::MockDraftOrderInteractor;
 
@@ -41,7 +39,6 @@ mod tests {
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::web;
     use actix_web::{http::StatusCode, test, App, Error};
-    use chrono::Utc;
 
     const BASE_URL: &'static str = "/ec-extension/orders/draft/complete";
 
@@ -65,40 +62,12 @@ mod tests {
         .await
     }
 
-    fn mock_money() -> Money {
-        let amount = Amount::new(100.0).unwrap();
-        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
-    }
-
     #[actix_web::test]
     async fn test_complete_draft_order_success() {
         let mut interactor = MockDraftOrderInteractor::new();
-        interactor.expect_complete_draft_order().returning(|_| {
-            DraftOrder::new(
-                format!("1"),
-                format!("Test Order 1"),
-                DraftOrderStatus::Open,
-                None,
-                None,
-                None,
-                None,
-                vec![],
-                None,
-                None,
-                mock_money(),
-                true,
-                false,
-                mock_money(),
-                mock_money(),
-                mock_money(),
-                mock_money(),
-                CurrencyCode::JPY,
-                None,
-                None,
-                Utc::now(),
-                Utc::now(),
-            )
-        });
+        interactor
+            .expect_complete_draft_order()
+            .returning(|_| Ok(mock_draft_orders(1).remove(0)));
 
         let req = test::TestRequest::put()
             .uri(&format!("{BASE_URL}/1"))

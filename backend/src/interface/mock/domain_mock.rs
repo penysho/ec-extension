@@ -2,7 +2,12 @@
 use crate::domain::{
     address::address::Address,
     draft_order::draft_order::{DraftOrder, DraftOrderStatus},
+    inventory_item::inventory_item::Id as InventoryItemId,
     inventory_item::inventory_item::InventoryItem,
+    inventory_level::{
+        inventory_level::InventoryLevel,
+        quantity::quantity::{InventoryType, Quantity},
+    },
     line_item::{
         discount::discount::{Discount, DiscountValueType},
         line_item::LineItem,
@@ -27,8 +32,11 @@ use crate::domain::{
         },
     },
 };
+
 #[cfg(test)]
 use chrono::Utc;
+#[cfg(test)]
+use std::collections::HashMap;
 
 #[cfg(test)]
 pub fn mock_address() -> Address {
@@ -145,7 +153,7 @@ pub fn mock_inventory_items(count: usize) -> Vec<InventoryItem> {
                 Utc::now(),
                 Utc::now(),
             )
-            .unwrap()
+            .expect("Failed to create mock inventory item")
         })
         .collect()
 }
@@ -178,7 +186,7 @@ pub fn mock_products(count: usize) -> Vec<Product> {
                 .unwrap()],
                 Some("111"),
             )
-            .unwrap()
+            .expect("Failed to create mock product")
         })
         .collect()
 }
@@ -204,7 +212,59 @@ pub fn mock_media(count: usize) -> Vec<Media> {
                 Utc::now(),
                 Utc::now(),
             )
-            .unwrap()
+            .expect("Failed to create mock media")
+        })
+        .collect()
+}
+
+#[cfg(test)]
+pub fn mock_inventory_level_map(
+    count: usize,
+    inventory_item_id: &InventoryItemId,
+) -> HashMap<InventoryItemId, Vec<InventoryLevel>> {
+    let mut map: HashMap<InventoryItemId, Vec<InventoryLevel>> = HashMap::new();
+
+    let levels = (0..count)
+        .map(|i| {
+            InventoryLevel::new(
+                format!("{i}"),
+                inventory_item_id.clone(),
+                format!("{i}"),
+                vec![
+                    Quantity::new(10, InventoryType::Available).unwrap(),
+                    Quantity::new(20, InventoryType::Committed).unwrap(),
+                    Quantity::new(30, InventoryType::Incoming).unwrap(),
+                    Quantity::new(40, InventoryType::Reserved).unwrap(),
+                    Quantity::new(50, InventoryType::SafetyStock).unwrap(),
+                    Quantity::new(60, InventoryType::Damaged).unwrap(),
+                ],
+            )
+            .expect("Failed to create mock inventory level")
+        })
+        .collect();
+
+    map.insert(inventory_item_id.clone(), levels);
+    map
+}
+
+#[cfg(test)]
+pub fn mock_inventory_levels(count: usize) -> Vec<InventoryLevel> {
+    (0..count)
+        .map(|i| {
+            InventoryLevel::new(
+                format!("{i}"),
+                format!("{i}"),
+                format!("{i}"),
+                vec![
+                    Quantity::new(10, InventoryType::Available).unwrap(),
+                    Quantity::new(20, InventoryType::Committed).unwrap(),
+                    Quantity::new(30, InventoryType::Incoming).unwrap(),
+                    Quantity::new(40, InventoryType::Reserved).unwrap(),
+                    Quantity::new(50, InventoryType::SafetyStock).unwrap(),
+                    Quantity::new(60, InventoryType::Damaged).unwrap(),
+                ],
+            )
+            .expect("Failed to create mock inventory level")
         })
         .collect()
 }
