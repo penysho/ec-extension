@@ -104,89 +104,9 @@ impl ProductPresenter for ProductPresenterImpl {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
-
-    use crate::domain::{
-        media::{
-            media::{Media, MediaStatus},
-            media_content::image::image::Image,
-            src::src::Src,
-        },
-        money::amount::amount::Amount,
-        product::{
-            product::ProductStatus,
-            variant::{
-                barcode::barcode::Barcode,
-                sku::sku::Sku,
-                variant::{InventoryPolicy, Variant},
-            },
-        },
-    };
+    use crate::interface::mock::domain_mock::{mock_media, mock_products};
 
     use super::*;
-
-    fn mock_products(count: usize) -> Vec<Product> {
-        (0..count)
-            .map(|i| {
-                Product::new(
-                    format!("{i}"),
-                    format!("Test Product {i}"),
-                    "This is a test product description.",
-                    ProductStatus::Active,
-                    vec![Variant::new(
-                        format!("{i}"),
-                        Some(format!("Test Variant {i}")),
-                        Some(Sku::new("ABC123").unwrap()),
-                        Some(Barcode::new("1234567890").unwrap()),
-                        true,
-                        1,
-                        "test_inventory_id",
-                        InventoryPolicy::Continue,
-                        Some(1),
-                        Amount::new(100.0).unwrap(),
-                        true,
-                        Some("tax_code".to_string()),
-                        Utc::now(),
-                        Utc::now(),
-                    )
-                    .unwrap()],
-                    Some("111"),
-                )
-                .unwrap()
-            })
-            .collect()
-    }
-
-    fn mock_media(count: usize) -> Vec<Media> {
-        (0..count)
-            .map(|i| {
-                Media::new(
-                    format!("{i}"),
-                    Some(format!("Test Media {i}")),
-                    MediaStatus::Active,
-                    Some(MediaContent::Image(
-                        Image::new(
-                            format!("{i}"),
-                            Some(AssociatedId::Product(format!("{i}"))),
-                            Some(format!("Alt Text {i}")),
-                            Some(
-                                Src::new(format!("https://example.com/uploaded_{}.jpg", i))
-                                    .unwrap(),
-                            ),
-                            Some(
-                                Src::new(format!("https://example.com/published_{}.jpg", i))
-                                    .unwrap(),
-                            ),
-                        )
-                        .unwrap(),
-                    )),
-                    Utc::now(),
-                    Utc::now(),
-                )
-                .unwrap()
-            })
-            .collect()
-    }
 
     #[actix_web::test]
     async fn test_present_get_product_success() {

@@ -73,27 +73,12 @@ impl InventoryPresenter for InventoryPresenterImpl {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
-
-    use crate::domain::inventory_level::quantity::quantity::{InventoryType, Quantity};
+    use crate::{
+        domain::inventory_level::quantity::quantity::{InventoryType, Quantity},
+        interface::mock::domain_mock::mock_inventory_items,
+    };
 
     use super::*;
-
-    fn mock_inventory_items(count: usize) -> Vec<InventoryItem> {
-        (0..count)
-            .map(|i| {
-                InventoryItem::new(
-                    format!("{i}"),
-                    format!("{i}"),
-                    true,
-                    false,
-                    Utc::now(),
-                    Utc::now(),
-                )
-                .unwrap()
-            })
-            .collect()
-    }
 
     fn mock_inventory_level_map(
         count: usize,

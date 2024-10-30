@@ -32,41 +32,9 @@ impl LocationPresenter for LocationPresenterImpl {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::address::address::Address;
+    use crate::interface::mock::domain_mock::mock_locations;
 
     use super::*;
-
-    fn mock_address() -> Address {
-        Address::new(
-            Some("123 Main St"),
-            None::<String>,
-            Some("City"),
-            true,
-            Some("Country"),
-            Some("John"),
-            Some("Doe"),
-            Some("Province"),
-            Some("12345"),
-            Some("+1234567890"),
-        )
-        .expect("Failed to create mock address")
-    }
-
-    fn mock_locations(count: usize) -> Vec<Location> {
-        (0..count)
-            .map(|i| {
-                Location::new(
-                    format!("{i}"),
-                    format!("{i}"),
-                    true,
-                    false,
-                    mock_address(),
-                    vec![mock_address()],
-                )
-                .unwrap()
-            })
-            .collect()
-    }
 
     #[actix_web::test]
     async fn test_present_get_inventories_success() {
