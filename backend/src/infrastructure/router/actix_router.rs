@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::interface::controller::{
     controller::Controller, get_draft_orders::GetDraftOrdersQueryParams,
-    get_inventories::GetInventoriesQueryParams, get_products::GetProductsQueryParams,
-    post_draft_order::PostDraftOrderRequest,
+    get_inventories::GetInventoriesQueryParams, get_locations::GetLocationsQueryParams,
+    get_products::GetProductsQueryParams, post_draft_order::PostDraftOrderRequest,
     put_inventory_quantity_by_sku::PutInventoryQuantityBySkuRequest,
 };
 use actix_web::{web, HttpResponse};
@@ -64,6 +64,12 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                 "/orders/draft/complete/{id}",
                  web::put().to(|controller: web::Data<Arc<Controller>>, path: web::Path<(String,)>| async move {
                     controller.complete_draft_order(path).await
+                }),
+            )
+            .route(
+                "/locations",
+                 web::get().to(|controller: web::Data<Arc<Controller>>, params: web::Query<GetLocationsQueryParams>| async move {
+                    controller.get_locations(params).await
                 }),
             ),
     );
