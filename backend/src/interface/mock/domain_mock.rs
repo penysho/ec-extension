@@ -1,3 +1,5 @@
+/// Define functions for common use in interface layer tests.
+/// Generate a mock of the domain.
 #[cfg(test)]
 use crate::domain::{
     address::address::Address,
