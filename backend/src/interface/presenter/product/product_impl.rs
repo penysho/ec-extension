@@ -67,11 +67,6 @@ impl ProductPresenter for ProductPresenterImpl {
         result: Result<(Vec<Product>, Vec<Media>), DomainError>,
     ) -> Result<Self::GetProductsResponse, Self::GetProductsErrorResponse> {
         let (products, media) = result?;
-        if products.is_empty() {
-            return Err(GetProductsErrorResponse::NotFound {
-                object_name: "Products".to_string(),
-            });
-        }
 
         let mut media_map: HashMap<AssociatedId, Vec<Media>> =
             media.into_iter().fold(HashMap::new(), |mut accum, medium| {
@@ -273,18 +268,6 @@ mod tests {
         assert_eq!(result.products.len(), 5);
         assert_eq!(result.products[0].name, "Test Product 0");
         assert_eq!(result.products[4].name, "Test Product 4");
-    }
-
-    #[actix_web::test]
-    async fn test_present_get_products_not_found() {
-        let presenter = ProductPresenterImpl::new();
-
-        let result = presenter.present_get_products(Ok((vec![], vec![]))).await;
-
-        assert!(matches!(
-            result,
-            Err(GetProductsErrorResponse::NotFound { .. })
-        ));
     }
 
     #[actix_web::test]
