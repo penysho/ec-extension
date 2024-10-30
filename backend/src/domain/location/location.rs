@@ -53,3 +53,59 @@ impl Location {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mock_address() -> Address {
+        Address::new(
+            Some("123 Main St"),
+            None::<String>,
+            Some("City"),
+            true,
+            Some("Country"),
+            Some("John"),
+            Some("Doe"),
+            Some("Province"),
+            Some("12345"),
+            Some("+1234567890"),
+        )
+        .expect("Failed to create mock address")
+    }
+
+    #[test]
+    fn test_new_success() {
+        let location = Location::new(
+            "loc_1",
+            "Main Warehouse",
+            true,
+            false,
+            mock_address(),
+            vec![mock_address()],
+        );
+
+        assert!(location.is_ok());
+        let location = location.unwrap();
+        assert_eq!(location.id(), "loc_1");
+        assert_eq!(location.name(), "Main Warehouse");
+        assert!(location.is_active());
+        assert!(!location.fulfills_online_orders());
+    }
+
+    #[test]
+    fn test_new_with_empty_id_should_fail() {
+        let result = Location::new("", "Main Warehouse", true, false, mock_address(), vec![]);
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), DomainError::ValidationError);
+    }
+
+    #[test]
+    fn test_new_with_empty_name_should_fail() {
+        let result = Location::new("loc_1", "", true, false, mock_address(), vec![]);
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), DomainError::ValidationError);
+    }
+}
