@@ -11,8 +11,6 @@ use crate::{
     infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
-use super::location::LocationNode;
-
 impl InventoryLevelNode {
     pub fn to_domain(self) -> Result<InventoryLevel, DomainError> {
         let quantities: Result<Vec<Quantity>, DomainError> = self
@@ -57,7 +55,7 @@ impl QuantityNode {
 pub struct InventoryLevelNode {
     pub id: String,
     pub item: InventoryItemIdNode,
-    pub location: LocationNode,
+    pub location: LocationIdNode,
     pub quantities: Vec<QuantityNode>,
 }
 
@@ -65,6 +63,11 @@ pub struct InventoryLevelNode {
 pub struct QuantityNode {
     pub quantity: i32,
     pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LocationIdNode {
+    pub id: String,
 }
 
 #[derive(Debug, Deserialize)]

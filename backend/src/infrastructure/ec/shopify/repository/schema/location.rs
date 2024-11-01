@@ -1,11 +1,11 @@
 use serde::Deserialize;
 
 use crate::{
-    domain::{error::error::DomainError, location::location::Location},
+    domain::{address::address::Address, error::error::DomainError, location::location::Location},
     infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
 };
 
-use super::{address::AddressNode, common::Edges};
+use super::common::Edges;
 
 impl LocationNode {
     pub fn to_domain(self) -> Result<Location, DomainError> {
@@ -32,17 +32,46 @@ impl LocationNode {
     }
 }
 
+impl LocationAddressNode {
+    pub fn to_domain(self) -> Result<Address, DomainError> {
+        Address::new(
+            self.address1,
+            self.address2,
+            self.city,
+            true,
+            self.country,
+            None::<String>,
+            None::<String>,
+            self.province,
+            self.zip,
+            None::<String>,
+        )
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct LocationsData {
     pub locations: Edges<LocationNode>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LocationNode {
     pub id: String,
     pub name: String,
     pub is_active: bool,
     pub fulfills_online_orders: bool,
-    pub address: AddressNode,
-    pub suggested_addresses: Vec<AddressNode>,
+    pub address: LocationAddressNode,
+    pub suggested_addresses: Vec<LocationAddressNode>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocationAddressNode {
+    pub address1: Option<String>,
+    pub address2: Option<String>,
+    pub city: Option<String>,
+    pub country: Option<String>,
+    pub province: Option<String>,
+    pub zip: Option<String>,
 }

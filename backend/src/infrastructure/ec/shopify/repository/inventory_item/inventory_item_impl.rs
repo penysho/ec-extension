@@ -145,14 +145,14 @@ mod tests {
             shopify::repository::{
                 inventory_item::inventory_item_impl::InventoryItemRepositoryImpl,
                 schema::{
-                    address::AddressNode,
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
                     inventory_item::{
                         InventoryItemNode, InventoryItemsData, VariantIdNode,
                         VariantNodeForInventory, VariantsDataForInventory,
                     },
-                    inventory_level::{InventoryItemIdNode, InventoryLevelNode, QuantityNode},
-                    location::LocationNode,
+                    inventory_level::{
+                        InventoryItemIdNode, InventoryLevelNode, LocationIdNode, QuantityNode,
+                    },
                 },
             },
         },
@@ -170,7 +170,9 @@ mod tests {
                 item: InventoryItemIdNode {
                     id: format!("gid://shopify/InventoryItem/{id}"),
                 },
-                location: mock_location_node(id),
+                location: LocationIdNode {
+                    id: format!("gid://shopify/Location/{id}"),
+                },
                 quantities: vec![
                     QuantityNode {
                         quantity: 1,
@@ -199,33 +201,6 @@ mod tests {
             tracked: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
-        }
-    }
-
-    fn mock_location_node(id: u32) -> LocationNode {
-        LocationNode {
-            id: format!("gid://shopify/Location/{id}"),
-            name: "Some location".to_string(),
-            is_active: true,
-            fulfills_online_orders: true,
-            address: mock_address_node(Some(id.to_string())),
-            suggested_addresses: vec![mock_address_node(Some(id.to_string()))],
-        }
-    }
-
-    fn mock_address_node(address1: Option<impl Into<String>>) -> AddressNode {
-        let address1 = address1.map(|a| a.into());
-        AddressNode {
-            address1: address1,
-            address2: Some("Apt 123".to_string()),
-            city: Some("Test City".to_string()),
-            coordinates_validated: true,
-            country: Some("Test Country".to_string()),
-            first_name: Some("John".to_string()),
-            last_name: Some("Doe".to_string()),
-            province: Some("Test Province".to_string()),
-            zip: Some("12345".to_string()),
-            phone: Some("+1234567890".to_string()),
         }
     }
 

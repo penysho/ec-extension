@@ -27,6 +27,16 @@ impl<C: ECClient> LocationRepositoryImpl<C> {
     pub fn new(client: C) -> Self {
         Self { client }
     }
+
+    fn location_address_fields() -> String {
+        "address1
+        address2
+        city
+        country
+        province
+        zip"
+        .to_string()
+    }
 }
 
 #[async_trait]
@@ -83,6 +93,7 @@ impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C>
 
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
+        let location_address_fields = Self::location_address_fields();
 
         for i in 0..((limit + offset) / query_limit).max(1) {
             let after_query = cursor
@@ -95,6 +106,15 @@ impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C>
                         edges {{
                             node {{
                                 id
+                                name
+                                isActive
+                                fulfillsOnlineOrders
+                                address {{
+                                    {location_address_fields}
+                                }}
+                                suggestedAddresses {{
+                                    {location_address_fields}
+                                }}
                             }}
                         }}
                         {page_info}
@@ -168,9 +188,8 @@ mod tests {
             shopify::repository::{
                 location::location_impl::LocationRepositoryImpl,
                 schema::{
-                    address::AddressNode,
                     common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
-                    location::{LocationNode, LocationsData},
+                    location::{LocationAddressNode, LocationNode, LocationsData},
                 },
             },
         },
@@ -183,24 +202,20 @@ mod tests {
             name: "Some location".to_string(),
             is_active: true,
             fulfills_online_orders: true,
-            address: mock_address_node(Some(id.to_string())),
-            suggested_addresses: vec![mock_address_node(Some(id.to_string()))],
+            address: mock_location_address_node(Some(id.to_string())),
+            suggested_addresses: vec![mock_location_address_node(Some(id.to_string()))],
         }
     }
 
-    fn mock_address_node(address1: Option<impl Into<String>>) -> AddressNode {
+    fn mock_location_address_node(address1: Option<impl Into<String>>) -> LocationAddressNode {
         let address1 = address1.map(|a| a.into());
-        AddressNode {
+        LocationAddressNode {
             address1: address1,
             address2: Some("Apt 123".to_string()),
             city: Some("Test City".to_string()),
-            coordinates_validated: true,
             country: Some("Test Country".to_string()),
-            first_name: Some("John".to_string()),
-            last_name: Some("Doe".to_string()),
             province: Some("Test Province".to_string()),
             zip: Some("12345".to_string()),
-            phone: Some("+1234567890".to_string()),
         }
     }
 
