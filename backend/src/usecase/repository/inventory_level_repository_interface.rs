@@ -17,6 +17,11 @@ pub trait InventoryLevelRepository: Send + Sync {
         location_id: &LocationId,
     ) -> Result<Option<InventoryLevel>, DomainError>;
 
+    async fn find_inventory_levels_by_sku(
+        &self,
+        sku: &Sku,
+    ) -> Result<Vec<InventoryLevel>, DomainError>;
+
     async fn update(
         &self,
         inventory_change: InventoryChange,
