@@ -1,6 +1,5 @@
 /// Define functions for common use in interface layer tests.
 /// Generate a mock of the domain.
-#[cfg(test)]
 use crate::domain::{
     address::address::Address,
     draft_order::draft_order::{DraftOrder, DraftOrderStatus},
@@ -35,12 +34,10 @@ use crate::domain::{
     },
 };
 
-#[cfg(test)]
 use chrono::Utc;
-#[cfg(test)]
+
 use std::collections::HashMap;
 
-#[cfg(test)]
 pub fn mock_address() -> Address {
     Address::new(
         Some("123 Main St"),
@@ -57,7 +54,6 @@ pub fn mock_address() -> Address {
     .expect("Failed to create mock address")
 }
 
-#[cfg(test)]
 pub fn mock_locations(count: usize) -> Vec<Location> {
     (0..count)
         .map(|i| {
@@ -74,7 +70,6 @@ pub fn mock_locations(count: usize) -> Vec<Location> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_discount() -> Discount {
     Discount::new(
         Some("Test Discount".to_string()),
@@ -86,13 +81,11 @@ pub fn mock_discount() -> Discount {
     .expect("Failed to create mock discount")
 }
 
-#[cfg(test)]
 pub fn mock_money() -> Money {
     let amount = Amount::new(100.0).unwrap();
     Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
 }
 
-#[cfg(test)]
 pub fn mock_line_items(count: usize) -> Vec<LineItem> {
     (0..count)
         .map(|i| {
@@ -110,7 +103,6 @@ pub fn mock_line_items(count: usize) -> Vec<LineItem> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_draft_orders(count: usize) -> Vec<DraftOrder> {
     (0..count)
         .map(|i| {
@@ -143,7 +135,6 @@ pub fn mock_draft_orders(count: usize) -> Vec<DraftOrder> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_inventory_items(count: usize) -> Vec<InventoryItem> {
     (0..count)
         .map(|i| {
@@ -160,7 +151,6 @@ pub fn mock_inventory_items(count: usize) -> Vec<InventoryItem> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_products(count: usize) -> Vec<Product> {
     (0..count)
         .map(|i| {
@@ -193,7 +183,6 @@ pub fn mock_products(count: usize) -> Vec<Product> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_media(count: usize) -> Vec<Media> {
     (0..count)
         .map(|i| {
@@ -219,7 +208,6 @@ pub fn mock_media(count: usize) -> Vec<Media> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_inventory_level_map(
     count: usize,
     inventory_item_id: &InventoryItemId,
@@ -249,7 +237,6 @@ pub fn mock_inventory_level_map(
     map
 }
 
-#[cfg(test)]
 pub fn mock_inventory_levels(count: usize) -> Vec<InventoryLevel> {
     (0..count)
         .map(|i| {
