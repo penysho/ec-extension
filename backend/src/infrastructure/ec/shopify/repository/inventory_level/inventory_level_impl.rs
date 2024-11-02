@@ -69,15 +69,15 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         sku: &Sku,
         location_id: &LocationId,
     ) -> Result<Option<InventoryLevel>, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
+        let inventory_level_fields = Self::inventory_level_fields();
         let sku = sku.value();
         let location_id = ShopifyGQLQueryHelper::add_location_gid_prefix(location_id);
-        let inventory_level_fields = Self::inventory_level_fields();
 
+        // Only one InventoryItem per SKU.
         let query = format!(
             "query {{
-                inventoryItems({first_query}, query: \"sku:{sku}\") {{
+                inventoryItems(first: 1, query: \"sku:{sku}\") {{
                     edges {{
                         node {{
                             id
