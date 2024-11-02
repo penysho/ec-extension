@@ -60,8 +60,6 @@ impl InventoryInteractor for InventoryInteractorImpl {
         ),
         DomainError,
     > {
-        let location_ids = self.location_repository.find_all_location_ids().await?;
-
         // TODO: GetInventoriesQuery::ProductId
         match query {
             GetInventoriesQuery::Sku(sku) => {
@@ -70,17 +68,10 @@ impl InventoryInteractor for InventoryInteractorImpl {
                     .find_inventory_item_by_sku(sku)
                     .await?;
 
-                let mut inventory_levels: Vec<InventoryLevel> = Vec::new();
-                for location_id in location_ids {
-                    let inventory_level = self
-                        .inventory_level_repository
-                        .find_inventory_level_by_sku_with_location_id(sku, &location_id)
-                        .await?;
-
-                    if let Some(inventory_level) = inventory_level {
-                        inventory_levels.push(inventory_level);
-                    }
-                }
+                let inventory_levels = self
+                    .inventory_level_repository
+                    .find_inventory_levels_by_sku(sku)
+                    .await?;
 
                 let mut inventory_levels_map = HashMap::new();
                 inventory_levels_map.insert(inventory_items.id().clone(), inventory_levels);

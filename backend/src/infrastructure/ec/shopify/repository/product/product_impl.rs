@@ -122,10 +122,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         limit: &Option<u32>,
         offset: &Option<u32>,
     ) -> Result<Vec<Product>, DomainError> {
-        let get_product_limit = ShopifyGQLQueryHelper::SHOPIFY_QUERY_LIMIT;
+        let query_limit = ShopifyGQLQueryHelper::SHOPIFY_QUERY_LIMIT;
 
         let offset = offset.unwrap_or(0) as usize;
-        let limit = limit.unwrap_or(get_product_limit as u32) as usize;
+        let limit = limit.unwrap_or(query_limit as u32) as usize;
 
         let mut products_cursor = None;
         let mut all_variants: Vec<VariantNode> = Vec::new();
@@ -134,7 +134,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let product_fields = Self::product_fields();
         let page_info = ShopifyGQLQueryHelper::page_info();
 
-        for i in 0..((limit + offset) / get_product_limit).max(1) {
+        for i in 0..((limit + offset) / query_limit).max(1) {
             let products_after_query = products_cursor
                 .as_deref()
                 .map_or(String::new(), |a| format!("after: \"{}\"", a));
@@ -173,14 +173,14 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
 
             // If only the upper limit is acquired and the acquisition is less than or equal to the offset, skip it.
             products_cursor = products_data.page_info.end_cursor;
-            if products_data.edges.len() == get_product_limit
-                && get_product_limit * (i + 1) <= offset
+            if products_data.edges.len() == query_limit
+                && query_limit * (i + 1) <= offset
                 && products_data.page_info.has_next_page
             {
                 log::debug!(
                     "Skip products. index: {:?} <= index < {:?}, offset: {:?}",
                     i,
-                    (i + 1) * get_product_limit,
+                    (i + 1) * query_limit,
                     offset,
                 );
                 continue;
@@ -252,7 +252,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let product_domains = VariantNode::to_product_domains(all_variants)?;
         log::debug!("product_domains.len(): {}", product_domains.len());
 
-        let start = offset % get_product_limit;
+        let start = offset % query_limit;
         let end = (start + limit).min(product_domains.len());
         if start >= end {
             return Ok(Vec::new());

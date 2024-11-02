@@ -32,6 +32,7 @@
                 "ms-vscode-remote.remote-containers",
                 // Git
                 "mhutchie.git-graph",
+                "eamodio.gitlens",
                 // 共通
                 "ms-ceintl.vscode-language-pack-ja",
                 "visualstudioexptteam.vscodeintellicode",

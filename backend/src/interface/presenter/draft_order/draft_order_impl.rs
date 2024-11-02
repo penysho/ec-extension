@@ -27,7 +27,6 @@ impl DraftOrderPresenterImpl {
 impl DraftOrderPresenter for DraftOrderPresenterImpl {
     type GetDraftOrdersResponse = Json<GetDraftOrdersResponse>;
     type GetDraftOrdersErrorResponse = GetDraftOrdersErrorResponse;
-    /// Generate a list response of draft order information.
     async fn present_get_draft_orders(
         &self,
         result: Result<Vec<DraftOrder>, DomainError>,
@@ -51,7 +50,6 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
 
     type PostDraftOrderResponse = Json<PostDraftOrderResponse>;
     type PostDraftOrderErrorResponse = PostDraftOrderErrorResponse;
-    /// Generate an create response for draft order.
     async fn present_post_draft_order(
         &self,
         result: Result<DraftOrder, DomainError>,
@@ -63,7 +61,6 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
 
     type CompleteDraftOrderResponse = Json<CompleteDraftOrderResponse>;
     type CompleteDraftOrderErrorResponse = CompleteDraftOrderErrorResponse;
-    /// Generate an complete response for draft order.
     async fn present_complete_draft_order(
         &self,
         result: Result<DraftOrder, DomainError>,
@@ -75,7 +72,6 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
 
     type DeleteDraftOrderResponse = Json<DeleteDraftOrderResponse>;
     type DeleteDraftOrderErrorResponse = DeleteDraftOrderErrorResponse;
-    /// Generate an delete response for draft order.
     async fn present_delete_draft_order(
         &self,
         result: Result<DraftOrderId, DomainError>,
@@ -88,105 +84,9 @@ impl DraftOrderPresenter for DraftOrderPresenterImpl {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
-
-    use crate::domain::{
-        address::address::Address,
-        draft_order::draft_order::DraftOrderStatus,
-        line_item::{
-            discount::discount::{Discount, DiscountValueType},
-            line_item::LineItem,
-        },
-        money::{
-            amount::amount::Amount,
-            money::{CurrencyCode, Money},
-        },
-    };
+    use crate::interface::mock::domain_mock::mock_draft_orders;
 
     use super::*;
-
-    fn mock_discount() -> Discount {
-        Discount::new(
-            Some("Test Discount".to_string()),
-            Some("Test description".to_string()),
-            10.0,
-            DiscountValueType::Percentage,
-            Some(mock_money()),
-        )
-        .expect("Failed to create mock discount")
-    }
-
-    fn mock_money() -> Money {
-        let amount = Amount::new(100.0).unwrap();
-        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
-    }
-
-    fn mock_line_items(count: usize) -> Vec<LineItem> {
-        (0..count)
-            .map(|i| {
-                LineItem::new(
-                    format!("{i}"),
-                    false,
-                    Some("variant_id"),
-                    5,
-                    Some(mock_discount()),
-                    mock_money(),
-                    mock_money(),
-                )
-                .expect("Failed to create mock line item")
-            })
-            .collect()
-    }
-
-    fn mock_address() -> Option<Address> {
-        Some(
-            Address::new(
-                Some("123 Main St"),
-                None::<String>,
-                Some("City"),
-                true,
-                Some("Country"),
-                Some("John"),
-                Some("Doe"),
-                Some("Province"),
-                Some("12345"),
-                Some("+1234567890"),
-            )
-            .expect("Failed to create mock address"),
-        )
-    }
-
-    fn mock_draft_orders(count: usize) -> Vec<DraftOrder> {
-        (0..count)
-            .map(|i| {
-                DraftOrder::new(
-                    format!("{i}"),
-                    format!("Test Order {i}"),
-                    DraftOrderStatus::Open,
-                    None,
-                    mock_address(),
-                    mock_address(),
-                    None,
-                    mock_line_items(2),
-                    None,
-                    Some(mock_discount()),
-                    mock_money(),
-                    true,
-                    false,
-                    mock_money(),
-                    mock_money(),
-                    mock_money(),
-                    mock_money(),
-                    CurrencyCode::JPY,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                )
-                .expect("Failed to create mock draft order")
-            })
-            .collect()
-    }
 
     #[actix_web::test]
     async fn test_present_get_draft_orders_success() {

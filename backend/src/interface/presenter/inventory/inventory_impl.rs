@@ -29,7 +29,6 @@ impl InventoryPresenterImpl {
 impl InventoryPresenter for InventoryPresenterImpl {
     type GetInventoriesResponse = Json<GetInventoriesResponse>;
     type GetInventoriesErrorResponse = GetInventoriesErrorResponse;
-    /// Generate a list response of inventory information.
     async fn present_get_inventories(
         &self,
         result: Result<
@@ -62,7 +61,6 @@ impl InventoryPresenter for InventoryPresenterImpl {
 
     type PutInventoryResponse = Json<PutInventoryResponse>;
     type PutInventoryErrorResponse = PutInventoryErrorResponse;
-    /// Generate an update response for inventory information.
     async fn present_put_inventory(
         &self,
         result: Result<InventoryLevel, DomainError>,
@@ -75,56 +73,9 @@ impl InventoryPresenter for InventoryPresenterImpl {
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
-
-    use crate::domain::inventory_level::quantity::quantity::{InventoryType, Quantity};
+    use crate::interface::mock::domain_mock::{mock_inventory_items, mock_inventory_level_map};
 
     use super::*;
-
-    fn mock_inventory_items(count: usize) -> Vec<InventoryItem> {
-        (0..count)
-            .map(|i| {
-                InventoryItem::new(
-                    format!("{i}"),
-                    format!("{i}"),
-                    true,
-                    false,
-                    Utc::now(),
-                    Utc::now(),
-                )
-                .unwrap()
-            })
-            .collect()
-    }
-
-    fn mock_inventory_level_map(
-        count: usize,
-        inventory_item_id: &InventoryItemId,
-    ) -> HashMap<InventoryItemId, Vec<InventoryLevel>> {
-        let mut map: HashMap<InventoryItemId, Vec<InventoryLevel>> = HashMap::new();
-
-        let levels = (0..count)
-            .map(|i| {
-                InventoryLevel::new(
-                    format!("{i}"),
-                    inventory_item_id.clone(),
-                    format!("{i}"),
-                    vec![
-                        Quantity::new(10, InventoryType::Available).unwrap(),
-                        Quantity::new(20, InventoryType::Committed).unwrap(),
-                        Quantity::new(30, InventoryType::Incoming).unwrap(),
-                        Quantity::new(40, InventoryType::Reserved).unwrap(),
-                        Quantity::new(50, InventoryType::SafetyStock).unwrap(),
-                        Quantity::new(60, InventoryType::Damaged).unwrap(),
-                    ],
-                )
-                .unwrap()
-            })
-            .collect();
-
-        map.insert(inventory_item_id.clone(), levels);
-        map
-    }
 
     #[actix_web::test]
     async fn test_present_get_inventories_success() {

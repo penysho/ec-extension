@@ -56,14 +56,9 @@ fn validate_query_params(
 mod tests {
     use std::sync::Arc;
 
-    use crate::domain::address::address::Address;
-    use crate::domain::draft_order::draft_order::{DraftOrder, DraftOrderStatus};
-    use crate::domain::line_item::discount::discount::{Discount, DiscountValueType};
-    use crate::domain::line_item::line_item::LineItem;
-    use crate::domain::money::amount::amount::Amount;
-    use crate::domain::money::money::{CurrencyCode, Money};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::mock::domain_mock::mock_draft_orders;
     use crate::usecase::interactor::draft_order_interactor_interface::{
         DraftOrderInteractor, MockDraftOrderInteractor,
     };
@@ -73,7 +68,6 @@ mod tests {
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::web;
     use actix_web::{http::StatusCode, test, App, Error};
-    use chrono::Utc;
     use mockall::predicate::eq;
 
     const BASE_URL: &'static str = "/ec-extension/orders/draft";
@@ -98,57 +92,6 @@ mod tests {
         .await
     }
 
-    fn mock_discount() -> Discount {
-        Discount::new(
-            Some("Test Discount".to_string()),
-            Some("Test description".to_string()),
-            10.0,
-            DiscountValueType::Percentage,
-            Some(mock_money()),
-        )
-        .expect("Failed to create mock discount")
-    }
-
-    fn mock_money() -> Money {
-        let amount = Amount::new(100.0).unwrap();
-        Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
-    }
-
-    fn mock_line_items(count: usize) -> Vec<LineItem> {
-        (0..count)
-            .map(|i| {
-                LineItem::new(
-                    format!("{i}"),
-                    false,
-                    Some("variant_id"),
-                    5,
-                    Some(mock_discount()),
-                    mock_money(),
-                    mock_money(),
-                )
-                .expect("Failed to create mock line item")
-            })
-            .collect()
-    }
-
-    fn mock_address() -> Option<Address> {
-        Some(
-            Address::new(
-                Some("123 Main St"),
-                None::<String>,
-                Some("City"),
-                true,
-                Some("Country"),
-                Some("John"),
-                Some("Doe"),
-                Some("Province"),
-                Some("12345"),
-                Some("+1234567890"),
-            )
-            .expect("Failed to create mock address"),
-        )
-    }
-
     #[actix_web::test]
     async fn test_get_draft_orders_success() {
         let mut interactor = MockDraftOrderInteractor::new();
@@ -157,33 +100,7 @@ mod tests {
             .with(eq(GetDraftOrdersQuery::Email(
                 Email::new("john@example.com").expect("Failed to create email"),
             )))
-            .returning(|_| {
-                Ok(vec![DraftOrder::new(
-                    "0",
-                    "Test Order",
-                    DraftOrderStatus::Open,
-                    None,
-                    mock_address(),
-                    mock_address(),
-                    None,
-                    mock_line_items(2),
-                    None,
-                    None,
-                    mock_money(),
-                    true,
-                    false,
-                    mock_money(),
-                    mock_money(),
-                    mock_money(),
-                    mock_money(),
-                    CurrencyCode::JPY,
-                    None,
-                    None,
-                    Utc::now(),
-                    Utc::now(),
-                )
-                .expect("Failed to create mock draft order")])
-            });
+            .returning(|_| Ok(mock_draft_orders(10)));
 
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email=john@example.com"))

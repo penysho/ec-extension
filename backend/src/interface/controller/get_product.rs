@@ -24,18 +24,9 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::error::error::DomainError;
-    use crate::domain::media::associated_id::associated_id::AssociatedId;
-    use crate::domain::media::media::{Media, MediaStatus};
-    use crate::domain::media::media_content::image::image::Image;
-    use crate::domain::media::media_content::media_content::MediaContent;
-    use crate::domain::media::src::src::Src;
-    use crate::domain::money::amount::amount::Amount;
-    use crate::domain::product::product::{Product, ProductStatus};
-    use crate::domain::product::variant::barcode::barcode::Barcode;
-    use crate::domain::product::variant::sku::sku::Sku;
-    use crate::domain::product::variant::variant::{InventoryPolicy, Variant};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::mock::domain_mock::{mock_media, mock_products};
     use crate::usecase::interactor::product_interactor_interface::{
         MockProductInteractor, ProductInteractor,
     };
@@ -45,7 +36,6 @@ mod tests {
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::web;
     use actix_web::{http::StatusCode, test, App, Error};
-    use chrono::Utc;
     use mockall::predicate::*;
 
     const BASE_URL: &'static str = "/ec-extension/products";
@@ -76,85 +66,7 @@ mod tests {
         interactor
             .expect_get_product_with_media()
             .with(eq("0".to_string()))
-            .returning(|_| {
-                Ok((
-                    Product::new(
-                        "0",
-                        "Test Product 0",
-                        "This is a test product description.",
-                        ProductStatus::Active,
-                        vec![Variant::new(
-                            "0",
-                            Some("Test Variant 0"),
-                            Some(Sku::new("ABC123").unwrap()),
-                            Some(Barcode::new("1234567890").unwrap()),
-                            true,
-                            1,
-                            "test_inventory_id",
-                            InventoryPolicy::Continue,
-                            Some(1),
-                            Amount::new(100.0).unwrap(),
-                            true,
-                            Some("tax_code".to_string()),
-                            Utc::now(),
-                            Utc::now(),
-                        )
-                        .unwrap()],
-                        Some("111"),
-                    )
-                    .unwrap(),
-                    vec![
-                        Media::new(
-                            format!("0"),
-                            Some(format!("Test Media 0")),
-                            MediaStatus::Active,
-                            Some(MediaContent::Image(
-                                Image::new(
-                                    format!("0"),
-                                    Some(AssociatedId::Product("0".to_string())),
-                                    Some(format!("Alt Text 0")),
-                                    Some(
-                                        Src::new(format!("https://example.com/uploaded.jpg"))
-                                            .unwrap(),
-                                    ),
-                                    Some(
-                                        Src::new(format!("https://example.com/published.jpg",))
-                                            .unwrap(),
-                                    ),
-                                )
-                                .unwrap(),
-                            )),
-                            Utc::now(),
-                            Utc::now(),
-                        )
-                        .unwrap(),
-                        Media::new(
-                            format!("1"),
-                            Some(format!("Test Media 1")),
-                            MediaStatus::Active,
-                            Some(MediaContent::Image(
-                                Image::new(
-                                    format!("1"),
-                                    Some(AssociatedId::Product("0".to_string())),
-                                    Some(format!("Alt Text 1")),
-                                    Some(
-                                        Src::new(format!("https://example.com/uploaded.jpg"))
-                                            .unwrap(),
-                                    ),
-                                    Some(
-                                        Src::new(format!("https://example.com/published.jpg",))
-                                            .unwrap(),
-                                    ),
-                                )
-                                .unwrap(),
-                            )),
-                            Utc::now(),
-                            Utc::now(),
-                        )
-                        .unwrap(),
-                    ],
-                ))
-            });
+            .returning(|_| Ok((mock_products(1).remove(0), mock_media(5))));
 
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}/0"))

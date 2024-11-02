@@ -22,8 +22,9 @@ use crate::{
         draft_order_interactor_interface::DraftOrderInteractor,
         inventory::inventory_impl::InventoryInteractorImpl,
         inventory_interactor_interface::InventoryInteractor,
-        media::media_impl::MediaInteractorImpl, media_interactor_interface::MediaInteractor,
-        product::product_impl::ProductInteractorImpl,
+        location::location_impl::LocationInteractorImpl,
+        location_interactor_interface::LocationInteractor, media::media_impl::MediaInteractorImpl,
+        media_interactor_interface::MediaInteractor, product::product_impl::ProductInteractorImpl,
         product_interactor_interface::ProductInteractor,
     },
 };
@@ -41,7 +42,6 @@ impl InteractProviderImpl {
 
 #[async_trait]
 impl InteractProvider for InteractProviderImpl {
-    /// Provide Interactor for products.
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor> {
         Box::new(ProductInteractorImpl::new(
             Box::new(ProductRepositoryImpl::new(ShopifyGQLClient::new(
@@ -53,14 +53,12 @@ impl InteractProvider for InteractProviderImpl {
         ))
     }
 
-    /// Provide Interactor for media.
     async fn provide_media_interactor(&self) -> Box<dyn MediaInteractor> {
         Box::new(MediaInteractorImpl::new(Box::new(
             MediaRepositoryImpl::new(ShopifyGQLClient::new(self.shopify_config.clone())),
         )))
     }
 
-    /// Provide Interactor for inventory.
     async fn provide_inventory_interactor(&self) -> Box<dyn InventoryInteractor> {
         Box::new(InventoryInteractorImpl::new(
             Box::new(InventoryItemRepositoryImpl::new(ShopifyGQLClient::new(
@@ -75,7 +73,6 @@ impl InteractProvider for InteractProviderImpl {
         ))
     }
 
-    /// Provide Interactor for draft order.
     async fn provide_draft_order_interactor(&self) -> Box<dyn DraftOrderInteractor> {
         Box::new(DraftOrderInteractorImpl::new(
             Box::new(DraftOrderRepositoryImpl::new(ShopifyGQLClient::new(
@@ -85,5 +82,11 @@ impl InteractProvider for InteractProviderImpl {
                 self.shopify_config.clone(),
             ))),
         ))
+    }
+
+    async fn provide_location_interactor(&self) -> Box<dyn LocationInteractor> {
+        Box::new(LocationInteractorImpl::new(Box::new(
+            LocationRepositoryImpl::new(ShopifyGQLClient::new(self.shopify_config.clone())),
+        )))
     }
 }

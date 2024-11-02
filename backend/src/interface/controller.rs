@@ -3,6 +3,7 @@ pub mod controller;
 pub mod delete_draft_order;
 pub mod get_draft_orders;
 pub mod get_inventories;
+pub mod get_locations;
 pub mod get_product;
 pub mod get_products;
 pub mod interact_provider_interface;

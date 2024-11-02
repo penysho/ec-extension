@@ -69,15 +69,15 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         sku: &Sku,
         location_id: &LocationId,
     ) -> Result<Option<InventoryLevel>, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
+        let inventory_level_fields = Self::inventory_level_fields();
         let sku = sku.value();
         let location_id = ShopifyGQLQueryHelper::add_location_gid_prefix(location_id);
-        let inventory_level_fields = Self::inventory_level_fields();
 
+        // Only one InventoryItem per SKU.
         let query = format!(
             "query {{
-                inventoryItems({first_query}, query: \"sku:{sku}\") {{
+                inventoryItems(first: 1, query: \"sku:{sku}\") {{
                     edges {{
                         node {{
                             id
@@ -121,6 +121,97 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             return Ok(None);
         }
         Ok(domains.into_iter().next())
+    }
+
+    /// Get inventory level information by sku with location id.
+    async fn find_inventory_levels_by_sku(
+        &self,
+        sku: &Sku,
+    ) -> Result<Vec<InventoryLevel>, DomainError> {
+        let mut cursor = None;
+        let mut all_nodes: Vec<InventoryLevelNode> = Vec::new();
+
+        let first_query = ShopifyGQLQueryHelper::first_query();
+        let page_info = ShopifyGQLQueryHelper::page_info();
+        let inventory_level_fields = Self::inventory_level_fields();
+        let sku = sku.value();
+
+        loop {
+            let after_query = cursor
+                .as_deref()
+                .map_or(String::new(), |a| format!("after: \"{}\"", a));
+
+            // Only one InventoryItem per SKU.
+            let query = format!(
+                "query {{
+                    inventoryItems(first: 1, query: \"sku:{sku}\") {{
+                        edges {{
+                            node {{
+                                id
+                                variant {{
+                                    id
+                                }}
+                                requiresShipping
+                                tracked
+                                createdAt
+                                updatedAt
+                                inventoryLevels({first_query} {after_query}) {{
+                                    edges {{
+                                        node {{
+                                            {inventory_level_fields}
+                                        }}
+                                    }}
+                                    {page_info}
+                                }}
+                            }}
+                        }}
+                        {page_info}
+                    }}
+                }}"
+            );
+
+            let graphql_response: GraphQLResponse<InventoryItemsData> =
+                self.client.query(&query).await?;
+            if let Some(errors) = graphql_response.errors {
+                log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+                return Err(DomainError::QueryError);
+            }
+
+            let mut item_data = graphql_response
+                .data
+                .ok_or(DomainError::QueryError)?
+                .inventory_items;
+            if item_data.edges.is_empty() {
+                break;
+            }
+
+            // Only one InventoryItem per SKU.
+            let level_data = item_data.edges.remove(0).node.inventory_levels;
+            if level_data.edges.is_empty() {
+                break;
+            }
+
+            cursor = level_data.page_info.end_cursor;
+
+            let nodes: Vec<InventoryLevelNode> = level_data
+                .edges
+                .into_iter()
+                .map(|level_node| level_node.node)
+                .collect();
+
+            all_nodes.extend(nodes);
+
+            if !level_data.page_info.has_next_page {
+                break;
+            }
+            // NOTE: The maximum number of locations in a single shop on shopify is 1000.
+            if all_nodes.len() > 1000 {
+                log::warn!("Too many inventory levels found for sku: {sku}");
+                break;
+            }
+        }
+
+        InventoryLevelNode::to_domains(all_nodes)
     }
 
     /// Update inventory quantity.
@@ -232,15 +323,16 @@ mod tests {
                         InventoryAdjustmentGroupNode, InventoryChangeNode,
                     },
                     inventory_item::{InventoryItemNode, InventoryItemsData, VariantIdNode},
-                    inventory_level::{InventoryItemIdNode, InventoryLevelNode, QuantityNode},
-                    location::LocationNode,
+                    inventory_level::{
+                        InventoryItemIdNode, InventoryLevelNode, LocationIdNode, QuantityNode,
+                    },
                 },
             },
         },
         usecase::repository::inventory_level_repository_interface::InventoryLevelRepository,
     };
 
-    fn mock_inventory_item_node(id: u32) -> InventoryItemNode {
+    fn mock_inventory_item_node(id: u32, level_page_option: PageOption) -> InventoryItemNode {
         InventoryItemNode {
             id: format!("gid://shopify/InventoryItem/{id}"),
             variant: VariantIdNode {
@@ -248,14 +340,20 @@ mod tests {
             },
             inventory_level: Some(mock_inventory_level_node(id)),
             inventory_levels: Edges {
-                edges: vec![Node {
-                    node: mock_inventory_level_node(id),
-                }],
+                edges: (level_page_option.start..level_page_option.end)
+                    .map(|i: usize| Node {
+                        node: mock_inventory_level_node(i as u32),
+                    })
+                    .collect(),
                 page_info: PageInfo {
                     has_previous_page: false,
-                    has_next_page: false,
+                    has_next_page: level_page_option.has_next_page,
                     start_cursor: None,
-                    end_cursor: None,
+                    end_cursor: if level_page_option.has_next_page {
+                        Some("end_cursor".to_string())
+                    } else {
+                        None
+                    },
                 },
             },
             requires_shipping: true,
@@ -271,7 +369,7 @@ mod tests {
             item: InventoryItemIdNode {
                 id: format!("gid://shopify/InventoryItem/{id}"),
             },
-            location: LocationNode {
+            location: LocationIdNode {
                 id: format!("gid://shopify/Location/{id}"),
             },
             quantities: vec![
@@ -291,10 +389,20 @@ mod tests {
         }
     }
 
-    fn mock_inventory_items_response(count: usize) -> GraphQLResponse<InventoryItemsData> {
+    #[derive(Clone)]
+    struct PageOption {
+        start: usize,
+        end: usize,
+        has_next_page: bool,
+    }
+
+    fn mock_inventory_items_response(
+        count: usize,
+        level_page_option: PageOption,
+    ) -> GraphQLResponse<InventoryItemsData> {
         let nodes: Vec<Node<InventoryItemNode>> = (0..count)
             .map(|i: usize| Node {
-                node: mock_inventory_item_node(i as u32),
+                node: mock_inventory_item_node(i as u32, level_page_option.clone()),
             })
             .collect();
 
@@ -336,7 +444,14 @@ mod tests {
                 inventory_adjust_quantities: InventoryAdjustQuantities {
                     inventory_adjustment_group: Some(InventoryAdjustmentGroupNode {
                         changes: vec![InventoryChangeNode {
-                            item: mock_inventory_item_node(0),
+                            item: mock_inventory_item_node(
+                                0,
+                                PageOption {
+                                    start: 0,
+                                    end: 250,
+                                    has_next_page: false,
+                                },
+                            ),
                         }],
                     }),
                     user_errors: vec![],
@@ -364,13 +479,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_inventory_level_by_sku_success() {
+    async fn test_find_inventory_level_by_sku_with_location_id_success() {
         let mut client = MockECClient::new();
 
         client
             .expect_query::<GraphQLResponse<InventoryItemsData>>()
             .times(1)
-            .return_once(|_| Ok(mock_inventory_items_response(1)));
+            .return_once(|_| {
+                Ok(mock_inventory_items_response(
+                    1,
+                    PageOption {
+                        start: 0,
+                        end: 250,
+                        has_next_page: false,
+                    },
+                ))
+            });
 
         let repo = InventoryLevelRepositoryImpl::new(client);
 
@@ -400,10 +524,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_inventory_level_by_sku_with_invalid_inventory_type() {
+    async fn test_find_inventory_level_by_sku_with_location_id_with_invalid_inventory_type() {
         let mut client = MockECClient::new();
 
-        let mut invalid_response = mock_inventory_items_response(1);
+        let mut invalid_response = mock_inventory_items_response(
+            1,
+            PageOption {
+                start: 0,
+                end: 250,
+                has_next_page: false,
+            },
+        );
 
         invalid_response
             .data
@@ -441,7 +572,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_inventory_level_by_sku_with_graphql_error() {
+    async fn test_find_inventory_level_by_sku_with_location_id_with_graphql_error() {
         let mut client = MockECClient::new();
 
         client
@@ -467,7 +598,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_find_inventory_level_by_sku_with_missing_data() {
+    async fn test_find_inventory_level_by_sku_with_location_id_with_missing_data() {
         let mut client = MockECClient::new();
 
         client
@@ -482,6 +613,186 @@ mod tests {
                 &Sku::new("0".to_string()).unwrap(),
                 &"0".to_string(),
             )
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_find_inventory_levels_by_sku_no_pagination_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| {
+                Ok(mock_inventory_items_response(
+                    1,
+                    PageOption {
+                        start: 0,
+                        end: 250,
+                        has_next_page: false,
+                    },
+                ))
+            });
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo
+            .find_inventory_levels_by_sku(&Sku::new("0".to_string()).unwrap())
+            .await;
+
+        assert!(result.is_ok());
+        let inventory_levels = result.unwrap();
+        assert_eq!(inventory_levels.len(), 250);
+
+        assert_eq!(inventory_levels[0].id(), "0");
+        assert_eq!(inventory_levels[0].location_id(), "0");
+        assert_eq!(
+            inventory_levels[0]
+                .quantities()
+                .into_iter()
+                .map(|q| *q.quantity())
+                .collect::<Vec<i32>>(),
+            [1, 2, 3]
+        );
+        assert_eq!(
+            *(inventory_levels[0].quantities()[0].inventory_type()),
+            InventoryType::Available
+        );
+
+        assert_eq!(inventory_levels[249].id(), "249");
+        assert_eq!(inventory_levels[249].location_id(), "249");
+        assert_eq!(
+            inventory_levels[0]
+                .quantities()
+                .into_iter()
+                .map(|q| *q.quantity())
+                .collect::<Vec<i32>>(),
+            [1, 2, 3]
+        );
+        assert_eq!(
+            *(inventory_levels[0].quantities()[0].inventory_type()),
+            InventoryType::Available
+        );
+    }
+
+    #[tokio::test]
+    async fn test_find_inventory_levels_by_sku_multiple_retrievals_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| {
+                Ok(mock_inventory_items_response(
+                    1,
+                    PageOption {
+                        start: 0,
+                        end: 250,
+                        has_next_page: true,
+                    },
+                ))
+            });
+        client
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| {
+                Ok(mock_inventory_items_response(
+                    1,
+                    PageOption {
+                        start: 250,
+                        end: 500,
+                        has_next_page: false,
+                    },
+                ))
+            });
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo
+            .find_inventory_levels_by_sku(&Sku::new("0".to_string()).unwrap())
+            .await;
+
+        assert!(result.is_ok());
+        let inventory_levels = result.unwrap();
+        assert_eq!(inventory_levels.len(), 500);
+
+        assert_eq!(inventory_levels[0].id(), "0");
+
+        assert_eq!(inventory_levels[499].id(), "499");
+    }
+
+    #[tokio::test]
+    async fn test_find_inventory_levels_by_sku_empty_success() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| {
+                Ok(mock_inventory_items_response(
+                    1,
+                    PageOption {
+                        start: 0,
+                        end: 0,
+                        has_next_page: false,
+                    },
+                ))
+            });
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo
+            .find_inventory_levels_by_sku(&Sku::new("0".to_string()).unwrap())
+            .await;
+
+        assert!(result.is_ok());
+        let inventory_levels = result.unwrap();
+        assert!(inventory_levels.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_find_inventory_levels_by_sku_with_graphql_error() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_with_error()));
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo
+            .find_inventory_levels_by_sku(&Sku::new("0".to_string()).unwrap())
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::QueryError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::QueryError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_find_inventory_levels_by_sku_with_missing_data() {
+        let mut client = MockECClient::new();
+
+        client
+            .expect_query::<GraphQLResponse<InventoryItemsData>>()
+            .times(1)
+            .return_once(|_| Ok(mock_with_no_data()));
+
+        let repo = InventoryLevelRepositoryImpl::new(client);
+
+        let result = repo
+            .find_inventory_levels_by_sku(&Sku::new("0".to_string()).unwrap())
             .await;
 
         assert!(result.is_err());

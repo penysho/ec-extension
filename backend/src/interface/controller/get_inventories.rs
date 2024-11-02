@@ -61,11 +61,9 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
 
-    use crate::domain::inventory_item::inventory_item::InventoryItem;
-    use crate::domain::inventory_level::inventory_level::InventoryLevel;
-    use crate::domain::inventory_level::quantity::quantity::{InventoryType, Quantity};
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::mock::domain_mock::{mock_inventory_items, mock_inventory_level_map};
     use crate::usecase::interactor::inventory_interactor_interface::{
         InventoryInteractor, MockInventoryInteractor,
     };
@@ -75,7 +73,6 @@ mod tests {
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::web;
     use actix_web::{http::StatusCode, test, App, Error};
-    use chrono::Utc;
     use mockall::predicate::eq;
 
     const BASE_URL: &'static str = "/ec-extension/inventories";
@@ -108,28 +105,8 @@ mod tests {
             .with(eq(GetInventoriesQuery::ProductId("0".to_string())))
             .returning(|_| {
                 Ok((
-                    vec![
-                        InventoryItem::new("0", "0", true, false, Utc::now(), Utc::now()).unwrap(),
-                    ],
-                    vec![(
-                        "0".to_string(),
-                        vec![InventoryLevel::new(
-                            "0",
-                            "0",
-                            "location_id",
-                            vec![
-                                Quantity::new(10, InventoryType::Available).unwrap(),
-                                Quantity::new(20, InventoryType::Committed).unwrap(),
-                                Quantity::new(30, InventoryType::Incoming).unwrap(),
-                                Quantity::new(40, InventoryType::Reserved).unwrap(),
-                                Quantity::new(50, InventoryType::SafetyStock).unwrap(),
-                                Quantity::new(60, InventoryType::Damaged).unwrap(),
-                            ],
-                        )
-                        .unwrap()],
-                    )]
-                    .into_iter()
-                    .collect(),
+                    mock_inventory_items(1),
+                    mock_inventory_level_map(5, &"0".to_string()),
                 ))
             });
 

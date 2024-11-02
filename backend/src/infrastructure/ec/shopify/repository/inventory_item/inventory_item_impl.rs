@@ -134,6 +134,8 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use chrono::Utc;
 
     use crate::{
@@ -148,15 +150,16 @@ mod tests {
                         InventoryItemNode, InventoryItemsData, VariantIdNode,
                         VariantNodeForInventory, VariantsDataForInventory,
                     },
-                    inventory_level::{InventoryItemIdNode, InventoryLevelNode, QuantityNode},
-                    location::LocationNode,
+                    inventory_level::{
+                        InventoryItemIdNode, InventoryLevelNode, LocationIdNode, QuantityNode,
+                    },
                 },
             },
         },
         usecase::repository::inventory_item_repository_interface::InventoryItemRepository,
     };
 
-    fn mock_inventory_item(id: u32) -> InventoryItemNode {
+    fn mock_inventory_item_node(id: u32) -> InventoryItemNode {
         InventoryItemNode {
             id: format!("gid://shopify/InventoryItem/{id}"),
             variant: VariantIdNode {
@@ -167,7 +170,7 @@ mod tests {
                 item: InventoryItemIdNode {
                     id: format!("gid://shopify/InventoryItem/{id}"),
                 },
-                location: LocationNode {
+                location: LocationIdNode {
                     id: format!("gid://shopify/Location/{id}"),
                 },
                 quantities: vec![
@@ -207,7 +210,7 @@ mod tests {
         let nodes: Vec<Node<VariantNodeForInventory>> = (0..count)
             .map(|i| Node {
                 node: VariantNodeForInventory {
-                    inventory_item: mock_inventory_item(i as u32),
+                    inventory_item: mock_inventory_item_node(i as u32),
                 },
             })
             .collect();
@@ -233,7 +236,7 @@ mod tests {
     ) -> GraphQLResponse<InventoryItemsData> {
         let nodes: Vec<Node<InventoryItemNode>> = (0..count)
             .map(|i: usize| Node {
-                node: mock_inventory_item(i as u32),
+                node: mock_inventory_item_node(i as u32),
             })
             .collect();
 
