@@ -62,7 +62,6 @@ impl<C: ECClient> MediaRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
-    /// Obtain media associated with a single product ID.
     async fn find_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
@@ -103,7 +102,6 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         media_domains
     }
 
-    /// Obtain media associated with multiple product IDs.
     async fn find_media_by_product_ids(
         &self,
         product_ids: Vec<&ProductId>,

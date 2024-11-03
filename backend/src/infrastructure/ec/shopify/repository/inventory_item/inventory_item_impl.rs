@@ -32,7 +32,6 @@ impl<C: ECClient> InventoryItemRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemRepositoryImpl<C> {
-    /// Get product inventory information by product id.
     async fn find_inventory_items_by_product_id(
         &self,
         product_id: &ProductId,
@@ -80,7 +79,6 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
             .collect()
     }
 
-    /// Get product inventory information by sku.
     async fn find_inventory_item_by_sku(&self, sku: &Sku) -> Result<InventoryItem, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();

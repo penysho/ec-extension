@@ -73,7 +73,6 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
-    /// Get detailed product information.
     async fn find_product_by_id(&self, id: &ProductId) -> Result<Product, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
@@ -116,7 +115,6 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         Ok(domains.into_iter().next().unwrap())
     }
 
-    /// Retrieve multiple products.
     async fn find_products(
         &self,
         limit: &Option<u32>,

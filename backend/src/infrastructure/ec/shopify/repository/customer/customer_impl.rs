@@ -28,7 +28,6 @@ impl<C: ECClient> CustomerRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C> {
-    /// Retrieve customer information by email.
     async fn find_customer_by_email(&self, email: &Email) -> Result<Customer, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();

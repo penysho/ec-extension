@@ -41,7 +41,6 @@ impl<C: ECClient> LocationRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C> {
-    /// Get id on all locations.
     async fn find_all_location_ids(&self) -> Result<Vec<LocationId>, DomainError> {
         let first_query = ShopifyGQLQueryHelper::first_query();
         let page_info = ShopifyGQLQueryHelper::page_info();
@@ -77,7 +76,6 @@ impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C>
         Ok(ids)
     }
 
-    /// Retrieve multiple locations.
     async fn find_locations(
         &self,
         limit: &Option<u32>,

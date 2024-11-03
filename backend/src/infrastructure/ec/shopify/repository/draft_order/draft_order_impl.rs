@@ -150,7 +150,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                 .draft_order,
         )
     }
-    /// Retrieve draft order information by customer id.
+
     async fn find_draft_orders_by_customer_id(
         &self,
         customer_id: &CustomerId,

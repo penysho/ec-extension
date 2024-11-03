@@ -63,7 +63,6 @@ impl<C: ECClient> InventoryLevelRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepositoryImpl<C> {
-    /// Get inventory level information by sku with location id.
     async fn find_inventory_level_by_sku_with_location_id(
         &self,
         sku: &Sku,
@@ -123,7 +122,6 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         Ok(domains.into_iter().next())
     }
 
-    /// Get inventory level information by sku with location id.
     async fn find_inventory_levels_by_sku(
         &self,
         sku: &Sku,
@@ -214,7 +212,6 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         InventoryLevelNode::to_domains(all_nodes)
     }
 
-    /// Update inventory quantity.
     async fn update(
         &self,
         inventory_change: InventoryChange,
