@@ -30,6 +30,14 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                 ),
             )
             .route(
+                "/products/related/{id}",
+                web::get().to(
+                    |controller: web::Data<Arc<Controller>>, path: web::Path<(String,)>| async move {
+                        controller.get_related_products(path).await
+                    },
+                ),
+            )
+            .route(
                 "/inventories",
                  web::get().to(|controller: web::Data<Arc<Controller>>, params: web::Query<GetInventoriesQueryParams>| async move {
                     controller.get_inventories(params).await

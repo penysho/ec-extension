@@ -5,6 +5,7 @@ use crate::{
         config::config::ShopifyConfig,
         ec::shopify::{
             client_impl::ShopifyGQLClient,
+            query_service::product::product_impl::ProductQueryServiceImpl,
             repository::{
                 customer::customer_impl::CustomerRepositoryImpl,
                 draft_order::draft_order_impl::DraftOrderRepositoryImpl,
@@ -48,6 +49,9 @@ impl InteractProvider for InteractProviderImpl {
                 self.shopify_config.clone(),
             ))),
             Box::new(MediaRepositoryImpl::new(ShopifyGQLClient::new(
+                self.shopify_config.clone(),
+            ))),
+            Box::new(ProductQueryServiceImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
             ))),
         ))
