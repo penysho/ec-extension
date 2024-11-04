@@ -8,6 +8,10 @@ use crate::{
     },
     usecase::{
         interactor::product_interactor_interface::ProductInteractor,
+        query_service::{
+            dto::product::ProductDTO,
+            product_query_service_interface::{ProductQueryService, RelatedProductFilter},
+        },
         repository::{
             media_repository_interface::MediaRepository,
             product_repository_interface::ProductRepository,
@@ -19,16 +23,19 @@ use crate::{
 pub struct ProductInteractorImpl {
     product_repository: Box<dyn ProductRepository>,
     media_repository: Box<dyn MediaRepository>,
+    product_query_service: Box<dyn ProductQueryService>,
 }
 
 impl ProductInteractorImpl {
     pub fn new(
         product_repository: Box<dyn ProductRepository>,
         media_repository: Box<dyn MediaRepository>,
+        product_query_service: Box<dyn ProductQueryService>,
     ) -> Self {
         Self {
             product_repository: product_repository,
             media_repository: media_repository,
+            product_query_service: product_query_service,
         }
     }
 }
@@ -75,6 +82,20 @@ impl ProductInteractor for ProductInteractorImpl {
             (Ok(products), Ok(media)) => Ok((products, media)),
             (Err(e), _) => Err(e),
             (_, Err(e)) => Err(e),
+        }
+    }
+
+    async fn get_related_products(&self, id: &ProductId) -> Result<Vec<ProductDTO>, DomainError> {
+        let product = self.product_repository.find_product_by_id(id).await?;
+        let category_id = product.category_id().clone();
+
+        match category_id {
+            Some(category_id) => {
+                self.product_query_service
+                    .search_related_products(&RelatedProductFilter { category_id })
+                    .await
+            }
+            None => Ok(vec![]),
         }
     }
 }
