@@ -5,7 +5,7 @@ pub struct ProductDTO {
     pub id: String,
     pub name: String,
     pub handle: String,
-    pub vendor: Option<String>,
+    pub vendor: String,
     pub price: f64,
     pub featured_media_url: Option<String>,
 }
