@@ -63,7 +63,11 @@ impl VariantNode {
             "DRAFT" => Ok(ProductStatus::Draft),
             _ => Err(DomainError::ConversionError),
         }?;
-        let category_id = self.product.category.as_ref().map(|c| c.id.clone());
+        let category_id = self
+            .product
+            .category
+            .as_ref()
+            .map(|c| ShopifyGQLQueryHelper::remove_gid_prefix(&c.id.clone()));
         let variant_domain = self.to_variant_domain()?;
 
         Product::new(
