@@ -272,7 +272,7 @@ mod tests {
             ec_client_interface::MockECClient,
             shopify::{
                 repository::schema::product::{
-                    InventoryItemIdNode, ProductNode, TaxonomyCategory, VariantNode,
+                    InventoryItemIdNode, ProductNode, TaxonomyCategoryNode, VariantNode,
                 },
                 schema::{Edges, GraphQLError, Node, PageInfo},
             },
@@ -309,7 +309,7 @@ mod tests {
                     updated_at: Utc::now(),
                     product: ProductNode {
                         id: format!("gid://shopify/Product/{i}"),
-                        category: Some(TaxonomyCategory {
+                        category: Some(TaxonomyCategoryNode {
                             id: "gid://shopify/Category/111".to_string(),
                         }),
                         title: format!("Test Product {i}"),
@@ -345,7 +345,7 @@ mod tests {
             .map(|i: usize| Node {
                 node: ProductNode {
                     id: format!("gid://shopify/Product/{i}"),
-                    category: Some(TaxonomyCategory {
+                    category: Some(TaxonomyCategoryNode {
                         id: "gid://shopify/Category/111".to_string(),
                     }),
                     title: format!("Test Product {i}"),

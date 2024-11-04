@@ -188,7 +188,7 @@ mod tests {
             shopify::{
                 repository::{
                     media::media_impl::MediaRepositoryImpl,
-                    schema::media::{ImageNode, MediaData, MediaNode, MediaPreviewImage},
+                    schema::media::{ImageNode, MediaData, MediaNode, MediaPreviewImageNode},
                 },
                 schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
             },
@@ -203,7 +203,7 @@ mod tests {
                     id: format!("gid://shopify/MediaImage/{i}"),
                     file_status: "UPLOADED".to_string(),
                     alt: Some(format!("Alt text for media {i}")),
-                    preview: Some(MediaPreviewImage {
+                    preview: Some(MediaPreviewImageNode {
                         image: Some(ImageNode {
                             id: Some(format!("gid://shopify/MediaImage/{i}")),
                             alt_text: Some(format!("Alt text for image {i}")),

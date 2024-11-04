@@ -117,14 +117,14 @@ pub struct ProductsData {
 #[derive(Debug, Deserialize)]
 pub struct ProductNode {
     pub id: String,
-    pub category: Option<TaxonomyCategory>,
+    pub category: Option<TaxonomyCategoryNode>,
     pub title: String,
     pub description: String,
     pub status: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct TaxonomyCategory {
+pub struct TaxonomyCategoryNode {
     pub id: String,
 }
 

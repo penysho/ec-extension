@@ -74,13 +74,13 @@ pub struct MediaNode {
     pub id: String,
     pub file_status: String,
     pub alt: Option<String>,
-    pub preview: Option<MediaPreviewImage>,
+    pub preview: Option<MediaPreviewImageNode>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MediaPreviewImage {
+pub struct MediaPreviewImageNode {
     pub image: Option<ImageNode>,
 }
 
