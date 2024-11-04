@@ -4,6 +4,7 @@ use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::error::DomainError;
+use crate::usecase::query_service::dto::product::ProductDTO;
 use crate::{define_error_response, interface::presenter::common::exception::ErrorResponseBuilder};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -68,3 +69,10 @@ pub struct GetProductsResponse {
 }
 
 define_error_response!(GetProductsErrorResponse, "Products");
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetRelatedProductsResponse {
+    pub products: Vec<ProductDTO>,
+}
+
+define_error_response!(GetRelatedProductsErrorResponse, "Products");
