@@ -34,17 +34,27 @@ impl<C: ECClient + Send + Sync> ProductQueryService for ProductQueryServiceImpl<
     ) -> Result<Vec<ProductDTO>, DomainError> {
         let first_query = ShopifyGQLHelper::first_query();
         let page_info = ShopifyGQLHelper::page_info();
+        let id = &filter.id;
         let category_id = &filter.category_id;
 
         let query = format!(
             "query {{
-                    products({first_query}, sortKey: UPDATED_AT, query: \"category_id:{category_id}\") {{
+                    products(
+                        {first_query},
+                        sortKey: UPDATED_AT,
+                        query: \"
+                            (NOT id:{id}) AND
+                            category_id:{category_id} AND
+                            inventory_total:>0 AND
+                            product_publication_status:published AND
+                            gift_card:false\"
+                    ) {{
                         edges {{
                             node {{
                                 id
                                 title
                                 handle
-                                vender
+                                vendor
                                 priceRangeV2 {{
                                     maxVariantPrice {{
                                         amount
@@ -185,6 +195,7 @@ mod tests {
 
         let result = repo
             .search_related_products(&RelatedProductFilter {
+                id: "1000".to_string(),
                 category_id: "0".to_string(),
             })
             .await;
@@ -227,6 +238,7 @@ mod tests {
 
         let result = repo
             .search_related_products(&RelatedProductFilter {
+                id: "1000".to_string(),
                 category_id: "0".to_string(),
             })
             .await;
@@ -252,6 +264,7 @@ mod tests {
 
         let result = repo
             .search_related_products(&RelatedProductFilter {
+                id: "1000".to_string(),
                 category_id: "0".to_string(),
             })
             .await;

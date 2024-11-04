@@ -92,7 +92,10 @@ impl ProductInteractor for ProductInteractorImpl {
         match category_id {
             Some(category_id) => {
                 self.product_query_service
-                    .search_related_products(&RelatedProductFilter { category_id })
+                    .search_related_products(&RelatedProductFilter {
+                        id: id.clone(),
+                        category_id,
+                    })
                     .await
             }
             None => Ok(vec![]),

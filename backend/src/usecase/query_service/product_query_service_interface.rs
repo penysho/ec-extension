@@ -1,11 +1,15 @@
 use async_trait::async_trait;
 
-use crate::domain::{error::error::DomainError, product::category::category::Id};
+use crate::domain::{
+    error::error::DomainError,
+    product::{category::category::Id as CategoryId, product::Id as ProductId},
+};
 
 use super::dto::product::ProductDTO;
 
 pub struct RelatedProductFilter {
-    pub category_id: Id,
+    pub id: ProductId,
+    pub category_id: CategoryId,
 }
 
 #[async_trait]
