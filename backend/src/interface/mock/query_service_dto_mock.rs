@@ -5,7 +5,7 @@ use crate::usecase::query_service::dto::product::ProductDTO;
 pub fn mock_products_dto(count: usize) -> Vec<ProductDTO> {
     (0..count)
         .map(|i| ProductDTO {
-            id: format!("product-{}", i),
+            id: format!("{}", i),
             name: format!("Product {}", i),
             handle: format!("product-{}", i),
             vendor: "Vendor".to_string(),

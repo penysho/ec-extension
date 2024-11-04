@@ -116,7 +116,10 @@ impl ProductPresenter for ProductPresenterImpl {
 
 #[cfg(test)]
 mod tests {
-    use crate::interface::mock::domain_mock::{mock_media, mock_products};
+    use crate::interface::mock::{
+        domain_mock::{mock_media, mock_products},
+        query_service_dto_mock::mock_products_dto,
+    };
 
     use super::*;
 
@@ -223,5 +226,20 @@ mod tests {
             result,
             Err(GetProductsErrorResponse::ServiceUnavailable)
         ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_related_products_success() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter
+            .present_get_related_products(Ok(mock_products_dto(5)))
+            .await
+            .unwrap()
+            .into_inner();
+
+        assert_eq!(result.products.len(), 5);
+        assert_eq!(result.products[0].id, "0");
+        assert_eq!(result.products[4].id, "4");
     }
 }
