@@ -11,7 +11,7 @@ impl From<ProductNode> for ProductDTO {
             id: ShopifyGQLHelper::remove_gid_prefix(&node.id),
             name: node.title,
             handle: node.handle,
-            vendor: node.vender,
+            vendor: node.vendor,
             price: node
                 .price_range_v2
                 .max_variant_price
@@ -38,7 +38,7 @@ pub struct ProductNode {
     pub id: String,
     pub title: String,
     pub handle: String,
-    pub vender: String,
+    pub vendor: String,
     pub price_range_v2: PriceRangeV2Node,
     pub featured_media: Option<MediaNode>,
 }
@@ -50,7 +50,6 @@ pub struct PriceRangeV2Node {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct MoneyV2Node {
     pub amount: String,
 }
