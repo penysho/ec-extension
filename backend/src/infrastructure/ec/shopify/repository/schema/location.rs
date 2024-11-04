@@ -2,14 +2,12 @@ use serde::Deserialize;
 
 use crate::{
     domain::{address::address::Address, error::error::DomainError, location::location::Location},
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::Edges},
 };
-
-use super::common::Edges;
 
 impl LocationNode {
     pub fn to_domain(self) -> Result<Location, DomainError> {
-        let id = ShopifyGQLQueryHelper::remove_gid_prefix(&self.id);
+        let id = ShopifyGQLHelper::remove_gid_prefix(&self.id);
 
         Location::new(
             id,

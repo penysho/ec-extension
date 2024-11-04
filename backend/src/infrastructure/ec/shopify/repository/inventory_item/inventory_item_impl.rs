@@ -9,11 +9,11 @@ use crate::{
     infrastructure::ec::{
         ec_client_interface::ECClient,
         shopify::{
-            query_helper::ShopifyGQLQueryHelper,
-            repository::schema::{
-                common::GraphQLResponse,
-                inventory_item::{InventoryItemNode, InventoryItemsData, VariantsDataForInventory},
+            gql_helper::ShopifyGQLHelper,
+            repository::schema::inventory_item::{
+                InventoryItemNode, InventoryItemsData, VariantsDataForInventory,
             },
+            schema::GraphQLResponse,
         },
     },
     usecase::repository::inventory_item_repository_interface::InventoryItemRepository,
@@ -36,8 +36,8 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
         &self,
         product_id: &ProductId,
     ) -> Result<Vec<InventoryItem>, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
 
         let query = format!(
             "query {{
@@ -80,8 +80,8 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
     }
 
     async fn find_inventory_item_by_sku(&self, sku: &Sku) -> Result<InventoryItem, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
         let sku = sku.value();
 
         let query = format!(
@@ -140,18 +140,20 @@ mod tests {
         domain::{error::error::DomainError, product::variant::sku::sku::Sku},
         infrastructure::ec::{
             ec_client_interface::MockECClient,
-            shopify::repository::{
-                inventory_item::inventory_item_impl::InventoryItemRepositoryImpl,
-                schema::{
-                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
-                    inventory_item::{
-                        InventoryItemNode, InventoryItemsData, VariantIdNode,
-                        VariantNodeForInventory, VariantsDataForInventory,
-                    },
-                    inventory_level::{
-                        InventoryItemIdNode, InventoryLevelNode, LocationIdNode, QuantityNode,
+            shopify::{
+                repository::{
+                    inventory_item::inventory_item_impl::InventoryItemRepositoryImpl,
+                    schema::{
+                        inventory_item::{
+                            InventoryItemNode, InventoryItemsData, VariantIdNode,
+                            VariantNodeForInventory, VariantsDataForInventory,
+                        },
+                        inventory_level::{
+                            InventoryItemIdNode, InventoryLevelNode, LocationIdNode, QuantityNode,
+                        },
                     },
                 },
+                schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
             },
         },
         usecase::repository::inventory_item_repository_interface::InventoryItemRepository,

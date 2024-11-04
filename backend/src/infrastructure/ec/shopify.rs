@@ -1,4 +1,5 @@
 pub mod client_impl;
-mod query_helper;
+mod gql_helper;
 pub mod query_service;
 pub mod repository;
+pub mod schema;

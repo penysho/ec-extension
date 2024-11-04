@@ -1,7 +1,7 @@
-pub struct ShopifyGQLQueryHelper {}
+pub struct ShopifyGQLHelper {}
 
 #[allow(dead_code)]
-impl ShopifyGQLQueryHelper {
+impl ShopifyGQLHelper {
     pub const SHOPIFY_QUERY_LIMIT: usize = 250;
 
     pub const SHOPIFY_PRODUCT_GID_PREFIX: &'static str = "gid://shopify/Product/";

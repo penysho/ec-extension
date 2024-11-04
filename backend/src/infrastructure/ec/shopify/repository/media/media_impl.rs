@@ -11,11 +11,9 @@ use crate::{
         ec::{
             ec_client_interface::ECClient,
             shopify::{
-                query_helper::ShopifyGQLQueryHelper,
-                repository::schema::{
-                    common::GraphQLResponse,
-                    media::{MediaData, MediaNode},
-                },
+                gql_helper::ShopifyGQLHelper,
+                repository::schema::media::{MediaData, MediaNode},
+                schema::GraphQLResponse,
             },
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
@@ -63,8 +61,8 @@ impl<C: ECClient> MediaRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
     async fn find_media_by_product_id(&self, id: &ProductId) -> Result<Vec<Media>, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
         let media_fields = Self::media_fields();
 
         // The number of media associated with a single product shall not exceed 250.
@@ -106,7 +104,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         &self,
         product_ids: Vec<&ProductId>,
     ) -> Result<Vec<Media>, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
+        let first_query = ShopifyGQLHelper::first_query();
         let media_fields = Self::media_fields();
 
         let mut query = String::from("query { ");
@@ -122,7 +120,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                 }}",
                 alias,
                 first_query,
-                ShopifyGQLQueryHelper::remove_gid_prefix(id)
+                ShopifyGQLHelper::remove_gid_prefix(id)
             );
             query.push_str(&query_part);
         }
@@ -187,12 +185,12 @@ mod tests {
         },
         infrastructure::ec::{
             ec_client_interface::MockECClient,
-            shopify::repository::{
-                media::media_impl::MediaRepositoryImpl,
-                schema::{
-                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
-                    media::{ImageNode, MediaData, MediaNode, MediaPreviewImage},
+            shopify::{
+                repository::{
+                    media::media_impl::MediaRepositoryImpl,
+                    schema::media::{ImageNode, MediaData, MediaNode, MediaPreviewImage},
                 },
+                schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
             },
         },
         usecase::repository::media_repository_interface::MediaRepository,

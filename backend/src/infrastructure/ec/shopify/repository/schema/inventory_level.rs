@@ -8,7 +8,7 @@ use crate::{
             quantity::quantity::{InventoryType, Quantity},
         },
     },
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::gql_helper::ShopifyGQLHelper,
 };
 
 impl InventoryLevelNode {
@@ -20,9 +20,9 @@ impl InventoryLevelNode {
             .collect();
 
         InventoryLevel::new(
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.item.id),
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.location.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.item.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.location.id),
             quantities?,
         )
     }

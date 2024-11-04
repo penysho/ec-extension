@@ -9,12 +9,10 @@ use crate::{
             quantity::quantity::InventoryType,
         },
     },
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::UserError},
 };
 
-use super::{
-    common::UserError, inventory_item::InventoryItemNode, inventory_level::InventoryLevelNode,
-};
+use super::{inventory_item::InventoryItemNode, inventory_level::InventoryLevelNode};
 
 impl From<InventoryChange> for InventoryAdjustQuantitiesInput {
     fn from(domain: InventoryChange) -> Self {
@@ -24,16 +22,14 @@ impl From<InventoryChange> for InventoryAdjustQuantitiesInput {
                 .into_iter()
                 .map(|change| InventoryChangeInput {
                     delta: *change.delta(),
-                    inventory_item_id: ShopifyGQLQueryHelper::add_inventory_item_gid_prefix(
+                    inventory_item_id: ShopifyGQLHelper::add_inventory_item_gid_prefix(
                         change.inventory_item_id(),
                     ),
                     ledger_document_uri: change
                         .ledger_document_uri()
                         .as_ref()
                         .and_then(|l| Some(l.value().to_string())),
-                    location_id: ShopifyGQLQueryHelper::add_location_gid_prefix(
-                        change.location_id(),
-                    ),
+                    location_id: ShopifyGQLHelper::add_location_gid_prefix(change.location_id()),
                 })
                 .collect(),
             name: domain.name().to_owned().into(),

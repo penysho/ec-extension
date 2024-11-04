@@ -5,4 +5,4 @@ pub mod inventory_level;
 pub mod location;
 pub mod media;
 pub mod product;
-mod schema;
+pub mod schema;

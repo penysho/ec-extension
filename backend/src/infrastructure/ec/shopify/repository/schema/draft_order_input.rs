@@ -3,12 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     domain::{customer::customer::Id as CustomerId, draft_order::draft_order::DraftOrder},
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::UserError},
 };
 
 use super::{
     address_input::AddressInput,
-    common::UserError,
     draft_order::DraftOrderNode,
     line_item_input::{DiscountInput, LineItemInput},
 };
@@ -47,7 +46,7 @@ pub struct DraftOrderInput {
 impl From<CustomerId> for PurchasingEntityInput {
     fn from(customer_id: CustomerId) -> Self {
         Self {
-            customer_id: Some(ShopifyGQLQueryHelper::add_customer_gid_prefix(&customer_id)),
+            customer_id: Some(ShopifyGQLHelper::add_customer_gid_prefix(&customer_id)),
         }
     }
 }
@@ -61,7 +60,7 @@ pub struct PurchasingEntityInput {
 impl From<DraftOrder> for DraftOrderDeleteInput {
     fn from(draft_order: DraftOrder) -> Self {
         Self {
-            id: ShopifyGQLQueryHelper::add_draft_order_gid_prefix(&draft_order.id()),
+            id: ShopifyGQLHelper::add_draft_order_gid_prefix(&draft_order.id()),
         }
     }
 }

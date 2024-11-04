@@ -8,7 +8,7 @@ use crate::{
             line_item::LineItem,
         },
     },
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::gql_helper::ShopifyGQLHelper,
 };
 
 use super::money::MoneyBagNode;
@@ -16,10 +16,10 @@ use super::money::MoneyBagNode;
 impl LineItemNode {
     pub fn to_domain(self) -> Result<LineItem, DomainError> {
         LineItem::new(
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.id),
             self.custom,
             self.variant
-                .map(|v| ShopifyGQLQueryHelper::remove_gid_prefix(&v.id)),
+                .map(|v| ShopifyGQLHelper::remove_gid_prefix(&v.id)),
             self.quantity as u32,
             self.applied_discount.map(|d| d.to_domain()).transpose()?,
             self.discounted_total_set.to_domain()?,

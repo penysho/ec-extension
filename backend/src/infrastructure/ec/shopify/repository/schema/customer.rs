@@ -9,14 +9,14 @@ use crate::{
         media::associated_id::associated_id::AssociatedId,
         phone::phone::Phone,
     },
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::Edges},
 };
 
-use super::{address::AddressNode, common::Edges, media::ImageNode};
+use super::{address::AddressNode, media::ImageNode};
 
 impl CustomerNode {
     pub fn to_domain(self) -> Result<Customer, DomainError> {
-        let id = ShopifyGQLQueryHelper::remove_gid_prefix(&self.id);
+        let id = ShopifyGQLHelper::remove_gid_prefix(&self.id);
         let status = match self.state.as_str() {
             "ENABLED" => Ok(CustomerStatus::Active),
             "DISABLED" => Ok(CustomerStatus::Inactive),

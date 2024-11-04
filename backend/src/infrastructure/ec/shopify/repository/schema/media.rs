@@ -11,9 +11,7 @@ use crate::{
             src::src::Src,
         },
     },
-    infrastructure::ec::shopify::{
-        query_helper::ShopifyGQLQueryHelper, repository::schema::common::Edges,
-    },
+    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::Edges},
 };
 
 impl MediaNode {
@@ -31,7 +29,7 @@ impl MediaNode {
         };
 
         Media::new(
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.id),
             None::<String>,
             status,
             image,
@@ -55,7 +53,7 @@ impl MediaNode {
 impl ImageNode {
     pub fn to_domain(self, associated_id: Option<AssociatedId>) -> Result<Image, DomainError> {
         let id = match self.id {
-            Some(id) => ShopifyGQLQueryHelper::remove_gid_prefix(&id),
+            Some(id) => ShopifyGQLHelper::remove_gid_prefix(&id),
             None => return Err(DomainError::ConversionError),
         };
         let src = Src::new(self.url)?;
