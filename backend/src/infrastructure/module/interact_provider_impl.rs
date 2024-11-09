@@ -19,6 +19,8 @@ use crate::{
     },
     interface::controller::interact_provider_interface::InteractProvider,
     usecase::interactor::{
+        customer::customer_impl::CustomerInteractorImpl,
+        customer_interactor_interface::CustomerInteractor,
         draft_order::draft_order_impl::DraftOrderInteractorImpl,
         draft_order_interactor_interface::DraftOrderInteractor,
         inventory::inventory_impl::InventoryInteractorImpl,
@@ -91,6 +93,12 @@ impl InteractProvider for InteractProviderImpl {
     async fn provide_location_interactor(&self) -> Box<dyn LocationInteractor> {
         Box::new(LocationInteractorImpl::new(Box::new(
             LocationRepositoryImpl::new(ShopifyGQLClient::new(self.shopify_config.clone())),
+        )))
+    }
+
+    async fn provide_customer_interactor(&self) -> Box<dyn CustomerInteractor> {
+        Box::new(CustomerInteractorImpl::new(Box::new(
+            CustomerRepositoryImpl::new(ShopifyGQLClient::new(self.shopify_config.clone())),
         )))
     }
 }
