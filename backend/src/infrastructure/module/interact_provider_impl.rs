@@ -73,9 +73,6 @@ impl InteractProvider for InteractProviderImpl {
             Box::new(InventoryLevelRepositoryImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
             ))),
-            Box::new(LocationRepositoryImpl::new(ShopifyGQLClient::new(
-                self.shopify_config.clone(),
-            ))),
         ))
     }
 
