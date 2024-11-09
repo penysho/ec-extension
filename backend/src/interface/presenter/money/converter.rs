@@ -1,6 +1,6 @@
 use crate::domain::money::money::{CurrencyCode, Money};
 
-use super::schema::{CurrencyCodeSchema, MoneySchema};
+use super::schema::{CustomerStatusEnum, MoneySchema};
 
 impl From<Money> for MoneySchema {
     fn from(money_bag: Money) -> Self {
@@ -11,7 +11,7 @@ impl From<Money> for MoneySchema {
     }
 }
 
-impl From<CurrencyCode> for CurrencyCodeSchema {
+impl From<CurrencyCode> for CustomerStatusEnum {
     fn from(currency_code: CurrencyCode) -> Self {
         match currency_code {
             CurrencyCode::USD => Self::USD,
