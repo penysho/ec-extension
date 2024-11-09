@@ -1,6 +1,6 @@
 use crate::domain::draft_order::draft_order::{DraftOrder, DraftOrderStatus};
 
-use super::schema::{DraftOrderSchema, DraftOrderStatusSchema};
+use super::schema::{DraftOrderSchema, DraftOrderStatusEnum};
 
 impl From<DraftOrder> for DraftOrderSchema {
     fn from(draft_order: DraftOrder) -> Self {
@@ -34,12 +34,12 @@ impl From<DraftOrder> for DraftOrderSchema {
     }
 }
 
-impl From<DraftOrderStatus> for DraftOrderStatusSchema {
+impl From<DraftOrderStatus> for DraftOrderStatusEnum {
     fn from(status: DraftOrderStatus) -> Self {
         match status {
-            DraftOrderStatus::Open => DraftOrderStatusSchema::Open,
-            DraftOrderStatus::Completed => DraftOrderStatusSchema::Completed,
-            DraftOrderStatus::Canceled => DraftOrderStatusSchema::Canceled,
+            DraftOrderStatus::Open => DraftOrderStatusEnum::Open,
+            DraftOrderStatus::Completed => DraftOrderStatusEnum::Completed,
+            DraftOrderStatus::Canceled => DraftOrderStatusEnum::Canceled,
         }
     }
 }

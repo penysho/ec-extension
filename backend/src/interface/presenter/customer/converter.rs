@@ -1,6 +1,6 @@
 use crate::domain::customer::customer::{Customer, CustomerStatus};
 
-use super::schema::{CustomerSchema, CustomerStatusSchema};
+use super::schema::{CustomerSchema, CustomerStatusEnum};
 
 impl From<Customer> for CustomerSchema {
     fn from(customer: Customer) -> Self {
@@ -43,11 +43,11 @@ impl From<Customer> for CustomerSchema {
     }
 }
 
-impl From<CustomerStatus> for CustomerStatusSchema {
+impl From<CustomerStatus> for CustomerStatusEnum {
     fn from(status: CustomerStatus) -> Self {
         match status {
-            CustomerStatus::Active => CustomerStatusSchema::Active,
-            CustomerStatus::Inactive => CustomerStatusSchema::Inactive,
+            CustomerStatus::Active => CustomerStatusEnum::Active,
+            CustomerStatus::Inactive => CustomerStatusEnum::Inactive,
         }
     }
 }

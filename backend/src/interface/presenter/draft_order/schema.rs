@@ -12,7 +12,7 @@ use crate::{
         address::schema::AddressSchema,
         common::exception::ErrorResponseBuilder,
         line_item::schema::LineItemSchema,
-        money::schema::{CurrencyCodeSchema, MoneySchema},
+        money::schema::{CustomerStatusEnum, MoneySchema},
     },
 };
 
@@ -20,7 +20,7 @@ use crate::{
 pub struct DraftOrderSchema {
     pub(super) id: String,
     pub(super) name: String,
-    pub(super) status: DraftOrderStatusSchema,
+    pub(super) status: DraftOrderStatusEnum,
     pub(super) customer_id: Option<String>,
     pub(super) billing_address: Option<AddressSchema>,
     pub(super) shipping_address: Option<AddressSchema>,
@@ -34,7 +34,7 @@ pub struct DraftOrderSchema {
     pub(super) total_discounts_set: MoneySchema,
     pub(super) total_shipping_price_set: MoneySchema,
     pub(super) total_price_set: MoneySchema,
-    pub(super) presentment_currency_code: CurrencyCodeSchema,
+    pub(super) presentment_currency_code: CustomerStatusEnum,
     pub(super) order_id: Option<String>,
     pub(super) completed_at: Option<DateTime<Utc>>,
     pub(super) created_at: DateTime<Utc>,
@@ -42,7 +42,7 @@ pub struct DraftOrderSchema {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum DraftOrderStatusSchema {
+pub enum DraftOrderStatusEnum {
     Open,
     Completed,
     Canceled,

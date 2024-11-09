@@ -26,14 +26,14 @@ pub struct CustomerSchema {
     pub(super) image: Option<ImageSchema>,
     pub(super) phone: Option<String>,
     pub(super) note: Option<String>,
-    pub(super) status: CustomerStatusSchema,
+    pub(super) status: CustomerStatusEnum,
     pub(super) verified_email: bool,
     pub(super) created_at: DateTime<Utc>,
     pub(super) updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum CustomerStatusSchema {
+pub enum CustomerStatusEnum {
     Active,
     Inactive,
 }
