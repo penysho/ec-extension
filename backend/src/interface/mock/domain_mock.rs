@@ -266,7 +266,6 @@ pub fn mock_customers(count: usize) -> Vec<Customer> {
             Customer::new(
                 format!("{i}"),
                 vec![mock_address()],
-                true,
                 Some(mock_address()),
                 format!("Test Customer {i}"),
                 Some(Email::new(format!("{i}@example.com")).unwrap()),

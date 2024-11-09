@@ -28,7 +28,6 @@ pub enum CustomerStatus {
 /// # Fields
 /// - `id` - A unique identifier for the customer.
 /// - `addresses` - A list of addresses associated with the customer.
-/// - `can_delete` - A flag indicating whether the customer can be deleted.
 /// - `default_address` - The default address for the customer, if applicable.
 /// - `display_name` - The name displayed for the customer.
 /// - `email` - The customer's email address (optional).
@@ -45,7 +44,6 @@ pub enum CustomerStatus {
 pub struct Customer {
     id: Id,
     addresses: Vec<Address>,
-    can_delete: bool,
     default_address: Option<Address>,
     display_name: String,
     email: Option<Email>,
@@ -65,7 +63,6 @@ impl Customer {
     pub fn new(
         id: impl Into<String>,
         addresses: Vec<Address>,
-        can_delete: bool,
         default_address: Option<Address>,
         display_name: impl Into<String>,
         email: Option<Email>,
@@ -102,7 +99,6 @@ impl Customer {
         Ok(Self {
             id,
             addresses,
-            can_delete,
             default_address,
             display_name,
             email,
@@ -145,7 +141,6 @@ mod tests {
         let customer = Customer::new(
             "123",
             vec![mock_address()],
-            true,
             Some(mock_address()),
             "John Doe",
             Some(Email::new("john@example.com").unwrap()),
@@ -182,7 +177,6 @@ mod tests {
         let customer = Customer::new(
             "",
             vec![mock_address()],
-            true,
             Some(mock_address()),
             "John Doe",
             Some(Email::new("john@example.com").unwrap()),
@@ -206,7 +200,6 @@ mod tests {
         let customer = Customer::new(
             "123",
             vec![mock_address()],
-            true,
             Some(mock_address()),
             "",
             Some(Email::new("john@example.com").unwrap()),
@@ -230,7 +223,6 @@ mod tests {
         let customer = Customer::new(
             "123",
             vec![mock_address()],
-            true,
             Some(
                 Address::new(
                     None::<String>, // Different value from mock_address()

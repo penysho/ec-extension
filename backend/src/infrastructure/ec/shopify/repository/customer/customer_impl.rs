@@ -125,7 +125,6 @@ mod tests {
         CustomerNode {
             id: format!("gid://shopify/Customer/{id}"),
             addresses: vec![mock_address(Some("123")), mock_address(Some("456"))],
-            can_delete: true,
             default_address: Some(mock_address(Some("123"))),
             display_name: "Test Customer".to_string(),
             email: Some("test@example.com".to_string()),

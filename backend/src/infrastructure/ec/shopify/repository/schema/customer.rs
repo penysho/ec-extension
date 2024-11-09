@@ -36,7 +36,6 @@ impl CustomerNode {
                 .into_iter()
                 .map(|address| address.to_domain())
                 .collect::<Result<Vec<_>, _>>()?,
-            self.can_delete,
             self.default_address
                 .map(|address| address.to_domain())
                 .transpose()?,
@@ -72,7 +71,6 @@ pub struct CustomersData {
 pub struct CustomerNode {
     pub id: String,
     pub addresses: Vec<AddressNode>,
-    pub can_delete: bool,
     pub default_address: Option<AddressNode>,
     pub display_name: String,
     pub email: Option<String>,
