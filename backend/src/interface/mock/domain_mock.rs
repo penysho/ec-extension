@@ -2,9 +2,10 @@
 /// Generate a mock of the domain.
 use crate::domain::{
     address::address::Address,
+    customer::customer::{Customer, CustomerStatus},
     draft_order::draft_order::{DraftOrder, DraftOrderStatus},
-    inventory_item::inventory_item::Id as InventoryItemId,
-    inventory_item::inventory_item::InventoryItem,
+    email::email::Email,
+    inventory_item::inventory_item::{Id as InventoryItemId, InventoryItem},
     inventory_level::{
         inventory_level::InventoryLevel,
         quantity::quantity::{InventoryType, Quantity},
@@ -24,6 +25,7 @@ use crate::domain::{
         amount::amount::Amount,
         money::{CurrencyCode, Money},
     },
+    phone::phone::Phone,
     product::{
         product::{Product, ProductStatus},
         variant::{
@@ -254,6 +256,31 @@ pub fn mock_inventory_levels(count: usize) -> Vec<InventoryLevel> {
                 ],
             )
             .expect("Failed to create mock inventory level")
+        })
+        .collect()
+}
+
+pub fn mock_customers(count: usize) -> Vec<Customer> {
+    (0..count)
+        .map(|i| {
+            Customer::new(
+                format!("{i}"),
+                vec![mock_address()],
+                true,
+                Some(mock_address()),
+                format!("Test Customer {i}"),
+                Some(Email::new(format!("{i}@example.com")).unwrap()),
+                Some("John"),
+                Some("Doe"),
+                None,
+                Some(Phone::new("+1234567890").unwrap()),
+                Some("Note"),
+                CustomerStatus::Active,
+                true,
+                Utc::now(),
+                Utc::now(),
+            )
+            .expect("Failed to create mock customer")
         })
         .collect()
 }

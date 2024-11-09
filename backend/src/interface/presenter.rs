@@ -1,5 +1,7 @@
 pub mod address;
 mod common;
+pub mod customer;
+pub mod customer_presenter_interface;
 pub mod draft_order;
 pub mod draft_order_presenter_interface;
 pub mod inventory;
