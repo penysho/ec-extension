@@ -1,3 +1,5 @@
+pub mod customer;
+pub mod customer_interactor_interface;
 pub mod draft_order;
 pub mod draft_order_interactor_interface;
 pub mod inventory;

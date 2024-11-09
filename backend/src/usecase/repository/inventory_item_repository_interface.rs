@@ -7,6 +7,7 @@ use crate::domain::{
 };
 
 /// Repository interface for inventory items.
+#[allow(dead_code)]
 #[async_trait]
 pub trait InventoryItemRepository: Send + Sync {
     /// Get product inventory information by product id.
