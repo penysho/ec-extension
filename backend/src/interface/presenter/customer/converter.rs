@@ -29,6 +29,7 @@ impl From<Customer> for CustomerSchema {
                 .last_name()
                 .as_ref()
                 .map(|last_name| last_name.to_string()),
+            image: customer.image().as_ref().map(|image| image.into()),
             phone: customer
                 .phone()
                 .as_ref()

@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::error::DomainError;
+use crate::interface::presenter::media::schema::ImageSchema;
 use crate::{
     define_error_response,
     interface::presenter::{
@@ -22,8 +23,7 @@ pub struct CustomerSchema {
     pub(super) email: Option<String>,
     pub(super) first_name: Option<String>,
     pub(super) last_name: Option<String>,
-    // TODO
-    // image: Option<Image>,
+    pub(super) image: Option<ImageSchema>,
     pub(super) phone: Option<String>,
     pub(super) note: Option<String>,
     pub(super) status: CustomerStatusSchema,
