@@ -9,14 +9,14 @@ use crate::{
         media::associated_id::associated_id::AssociatedId,
         phone::phone::Phone,
     },
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::Edges},
 };
 
-use super::{address::AddressNode, common::Edges, media::ImageNode};
+use super::{address::AddressNode, media::ImageNode};
 
 impl CustomerNode {
     pub fn to_domain(self) -> Result<Customer, DomainError> {
-        let id = ShopifyGQLQueryHelper::remove_gid_prefix(&self.id);
+        let id = ShopifyGQLHelper::remove_gid_prefix(&self.id);
         let status = match self.state.as_str() {
             "ENABLED" => Ok(CustomerStatus::Active),
             "DISABLED" => Ok(CustomerStatus::Inactive),
@@ -36,7 +36,6 @@ impl CustomerNode {
                 .into_iter()
                 .map(|address| address.to_domain())
                 .collect::<Result<Vec<_>, _>>()?,
-            self.can_delete,
             self.default_address
                 .map(|address| address.to_domain())
                 .transpose()?,
@@ -72,7 +71,6 @@ pub struct CustomersData {
 pub struct CustomerNode {
     pub id: String,
     pub addresses: Vec<AddressNode>,
-    pub can_delete: bool,
     pub default_address: Option<AddressNode>,
     pub display_name: String,
     pub email: Option<String>,

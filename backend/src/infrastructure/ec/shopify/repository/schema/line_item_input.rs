@@ -5,7 +5,7 @@ use crate::{
         discount::discount::{Discount, DiscountValueType},
         line_item::LineItem,
     },
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::gql_helper::ShopifyGQLHelper,
 };
 
 use super::money_input::MoneyInput;
@@ -16,7 +16,7 @@ impl From<&LineItem> for LineItemInput {
             variant_id: line_item
                 .variant_id()
                 .as_ref()
-                .map(|id| ShopifyGQLQueryHelper::add_product_variant_gid_prefix(&id)),
+                .map(|id| ShopifyGQLHelper::add_product_variant_gid_prefix(&id)),
             quantity: *line_item.quantity() as i32,
             applied_discount: line_item.discount().as_ref().map(|d| d.to_owned().into()),
         }

@@ -11,15 +11,15 @@ use crate::{
         ec::{
             ec_client_interface::ECClient,
             shopify::{
-                query_helper::ShopifyGQLQueryHelper,
+                gql_helper::ShopifyGQLHelper,
                 repository::schema::{
-                    common::GraphQLResponse,
                     draft_order::{DraftOrderData, DraftOrderNode, DraftOrdersData},
                     draft_order_input::{
                         DraftOrderCompleteData, DraftOrderCreateData, DraftOrderDeleteData,
                         DraftOrderDeleteInput, DraftOrderInput, DraftOrderUpdateData,
                     },
                 },
+                schema::GraphQLResponse,
             },
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
@@ -38,10 +38,10 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
     }
 
     fn draft_order_fields() -> String {
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
-        let address_fields = ShopifyGQLQueryHelper::address_fields();
-        let money_bag_fields = ShopifyGQLQueryHelper::money_bag_fields();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
+        let address_fields = ShopifyGQLHelper::address_fields();
+        let money_bag_fields = ShopifyGQLHelper::money_bag_fields();
 
         format!(
             "id
@@ -126,7 +126,7 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
 #[async_trait]
 impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImpl<C> {
     async fn find_draft_order_by_id(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError> {
-        let id = ShopifyGQLQueryHelper::add_draft_order_gid_prefix(id);
+        let id = ShopifyGQLHelper::add_draft_order_gid_prefix(id);
         let draft_order_fields = Self::draft_order_fields();
 
         let query = format!(
@@ -150,13 +150,13 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                 .draft_order,
         )
     }
-    /// Retrieve draft order information by customer id.
+
     async fn find_draft_orders_by_customer_id(
         &self,
         customer_id: &CustomerId,
     ) -> Result<Vec<DraftOrder>, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
         let draft_order_fields = Self::draft_order_fields();
 
         // TODO: Handling draft orders exceeding 250 for a customer.
@@ -200,7 +200,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         })?;
 
         let draft_order_fields = Self::draft_order_fields();
-        let user_errors = ShopifyGQLQueryHelper::user_errors();
+        let user_errors = ShopifyGQLHelper::user_errors();
 
         let query = format!(
             "mutation draftOrderCreate($input: DraftOrderInput!) {{
@@ -244,10 +244,10 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
         match completed_at {
             Some(completed_at) if completed_at == DateTime::<Utc>::default() => {
-                let id = ShopifyGQLQueryHelper::add_draft_order_gid_prefix(draft_order.id());
+                let id = ShopifyGQLHelper::add_draft_order_gid_prefix(draft_order.id());
 
                 let draft_order_fields = Self::draft_order_fields();
-                let user_errors = ShopifyGQLQueryHelper::user_errors();
+                let user_errors = ShopifyGQLHelper::user_errors();
 
                 let query = format!(
                     "mutation draftOrderComplete {{
@@ -295,7 +295,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                     })?;
 
                 let draft_order_fields = Self::draft_order_fields();
-                let user_errors = ShopifyGQLQueryHelper::user_errors();
+                let user_errors = ShopifyGQLHelper::user_errors();
 
                 let query = format!(
                     "mutation draftOrderUpdate($input: DraftOrderInput!) {{
@@ -343,7 +343,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                 InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
             })?;
 
-        let user_errors = ShopifyGQLQueryHelper::user_errors();
+        let user_errors = ShopifyGQLHelper::user_errors();
 
         let query = format!(
             "mutation draftOrderDelete($input: DraftOrderDeleteInput!) {{
@@ -372,7 +372,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         }
 
         match data.deleted_id {
-            Some(deleted_id) => Ok(ShopifyGQLQueryHelper::remove_gid_prefix(&deleted_id)),
+            Some(deleted_id) => Ok(ShopifyGQLHelper::remove_gid_prefix(&deleted_id)),
             None => {
                 log::error!("No draft order returned.");
                 Err(DomainError::DeleteError)
@@ -397,23 +397,25 @@ mod tests {
         },
         infrastructure::ec::{
             ec_client_interface::MockECClient,
-            shopify::repository::{
-                draft_order::draft_order_impl::DraftOrderRepositoryImpl,
-                schema::{
-                    address::AddressNode,
-                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
-                    draft_order::{
-                        CustomerIdNode, DraftOrderData, DraftOrderNode, DraftOrdersData,
-                        OrderIdNode,
+            shopify::{
+                repository::{
+                    draft_order::draft_order_impl::DraftOrderRepositoryImpl,
+                    schema::{
+                        address::AddressNode,
+                        draft_order::{
+                            CustomerIdNode, DraftOrderData, DraftOrderNode, DraftOrdersData,
+                            OrderIdNode,
+                        },
+                        draft_order_input::{
+                            DraftOrderComplete, DraftOrderCompleteData, DraftOrderCreate,
+                            DraftOrderCreateData, DraftOrderDelete, DraftOrderDeleteData,
+                            DraftOrderUpdate, DraftOrderUpdateData,
+                        },
+                        line_item::{DiscountNode, LineItemNode, VariantIdNode},
+                        money::{CurrencyCodeNode, MoneyBagNode, MoneyNode},
                     },
-                    draft_order_input::{
-                        DraftOrderComplete, DraftOrderCompleteData, DraftOrderCreate,
-                        DraftOrderCreateData, DraftOrderDelete, DraftOrderDeleteData,
-                        DraftOrderUpdate, DraftOrderUpdateData,
-                    },
-                    line_item::{DiscountNode, LineItemNode, VariantIdNode},
-                    money::{CurrencyCodeNode, MoneyBagNode, MoneyNode},
                 },
+                schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
             },
         },
         usecase::repository::draft_order_repository_interface::DraftOrderRepository,

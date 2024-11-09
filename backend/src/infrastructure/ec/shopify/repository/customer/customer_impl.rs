@@ -5,11 +5,9 @@ use crate::{
     infrastructure::ec::{
         ec_client_interface::ECClient,
         shopify::{
-            query_helper::ShopifyGQLQueryHelper,
-            repository::schema::{
-                common::GraphQLResponse,
-                customer::{CustomerNode, CustomersData},
-            },
+            gql_helper::ShopifyGQLHelper,
+            repository::schema::customer::{CustomerNode, CustomersData},
+            schema::GraphQLResponse,
         },
     },
     usecase::repository::customer_repository_interface::CustomerRepository,
@@ -28,11 +26,10 @@ impl<C: ECClient> CustomerRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C> {
-    /// Retrieve customer information by email.
     async fn find_customer_by_email(&self, email: &Email) -> Result<Customer, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
-        let address_fields = ShopifyGQLQueryHelper::address_fields();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
+        let address_fields = ShopifyGQLHelper::address_fields();
         let email = email.value();
 
         let query = format!(
@@ -109,14 +106,16 @@ mod tests {
         },
         infrastructure::ec::{
             ec_client_interface::MockECClient,
-            shopify::repository::{
-                customer::customer_impl::CustomerRepositoryImpl,
-                schema::{
-                    address::AddressNode,
-                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
-                    customer::{CustomerNode, CustomersData},
-                    media::ImageNode,
+            shopify::{
+                repository::{
+                    customer::customer_impl::CustomerRepositoryImpl,
+                    schema::{
+                        address::AddressNode,
+                        customer::{CustomerNode, CustomersData},
+                        media::ImageNode,
+                    },
                 },
+                schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
             },
         },
         usecase::repository::customer_repository_interface::CustomerRepository,
@@ -126,7 +125,6 @@ mod tests {
         CustomerNode {
             id: format!("gid://shopify/Customer/{id}"),
             addresses: vec![mock_address(Some("123")), mock_address(Some("456"))],
-            can_delete: true,
             default_address: Some(mock_address(Some("123"))),
             display_name: "Test Customer".to_string(),
             email: Some("test@example.com".to_string()),

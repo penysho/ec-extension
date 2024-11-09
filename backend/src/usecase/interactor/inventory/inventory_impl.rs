@@ -22,7 +22,6 @@ use crate::{
         repository::{
             inventory_item_repository_interface::InventoryItemRepository,
             inventory_level_repository_interface::InventoryLevelRepository,
-            location_repository_interface::LocationRepository,
         },
     },
 };
@@ -31,19 +30,16 @@ use crate::{
 pub struct InventoryInteractorImpl {
     inventory_item_repository: Box<dyn InventoryItemRepository>,
     inventory_level_repository: Box<dyn InventoryLevelRepository>,
-    location_repository: Box<dyn LocationRepository>,
 }
 
 impl InventoryInteractorImpl {
     pub fn new(
         inventory_item_repository: Box<dyn InventoryItemRepository>,
         inventory_level_repository: Box<dyn InventoryLevelRepository>,
-        location_repository: Box<dyn LocationRepository>,
     ) -> Self {
         Self {
             inventory_item_repository: inventory_item_repository,
             inventory_level_repository: inventory_level_repository,
-            location_repository: location_repository,
         }
     }
 }

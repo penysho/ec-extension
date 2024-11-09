@@ -3,12 +3,11 @@ use serde::Deserialize;
 
 use crate::{
     domain::{draft_order::draft_order::DraftOrder, error::error::DomainError},
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::Edges},
 };
 
 use super::{
     address::AddressNode,
-    common::Edges,
     line_item::{DiscountNode, LineItemNode},
     money::{CurrencyCodeNode, MoneyBagNode},
 };
@@ -23,11 +22,11 @@ impl DraftOrderNode {
         }?;
 
         DraftOrder::new(
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.id),
             self.name,
             status,
             self.customer
-                .map(|c| ShopifyGQLQueryHelper::remove_gid_prefix(&c.id)),
+                .map(|c| ShopifyGQLHelper::remove_gid_prefix(&c.id)),
             self.billing_address.map(|a| a.to_domain()).transpose()?,
             self.shipping_address.map(|a| a.to_domain()).transpose()?,
             self.note2,
@@ -47,7 +46,7 @@ impl DraftOrderNode {
             self.total_price_set.to_domain()?,
             self.presentment_currency_code.to_domain()?,
             self.order
-                .map(|o| ShopifyGQLQueryHelper::remove_gid_prefix(&o.id)),
+                .map(|o| ShopifyGQLHelper::remove_gid_prefix(&o.id)),
             self.completed_at,
             self.created_at,
             self.updated_at,

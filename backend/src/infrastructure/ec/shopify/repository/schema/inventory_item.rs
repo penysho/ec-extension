@@ -3,16 +3,16 @@ use serde::Deserialize;
 
 use crate::{
     domain::{error::error::DomainError, inventory_item::inventory_item::InventoryItem},
-    infrastructure::ec::shopify::query_helper::ShopifyGQLQueryHelper,
+    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::Edges},
 };
 
-use super::{common::Edges, inventory_level::InventoryLevelNode};
+use super::inventory_level::InventoryLevelNode;
 
 impl InventoryItemNode {
     pub fn to_domain(self) -> Result<InventoryItem, DomainError> {
         InventoryItem::new(
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.variant.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.variant.id),
             self.requires_shipping,
             self.tracked,
             self.created_at,

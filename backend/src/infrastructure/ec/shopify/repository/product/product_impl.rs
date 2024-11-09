@@ -8,11 +8,9 @@ use crate::{
     infrastructure::ec::{
         ec_client_interface::ECClient,
         shopify::{
-            query_helper::ShopifyGQLQueryHelper,
-            repository::schema::{
-                common::GraphQLResponse,
-                product::{ProductsData, VariantNode, VariantsData},
-            },
+            gql_helper::ShopifyGQLHelper,
+            repository::schema::product::{ProductsData, VariantNode, VariantsData},
+            schema::GraphQLResponse,
         },
     },
     usecase::repository::product_repository_interface::ProductRepository,
@@ -73,10 +71,9 @@ impl<C: ECClient> ProductRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
-    /// Get detailed product information.
     async fn find_product_by_id(&self, id: &ProductId) -> Result<Product, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
         let variant_fields = Self::variant_fields();
 
         let query = format!(
@@ -116,13 +113,12 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         Ok(domains.into_iter().next().unwrap())
     }
 
-    /// Retrieve multiple products.
     async fn find_products(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,
     ) -> Result<Vec<Product>, DomainError> {
-        let query_limit = ShopifyGQLQueryHelper::SHOPIFY_QUERY_LIMIT;
+        let query_limit = ShopifyGQLHelper::SHOPIFY_QUERY_LIMIT;
 
         let offset = offset.unwrap_or(0) as usize;
         let limit = limit.unwrap_or(query_limit as u32) as usize;
@@ -130,9 +126,9 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let mut products_cursor = None;
         let mut all_variants: Vec<VariantNode> = Vec::new();
 
-        let first_query = ShopifyGQLQueryHelper::first_query();
+        let first_query = ShopifyGQLHelper::first_query();
         let product_fields = Self::product_fields();
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let page_info = ShopifyGQLHelper::page_info();
 
         for i in 0..((limit + offset) / query_limit).max(1) {
             let products_after_query = products_cursor
@@ -189,7 +185,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
             let product_ids = products_data
                 .edges
                 .into_iter()
-                .map(|node| ShopifyGQLQueryHelper::remove_gid_prefix(&node.node.id))
+                .map(|node| ShopifyGQLHelper::remove_gid_prefix(&node.node.id))
                 .collect::<Vec<String>>()
                 .join(",");
 
@@ -274,9 +270,11 @@ mod tests {
         domain::{error::error::DomainError, product::product::ProductStatus},
         infrastructure::ec::{
             ec_client_interface::MockECClient,
-            shopify::repository::schema::{
-                common::{Edges, GraphQLError, Node, PageInfo},
-                product::{InventoryItemIdNode, ProductNode, TaxonomyCategory, VariantNode},
+            shopify::{
+                repository::schema::product::{
+                    InventoryItemIdNode, ProductNode, TaxonomyCategoryNode, VariantNode,
+                },
+                schema::{Edges, GraphQLError, Node, PageInfo},
             },
         },
     };
@@ -311,7 +309,7 @@ mod tests {
                     updated_at: Utc::now(),
                     product: ProductNode {
                         id: format!("gid://shopify/Product/{i}"),
-                        category: Some(TaxonomyCategory {
+                        category: Some(TaxonomyCategoryNode {
                             id: "gid://shopify/Category/111".to_string(),
                         }),
                         title: format!("Test Product {i}"),
@@ -347,7 +345,7 @@ mod tests {
             .map(|i: usize| Node {
                 node: ProductNode {
                     id: format!("gid://shopify/Product/{i}"),
-                    category: Some(TaxonomyCategory {
+                    category: Some(TaxonomyCategoryNode {
                         id: "gid://shopify/Category/111".to_string(),
                     }),
                     title: format!("Test Product {i}"),

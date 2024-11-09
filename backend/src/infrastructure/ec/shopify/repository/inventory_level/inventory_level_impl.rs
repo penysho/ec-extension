@@ -13,15 +13,15 @@ use crate::{
         ec::{
             ec_client_interface::ECClient,
             shopify::{
-                query_helper::ShopifyGQLQueryHelper,
+                gql_helper::ShopifyGQLHelper,
                 repository::schema::{
-                    common::GraphQLResponse,
                     inventory_change::{
                         InventoryAdjustQuantitiesData, InventoryAdjustQuantitiesInput,
                     },
                     inventory_item::InventoryItemsData,
                     inventory_level::InventoryLevelNode,
                 },
+                schema::GraphQLResponse,
             },
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
@@ -63,16 +63,15 @@ impl<C: ECClient> InventoryLevelRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepositoryImpl<C> {
-    /// Get inventory level information by sku with location id.
     async fn find_inventory_level_by_sku_with_location_id(
         &self,
         sku: &Sku,
         location_id: &LocationId,
     ) -> Result<Option<InventoryLevel>, DomainError> {
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let page_info = ShopifyGQLHelper::page_info();
         let inventory_level_fields = Self::inventory_level_fields();
         let sku = sku.value();
-        let location_id = ShopifyGQLQueryHelper::add_location_gid_prefix(location_id);
+        let location_id = ShopifyGQLHelper::add_location_gid_prefix(location_id);
 
         // Only one InventoryItem per SKU.
         let query = format!(
@@ -123,7 +122,6 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         Ok(domains.into_iter().next())
     }
 
-    /// Get inventory level information by sku with location id.
     async fn find_inventory_levels_by_sku(
         &self,
         sku: &Sku,
@@ -131,8 +129,8 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let mut cursor = None;
         let mut all_nodes: Vec<InventoryLevelNode> = Vec::new();
 
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
         let inventory_level_fields = Self::inventory_level_fields();
         let sku = sku.value();
 
@@ -214,7 +212,6 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         InventoryLevelNode::to_domains(all_nodes)
     }
 
-    /// Update inventory quantity.
     async fn update(
         &self,
         inventory_change: InventoryChange,
@@ -235,7 +232,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
         })?;
 
-        let user_errors = ShopifyGQLQueryHelper::user_errors();
+        let user_errors = ShopifyGQLHelper::user_errors();
         let inventory_level_fields = Self::inventory_level_fields();
 
         // NOTE: By specifying quantityNames, only the results of the specified name will be responded to, so that the results acquired in the inventoryLevels field will not be duplicated.
@@ -314,19 +311,21 @@ mod tests {
         },
         infrastructure::ec::{
             ec_client_interface::MockECClient,
-            shopify::repository::{
-                inventory_level::inventory_level_impl::InventoryLevelRepositoryImpl,
-                schema::{
-                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
-                    inventory_change::{
-                        InventoryAdjustQuantities, InventoryAdjustQuantitiesData,
-                        InventoryAdjustmentGroupNode, InventoryChangeNode,
-                    },
-                    inventory_item::{InventoryItemNode, InventoryItemsData, VariantIdNode},
-                    inventory_level::{
-                        InventoryItemIdNode, InventoryLevelNode, LocationIdNode, QuantityNode,
+            shopify::{
+                repository::{
+                    inventory_level::inventory_level_impl::InventoryLevelRepositoryImpl,
+                    schema::{
+                        inventory_change::{
+                            InventoryAdjustQuantities, InventoryAdjustQuantitiesData,
+                            InventoryAdjustmentGroupNode, InventoryChangeNode,
+                        },
+                        inventory_item::{InventoryItemNode, InventoryItemsData, VariantIdNode},
+                        inventory_level::{
+                            InventoryItemIdNode, InventoryLevelNode, LocationIdNode, QuantityNode,
+                        },
                     },
                 },
+                schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
             },
         },
         usecase::repository::inventory_level_repository_interface::InventoryLevelRepository,

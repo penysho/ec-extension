@@ -1,12 +1,9 @@
-pub struct ShopifyGQLQueryHelper {}
+pub struct ShopifyGQLHelper {}
 
-#[allow(dead_code)]
-impl ShopifyGQLQueryHelper {
+impl ShopifyGQLHelper {
     pub const SHOPIFY_QUERY_LIMIT: usize = 250;
 
-    pub const SHOPIFY_PRODUCT_GID_PREFIX: &'static str = "gid://shopify/Product/";
     pub const SHOPIFY_PRODUCT_VARIANT_GID_PREFIX: &'static str = "gid://shopify/ProductVariant/";
-    pub const SHOPIFY_MEDIA_IMAGE_GID_PREFIX: &'static str = "gid://shopify/MediaImage/";
     pub const SHOPIFY_INVENTORY_ITEM_GID_PREFIX: &'static str = "gid://shopify/InventoryItem/";
     pub const SHOPIFY_LOCATION_GID_PREFIX: &'static str = "gid://shopify/Location/";
     pub const SHOPIFY_DRAFT_ORDER_GID_PREFIX: &'static str = "gid://shopify/DraftOrder/";
@@ -28,6 +25,7 @@ impl ShopifyGQLQueryHelper {
         .to_string()
     }
 
+    /// Return userErrors query.
     pub fn user_errors() -> String {
         "userErrors {
             field
@@ -36,6 +34,7 @@ impl ShopifyGQLQueryHelper {
         .to_string()
     }
 
+    /// Return address fields.
     pub fn address_fields() -> String {
         "address1
         address2
@@ -52,6 +51,7 @@ impl ShopifyGQLQueryHelper {
         .to_string()
     }
 
+    /// Return money bag fields.
     pub fn money_bag_fields() -> String {
         "shopMoney {
             amount
@@ -76,7 +76,7 @@ impl ShopifyGQLQueryHelper {
         format!("{}{}", Self::SHOPIFY_LOCATION_GID_PREFIX, id)
     }
 
-    // Add Shopify gid prefix for DraftOrder.
+    /// Add Shopify gid prefix for DraftOrder.
     pub fn add_draft_order_gid_prefix(id: &str) -> String {
         if id.contains(Self::SHOPIFY_DRAFT_ORDER_GID_PREFIX) {
             return id.to_string();
@@ -84,6 +84,7 @@ impl ShopifyGQLQueryHelper {
         format!("{}{}", Self::SHOPIFY_DRAFT_ORDER_GID_PREFIX, id)
     }
 
+    /// Add Shopify gid prefix for Customer.
     pub fn add_customer_gid_prefix(id: &str) -> String {
         if id.contains(Self::SHOPIFY_CUSTOMER_GID_PREFIX) {
             return id.to_string();
@@ -91,6 +92,7 @@ impl ShopifyGQLQueryHelper {
         format!("{}{}", Self::SHOPIFY_CUSTOMER_GID_PREFIX, id)
     }
 
+    /// Add Shopify gid prefix for Product variant.
     pub fn add_product_variant_gid_prefix(id: &str) -> String {
         if id.contains(Self::SHOPIFY_PRODUCT_VARIANT_GID_PREFIX) {
             return id.to_string();

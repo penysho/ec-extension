@@ -19,7 +19,10 @@ use crate::{
         },
         product_presenter_interface::ProductPresenter,
     },
+    usecase::query_service::dto::product::ProductDTO,
 };
+
+use super::schema::{GetRelatedProductsErrorResponse, GetRelatedProductsResponse};
 
 /// Generate a response schema for the product.
 pub struct ProductPresenterImpl;
@@ -100,11 +103,23 @@ impl ProductPresenter for ProductPresenterImpl {
             products: product_schemas,
         }))
     }
+
+    type GetRelatedProductsResponse = Json<GetRelatedProductsResponse>;
+    type GetRelatedProductsErrorResponse = GetRelatedProductsErrorResponse;
+    async fn present_get_related_products(
+        &self,
+        result: Result<Vec<ProductDTO>, DomainError>,
+    ) -> Result<Self::GetRelatedProductsResponse, Self::GetRelatedProductsErrorResponse> {
+        Ok(web::Json(GetRelatedProductsResponse { products: result? }))
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::interface::mock::domain_mock::{mock_media, mock_products};
+    use crate::interface::mock::{
+        domain_mock::{mock_media, mock_products},
+        query_service_dto_mock::mock_products_dto,
+    };
 
     use super::*;
 
@@ -211,5 +226,20 @@ mod tests {
             result,
             Err(GetProductsErrorResponse::ServiceUnavailable)
         ));
+    }
+
+    #[actix_web::test]
+    async fn test_present_get_related_products_success() {
+        let presenter = ProductPresenterImpl::new();
+
+        let result = presenter
+            .present_get_related_products(Ok(mock_products_dto(5)))
+            .await
+            .unwrap()
+            .into_inner();
+
+        assert_eq!(result.products.len(), 5);
+        assert_eq!(result.products[0].id, "0");
+        assert_eq!(result.products[4].id, "4");
     }
 }

@@ -8,11 +8,9 @@ use crate::{
     infrastructure::ec::{
         ec_client_interface::ECClient,
         shopify::{
-            query_helper::ShopifyGQLQueryHelper,
-            repository::schema::{
-                common::GraphQLResponse,
-                location::{LocationNode, LocationsData},
-            },
+            gql_helper::ShopifyGQLHelper,
+            repository::schema::location::{LocationNode, LocationsData},
+            schema::GraphQLResponse,
         },
     },
     usecase::repository::location_repository_interface::LocationRepository,
@@ -41,10 +39,9 @@ impl<C: ECClient> LocationRepositoryImpl<C> {
 
 #[async_trait]
 impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C> {
-    /// Get id on all locations.
     async fn find_all_location_ids(&self) -> Result<Vec<LocationId>, DomainError> {
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
 
         let query = format!(
             "query {{
@@ -77,13 +74,12 @@ impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C>
         Ok(ids)
     }
 
-    /// Retrieve multiple locations.
     async fn find_locations(
         &self,
         limit: &Option<u32>,
         offset: &Option<u32>,
     ) -> Result<Vec<Location>, DomainError> {
-        let query_limit = ShopifyGQLQueryHelper::SHOPIFY_QUERY_LIMIT;
+        let query_limit = ShopifyGQLHelper::SHOPIFY_QUERY_LIMIT;
 
         let offset = offset.unwrap_or(0) as usize;
         let limit = limit.unwrap_or(query_limit as u32) as usize;
@@ -91,8 +87,8 @@ impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C>
         let mut cursor = None;
         let mut all_nodes: Vec<LocationNode> = Vec::new();
 
-        let first_query = ShopifyGQLQueryHelper::first_query();
-        let page_info = ShopifyGQLQueryHelper::page_info();
+        let first_query = ShopifyGQLHelper::first_query();
+        let page_info = ShopifyGQLHelper::page_info();
         let location_address_fields = Self::location_address_fields();
 
         for i in 0..((limit + offset) / query_limit).max(1) {
@@ -185,12 +181,12 @@ mod tests {
         domain::error::error::DomainError,
         infrastructure::ec::{
             ec_client_interface::MockECClient,
-            shopify::repository::{
-                location::location_impl::LocationRepositoryImpl,
-                schema::{
-                    common::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
-                    location::{LocationAddressNode, LocationNode, LocationsData},
+            shopify::{
+                repository::{
+                    location::location_impl::LocationRepositoryImpl,
+                    schema::location::{LocationAddressNode, LocationNode, LocationsData},
                 },
+                schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
             },
         },
         usecase::repository::location_repository_interface::LocationRepository,

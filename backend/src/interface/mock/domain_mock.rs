@@ -1,11 +1,11 @@
 /// Define functions for common use in interface layer tests.
 /// Generate a mock of the domain.
-#[cfg(test)]
 use crate::domain::{
     address::address::Address,
+    customer::customer::{Customer, CustomerStatus},
     draft_order::draft_order::{DraftOrder, DraftOrderStatus},
-    inventory_item::inventory_item::Id as InventoryItemId,
-    inventory_item::inventory_item::InventoryItem,
+    email::email::Email,
+    inventory_item::inventory_item::{Id as InventoryItemId, InventoryItem},
     inventory_level::{
         inventory_level::InventoryLevel,
         quantity::quantity::{InventoryType, Quantity},
@@ -25,6 +25,7 @@ use crate::domain::{
         amount::amount::Amount,
         money::{CurrencyCode, Money},
     },
+    phone::phone::Phone,
     product::{
         product::{Product, ProductStatus},
         variant::{
@@ -35,12 +36,10 @@ use crate::domain::{
     },
 };
 
-#[cfg(test)]
 use chrono::Utc;
-#[cfg(test)]
+
 use std::collections::HashMap;
 
-#[cfg(test)]
 pub fn mock_address() -> Address {
     Address::new(
         Some("123 Main St"),
@@ -57,7 +56,6 @@ pub fn mock_address() -> Address {
     .expect("Failed to create mock address")
 }
 
-#[cfg(test)]
 pub fn mock_locations(count: usize) -> Vec<Location> {
     (0..count)
         .map(|i| {
@@ -74,7 +72,6 @@ pub fn mock_locations(count: usize) -> Vec<Location> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_discount() -> Discount {
     Discount::new(
         Some("Test Discount".to_string()),
@@ -86,13 +83,11 @@ pub fn mock_discount() -> Discount {
     .expect("Failed to create mock discount")
 }
 
-#[cfg(test)]
 pub fn mock_money() -> Money {
     let amount = Amount::new(100.0).unwrap();
     Money::new(CurrencyCode::USD, amount).expect("Failed to create mock money")
 }
 
-#[cfg(test)]
 pub fn mock_line_items(count: usize) -> Vec<LineItem> {
     (0..count)
         .map(|i| {
@@ -110,7 +105,6 @@ pub fn mock_line_items(count: usize) -> Vec<LineItem> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_draft_orders(count: usize) -> Vec<DraftOrder> {
     (0..count)
         .map(|i| {
@@ -143,7 +137,6 @@ pub fn mock_draft_orders(count: usize) -> Vec<DraftOrder> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_inventory_items(count: usize) -> Vec<InventoryItem> {
     (0..count)
         .map(|i| {
@@ -160,7 +153,6 @@ pub fn mock_inventory_items(count: usize) -> Vec<InventoryItem> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_products(count: usize) -> Vec<Product> {
     (0..count)
         .map(|i| {
@@ -193,7 +185,6 @@ pub fn mock_products(count: usize) -> Vec<Product> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_media(count: usize) -> Vec<Media> {
     (0..count)
         .map(|i| {
@@ -219,7 +210,6 @@ pub fn mock_media(count: usize) -> Vec<Media> {
         .collect()
 }
 
-#[cfg(test)]
 pub fn mock_inventory_level_map(
     count: usize,
     inventory_item_id: &InventoryItemId,
@@ -249,7 +239,6 @@ pub fn mock_inventory_level_map(
     map
 }
 
-#[cfg(test)]
 pub fn mock_inventory_levels(count: usize) -> Vec<InventoryLevel> {
     (0..count)
         .map(|i| {
@@ -267,6 +256,30 @@ pub fn mock_inventory_levels(count: usize) -> Vec<InventoryLevel> {
                 ],
             )
             .expect("Failed to create mock inventory level")
+        })
+        .collect()
+}
+
+pub fn mock_customers(count: usize) -> Vec<Customer> {
+    (0..count)
+        .map(|i| {
+            Customer::new(
+                format!("{i}"),
+                vec![mock_address()],
+                Some(mock_address()),
+                format!("Test Customer {i}"),
+                Some(Email::new(format!("{i}@example.com")).unwrap()),
+                Some("John"),
+                Some("Doe"),
+                None,
+                Some(Phone::new("+1234567890").unwrap()),
+                Some("Note"),
+                CustomerStatus::Active,
+                true,
+                Utc::now(),
+                Utc::now(),
+            )
+            .expect("Failed to create mock customer")
         })
         .collect()
 }

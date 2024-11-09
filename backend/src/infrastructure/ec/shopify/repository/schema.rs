@@ -1,6 +1,5 @@
 pub mod address;
 pub mod address_input;
-pub mod common;
 pub mod customer;
 pub mod draft_order;
 pub mod draft_order_input;

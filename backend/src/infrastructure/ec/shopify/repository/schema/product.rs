@@ -16,9 +16,7 @@ use crate::{
             },
         },
     },
-    infrastructure::ec::shopify::{
-        query_helper::ShopifyGQLQueryHelper, repository::schema::common::Edges,
-    },
+    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::Edges},
 };
 
 impl VariantNode {
@@ -36,13 +34,13 @@ impl VariantNode {
         let price = Amount::new(self.price.parse::<f64>().unwrap_or(0.0))?;
 
         Variant::new(
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.id),
             Some(self.title),
             sku,
             barcode,
             self.available_for_sale,
             self.position as u8,
-            ShopifyGQLQueryHelper::remove_gid_prefix(&self.inventory_item.id),
+            ShopifyGQLHelper::remove_gid_prefix(&self.inventory_item.id),
             inventory_policy,
             inventory_quantity,
             price,
@@ -63,11 +61,15 @@ impl VariantNode {
             "DRAFT" => Ok(ProductStatus::Draft),
             _ => Err(DomainError::ConversionError),
         }?;
-        let category_id = self.product.category.as_ref().map(|c| c.id.clone());
+        let category_id = self
+            .product
+            .category
+            .as_ref()
+            .map(|c| ShopifyGQLHelper::remove_gid_prefix(&c.id.clone()));
         let variant_domain = self.to_variant_domain()?;
 
         Product::new(
-            ShopifyGQLQueryHelper::remove_gid_prefix(&product_id),
+            ShopifyGQLHelper::remove_gid_prefix(&product_id),
             title,
             description,
             status,
@@ -84,7 +86,7 @@ impl VariantNode {
         let mut index_map: HashMap<String, usize> = HashMap::new();
         let mut products_domains: Vec<Product> = Vec::new();
         for variant_schema in variant_schemas {
-            match index_map.get(&ShopifyGQLQueryHelper::remove_gid_prefix(
+            match index_map.get(&ShopifyGQLHelper::remove_gid_prefix(
                 &variant_schema.product.id,
             )) {
                 Some(index) => {
@@ -115,14 +117,14 @@ pub struct ProductsData {
 #[derive(Debug, Deserialize)]
 pub struct ProductNode {
     pub id: String,
-    pub category: Option<TaxonomyCategory>,
+    pub category: Option<TaxonomyCategoryNode>,
     pub title: String,
     pub description: String,
     pub status: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct TaxonomyCategory {
+pub struct TaxonomyCategoryNode {
     pub id: String,
 }
 
