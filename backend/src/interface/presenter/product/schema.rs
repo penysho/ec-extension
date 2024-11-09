@@ -4,6 +4,7 @@ use derive_more::{Display, Error};
 use serde::{Deserialize, Serialize};
 
 use crate::domain::error::error::DomainError;
+use crate::interface::presenter::media::schema::MediaSchema;
 use crate::usecase::query_service::dto::product::ProductDTO;
 use crate::{define_error_response, interface::presenter::common::exception::ErrorResponseBuilder};
 
@@ -12,13 +13,6 @@ pub enum ProductStatusEnum {
     Active,
     Inactive,
     Draft,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum MediaStatusEnum {
-    Active,
-    Inactive,
-    InPreparation,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -41,17 +35,6 @@ pub struct VariantSchema {
     pub(super) barcode: Option<String>,
     pub(super) inventory_quantity: Option<u32>,
     pub(super) list_order: u8,
-    pub(super) created_at: DateTime<Utc>,
-    pub(super) updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct MediaSchema {
-    pub(super) id: String,
-    pub(super) name: Option<String>,
-    pub(super) status: MediaStatusEnum,
-    pub(super) alt: Option<String>,
-    pub(super) src: Option<String>,
     pub(super) created_at: DateTime<Utc>,
     pub(super) updated_at: DateTime<Utc>,
 }
