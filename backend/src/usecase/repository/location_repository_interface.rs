@@ -6,10 +6,10 @@ use crate::domain::{
 };
 
 /// Repository interface for locations.
-#[allow(dead_code)]
 #[async_trait]
 pub trait LocationRepository: Send + Sync {
     /// Get id on all locations.
+    #[allow(dead_code)]
     async fn find_all_location_ids(&self) -> Result<Vec<LocationId>, DomainError>;
 
     /// Retrieve multiple locations.

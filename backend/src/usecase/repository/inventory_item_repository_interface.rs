@@ -7,10 +7,10 @@ use crate::domain::{
 };
 
 /// Repository interface for inventory items.
-#[allow(dead_code)]
 #[async_trait]
 pub trait InventoryItemRepository: Send + Sync {
     /// Get product inventory information by product id.
+    #[allow(dead_code)]
     async fn find_inventory_items_by_product_id(
         &self,
         product_id: &ProductId,
