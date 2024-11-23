@@ -52,11 +52,22 @@ module.exports = {
     ],
   },
 
-  // https://www.npmjs.com/package//eslint-plugin-import#typescript
   settings: {
+    // https://www.npmjs.com/package//eslint-plugin-import#typescript
     "import/resolver": {
       typescript: true,
       node: true,
+      alias: {
+        map: [
+          ["generated", path.resolve(__dirname, "./src/__generated__")],
+          ["app", path.resolve(__dirname, "./src/app")],
+          ["components", path.resolve(__dirname, "./src/components")],
+          ["generated_rest", path.resolve(__dirname, "./src/generated_rest")],
+          ["gqls", path.resolve(__dirname, "./src/gqls")],
+        ],
+        extensions: [".ts", ".tsx", ".js", ".jsx"],
+      },
     },
+    "import/ignore": "node_modules",
   },
-};
+}
