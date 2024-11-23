@@ -1,4 +1,5 @@
 module.exports = {
+  env: { browser: true, es2022: true },
   root: true,
   parser: "@typescript-eslint/parser",
   extends: [
@@ -9,7 +10,7 @@ module.exports = {
     "plugin:import/typescript",
     "plugin:prettier/recommended",
   ],
-  plugins: ["@typescript-eslint", "unused-imports"],
+  plugins: ["@typescript-eslint", "unused-imports", "import"],
   rules: {
     // https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/order.md
     "import/order": [
@@ -51,7 +52,6 @@ module.exports = {
       },
     ],
   },
-
   settings: {
     // https://www.npmjs.com/package//eslint-plugin-import#typescript
     "import/resolver": {

@@ -1,8 +1,10 @@
-import type { Metadata } from "next"
-
 import { Footer } from "@/components/layouts/footer/footer"
 import { Header } from "@/components/layouts/header/header"
+import { Metadata } from "next"
+import { Inter } from "next/font/google"
 import "./globals.css"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Real Shop Customer Service",
@@ -16,9 +18,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <Header />
-      <main>{children}</main>
-      <Footer />
+      <body className={inter.className}>
+        <Header />
+        <main>{children}</main>
+        <Footer />
+      </body>
     </html>
   )
 }
