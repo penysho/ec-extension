@@ -1,4 +1,7 @@
 import type { Metadata } from "next"
+
+import { Footer } from "@/components/layouts/footer/footer"
+import { Header } from "@/components/layouts/header/header"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -13,7 +16,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`antialiased`}>{children}</body>
+      <Header />
+      <main>{children}</main>
+      <Footer />
     </html>
   )
 }
