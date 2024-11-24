@@ -8,9 +8,9 @@ module.exports = {
     "next/typescript",
     "plugin:import/recommended",
     "plugin:import/typescript",
-    "plugin:prettier/recommended",
+    "prettier",
   ],
-  plugins: ["@typescript-eslint", "unused-imports", "import"],
+  plugins: ["@typescript-eslint", "unused-imports"],
   rules: {
     // https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/order.md
     "import/order": [
@@ -55,19 +55,12 @@ module.exports = {
   settings: {
     // https://www.npmjs.com/package//eslint-plugin-import#typescript
     "import/resolver": {
-      typescript: true,
-      node: true,
-      alias: {
-        map: [
-          ["generated", path.resolve(__dirname, "./src/__generated__")],
-          ["app", path.resolve(__dirname, "./src/app")],
-          ["components", path.resolve(__dirname, "./src/components")],
-          ["generated_rest", path.resolve(__dirname, "./src/generated_rest")],
-          ["gqls", path.resolve(__dirname, "./src/gqls")],
-        ],
-        extensions: [".ts", ".tsx", ".js", ".jsx"],
+      // https://www.npmjs.com/package/eslint-import-resolver-typescript
+      // Monorepoではリポジトリにおける対象プロジェクトへのパスを指定
+      typescript: {
+        project: ["frontend/real-shop"],
       },
+      node: true,
     },
-    "import/ignore": "node_modules",
   },
 }
