@@ -10,6 +10,8 @@ export default function ProductImage({ url }: ProductImageProps) {
       <Image
         src={url}
         alt="Product Image"
+        height={600}
+        width={600}
         className="w-full h-auto rounded-lg shadow-lg"
       />
     </div>

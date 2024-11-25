@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 export const Footer = () => {
   return (
     <footer className="footer bg-gray-800 text-white py-8">
@@ -16,19 +18,19 @@ export const Footer = () => {
           <h4 className="text-lg font-bold mb-4">Customer Service</h4>
           <ul className="space-y-2">
             <li>
-              <a href="/shipping" className="hover:underline">
+              <Link href="/shipping" className="hover:underline">
                 Shipping Information
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="/returns" className="hover:underline">
+              <Link href="/returns" className="hover:underline">
                 Returns & Refunds
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="/privacy" className="hover:underline">
+              <Link href="/privacy" className="hover:underline">
                 Privacy Policy
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
@@ -50,27 +52,27 @@ export const Footer = () => {
             </button>
           </form>
           <div className="mt-4 space-x-4">
-            <a
+            <Link
               href="https://facebook.com"
               target="_blank"
               rel="noopener noreferrer"
             >
               <i className="fab fa-facebook"></i>
-            </a>
-            <a
+            </Link>
+            <Link
               href="https://twitter.com"
               target="_blank"
               rel="noopener noreferrer"
             >
               <i className="fab fa-twitter"></i>
-            </a>
-            <a
+            </Link>
+            <Link
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
             >
               <i className="fab fa-instagram"></i>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

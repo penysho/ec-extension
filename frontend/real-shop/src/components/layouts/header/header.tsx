@@ -1,4 +1,5 @@
 import Image from "next/image"
+import Link from "next/link"
 
 export const Header = () => {
   return (
@@ -6,7 +7,7 @@ export const Header = () => {
       <div className="container mx-auto flex items-center justify-between py-4 px-6">
         {/* Logo */}
         <div className="logo">
-          <a href="/">
+          <Link href="/">
             <Image
               className="dark:invert"
               src="/next.svg"
@@ -15,20 +16,20 @@ export const Header = () => {
               height={38}
               priority
             />
-          </a>
+          </Link>
         </div>
 
         {/* Navigation */}
         <nav className="navigation hidden md:flex space-x-6">
-          <a href="/men" className="text-gray-600 hover:text-gray-800">
+          <Link href="/men" className="text-gray-600 hover:text-gray-800">
             Men
-          </a>
-          <a href="/women" className="text-gray-600 hover:text-gray-800">
+          </Link>
+          <Link href="/women" className="text-gray-600 hover:text-gray-800">
             Women
-          </a>
-          <a href="/sale" className="text-red-600 hover:text-red-800">
+          </Link>
+          <Link href="/sale" className="text-red-600 hover:text-red-800">
             Sale
-          </a>
+          </Link>
         </nav>
 
         {/* Search */}
@@ -42,12 +43,12 @@ export const Header = () => {
 
         {/* Actions */}
         <div className="actions flex items-center space-x-4">
-          <a href="/cart" className="text-gray-600 hover:text-gray-800">
+          <Link href="/cart" className="text-gray-600 hover:text-gray-800">
             <i className="fas fa-shopping-cart"></i> Cart
-          </a>
-          <a href="/account" className="text-gray-600 hover:text-gray-800">
+          </Link>
+          <Link href="/account" className="text-gray-600 hover:text-gray-800">
             <i className="fas fa-user"></i> Account
-          </a>
+          </Link>
         </div>
       </div>
     </header>

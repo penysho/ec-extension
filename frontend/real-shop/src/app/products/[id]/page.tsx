@@ -1,10 +1,12 @@
+import ProductImage from "@/components/elements/productImage"
+
 export default function ProductDetail() {
   const product = {
     id: "123",
     name: "Modern Jacket",
     description: "A stylish and comfortable jacket for everyday wear.",
     price: 12000,
-    image: "/images/jacket.jpg",
+    image: "https://placehold.jp/600x600.png",
     relatedProducts: [
       { id: "124", name: "Casual Shirt", image: "/images/shirt.jpg" },
       { id: "125", name: "Leather Shoes", image: "/images/shoes.jpg" },
@@ -16,11 +18,7 @@ export default function ProductDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* 商品画像 */}
         <div className="relative">
-          <img
-            src={product.image}
-            alt="Product Image"
-            className="w-full h-auto rounded-lg shadow-lg"
-          />
+          <ProductImage url={product.image} />
         </div>
 
         {/* 商品情報 */}
