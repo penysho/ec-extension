@@ -1,5 +1,6 @@
+use actix_cors::Cors;
 use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpServer};
+use actix_web::{http, web, App, HttpServer};
 use env_logger::Env;
 use infrastructure::config::config::{AppConfig, ShopifyConfig};
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
@@ -27,7 +28,14 @@ async fn main() -> std::io::Result<()> {
     ))));
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin("http://localhost:3000")
+            .allowed_methods(vec!["GET"])
+            .allowed_headers(vec![http::header::CONTENT_TYPE, http::header::ACCEPT])
+            .max_age(0);
+
         App::new()
+            .wrap(cors)
             .wrap(Logger::default().exclude("/health"))
             .app_data(controller.clone())
             .configure(actix_router::configure_routes)
