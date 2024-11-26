@@ -1,20 +1,30 @@
 "use client"
 import { useQuery } from "@tanstack/react-query"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 import ProductImage from "@/components/elements/productImage"
 
 export default function ProductDetail() {
-  const { isPending, error, data } = useQuery({
-    queryKey: ["fetchDate"],
+  const router = useRouter()
+  const params = useParams()
+
+  const id = params.id
+  const { isLoading, error, data } = useQuery({
+    queryKey: ["fetchData"],
     queryFn: () =>
-      fetch("http://localhost:8011/ec-extension/products/7853275152557").then(
-        (res) => res.json(),
-      ),
+      fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}/ec-extension/products/${id}`,
+      ).then((res) => res.json()),
   })
 
-  if (isPending) return "Loading..."
+  useEffect(() => {
+    if (error) {
+      router.push("/error")
+    }
+  }, [error, router])
 
-  if (error) return "An error has occurred: " + error.message
+  if (isLoading) return "Loading..."
 
   return (
     <div className="container mx-auto px-4 py-6">
