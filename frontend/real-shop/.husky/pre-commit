@@ -1,1 +1,1 @@
-npm run lint-staged
+cd frontend/real-shop && npx lint-staged
