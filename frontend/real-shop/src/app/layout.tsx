@@ -1,3 +1,4 @@
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { Metadata } from "next"
 import { Inter } from "next/font/google"
 
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <QueryProvider>
           <Header />
+          <ReactQueryDevtools initialIsOpen={false} />
           <main>{children}</main>
           <Footer />
         </QueryProvider>
