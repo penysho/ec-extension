@@ -11,7 +11,7 @@ export default function ProductDetail() {
 
   const id = params.id
   const { isLoading, error, data } = useQuery({
-    queryKey: ["fetchData"],
+    queryKey: [id],
     queryFn: () =>
       fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}/ec-extension/products/${id}`,
@@ -30,6 +30,7 @@ export default function ProductDetail() {
         {!isLoading && (
           <>
             <ProductImage url={data.product.media[0].content.image.src} />
+
             <div className="space-y-4">
               <h1 className="text-3xl font-bold text-gray-800">
                 {data.product.name}
