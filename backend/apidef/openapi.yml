@@ -4,7 +4,7 @@ info:
   title: ec-extension_backend
 tags:
   - name: products
-    description: 商品情報に関するエンドポイント
+    description: product endpoint
 paths:
   /ec-extension/products/{id}:
     get:
@@ -272,7 +272,7 @@ components:
 
     DomainError:
       type: object
-      description: エラーレスポンス
+      description: Common Error Responses
       required:
         - message
       properties:
@@ -287,7 +287,7 @@ components:
         application/json:
           schema:
             type: object
-            description: 商品詳細レスポンス
+            description: Get detailed product information resoponse
             required:
               - product
             properties:
@@ -300,7 +300,7 @@ components:
         application/json:
           schema:
             type: object
-            description: 商品詳細レスポンス
+            description: Get a list of products resoponse
             required:
               - products
             properties:
