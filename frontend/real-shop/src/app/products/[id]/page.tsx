@@ -1,22 +1,19 @@
 "use client"
-import { useQuery } from "@tanstack/react-query"
+
 import { useParams, useRouter } from "next/navigation"
 import { useEffect } from "react"
 
 import ProductImage from "@/components/elements/productImage"
+import { useGetProduct } from "@/generated/backend"
 
 export default function ProductDetail() {
   const router = useRouter()
   const params = useParams()
 
-  const id = params.id
-  const { isLoading, error, data } = useQuery({
-    queryKey: [id],
-    queryFn: () =>
-      fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}/ec-extension/products/${id}`,
-      ).then((res) => res.json()),
-  })
+  const id = Number(params.id) || 0
+
+  const { isLoading, error, data } = useGetProduct(id)
+  const product = data?.data.product
 
   useEffect(() => {
     if (error) {
@@ -24,27 +21,41 @@ export default function ProductDetail() {
     }
   }, [error, router])
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    )
+  }
+
+  if (!product) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-600">商品が見つかりません。</p>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {!isLoading && (
-          <>
-            <ProductImage url={data.product.media[0].content.image.src} />
+        {/* 商品画像 */}
+        <div className="relative">
+          <ProductImage url={product.media[0]?.content?.image?.src || ""} />
+        </div>
 
-            <div className="space-y-4">
-              <h1 className="text-3xl font-bold text-gray-800">
-                {data.product.name}
-              </h1>
-              <p className="text-gray-600">{data.product.description}</p>
-              <p className="text-2xl font-semibold text-gray-800">
-                ¥{data.product.variants[0].price}
-              </p>
-              <button className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
-                カートに追加
-              </button>
-            </div>
-          </>
-        )}
+        {/* 商品情報 */}
+        <div className="space-y-4">
+          <h1 className="text-3xl font-bold text-gray-800">{product.name}</h1>
+          <p className="text-gray-600">{product.description}</p>
+          <p className="text-2xl font-semibold text-gray-800">
+            ¥{product.variants[0]?.price}
+          </p>
+          <button className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition">
+            カートに追加
+          </button>
+        </div>
       </div>
     </div>
   )
