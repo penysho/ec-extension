@@ -11,7 +11,7 @@ export default defineConfig({
       client: "react-query",
     },
     hooks: {
-      afterAllFilesWrite: ["prettier --write", "eslint --fix"],
+      afterAllFilesWrite: ["prettier --write"],
     },
   },
 })

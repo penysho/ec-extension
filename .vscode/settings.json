@@ -52,6 +52,8 @@
     }
   },
   "eslint.format.enable": false,
+  // こちらを定義しないと、.eslintignoreが認識されないケースあり
+  "eslint.workingDirectories": [{ "mode": "auto" }],
 
   "[css][scss]": {
     "editor.formatOnSave": true,

@@ -5,8 +5,6 @@
  * OpenAPI spec version: 0.0.1
  */
 import { useQuery } from "@tanstack/react-query"
-import axios from "axios"
-
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -17,6 +15,7 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query"
+import axios from "axios"
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios"
 export type GetProductsParams = {
   /**

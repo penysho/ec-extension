@@ -1,5 +1,4 @@
 "use client"
-import { useQuery } from "@tanstack/react-query"
 import { Search } from "lucide-react"
 import { useState } from "react"
 
@@ -7,6 +6,7 @@ import { Pagination } from "@/components/elements/Pagination"
 import { ProductCard } from "@/components/elements/ProductCard"
 import { Sidebar } from "@/components/elements/Sidebar"
 import { Input } from "@/components/ui/input"
+import { Product, useGetProducts } from "@/generated/backend"
 
 const categories = [
   "トップス",
@@ -22,13 +22,8 @@ export default function ProductListPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState("")
 
-  const { isLoading, error, data } = useQuery({
-    queryKey: ["products"],
-    queryFn: () =>
-      fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_ENDPOINT}/ec-extension/products`,
-      ).then((res) => res.json()),
-  })
+  const { isLoading, error, data } = useGetProducts()
+  const products = data?.data.products
 
   if (isLoading) return <div>Loading...</div>
 
@@ -36,11 +31,15 @@ export default function ProductListPage() {
 
   const itemsPerPage = 12
 
-  const totalPages = Math.ceil(data.products.length / itemsPerPage)
-  const displayedProducts = data.products.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  )
+  let totalPages = 1
+  let displayedProducts = [] as Product[]
+  if (products) {
+    totalPages = Math.ceil(products.length / itemsPerPage)
+    displayedProducts = products.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage,
+    )
+  }
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategories((prev) =>
@@ -91,14 +90,7 @@ export default function ProductListPage() {
         <div className="flex-grow ml-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {displayedProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                name={product.name}
-                price={product.variants[0].price}
-                image={product.media[0].content.image.src}
-                category="dummy"
-              />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
           <Pagination

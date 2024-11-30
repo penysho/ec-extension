@@ -1,33 +1,28 @@
 import { Heart } from "lucide-react"
-import Image from "next/image"
+import { default as Image } from "next/image"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Product } from "@/generated/backend"
 
 interface ProductCardProps {
-  id: string
-  name: string
-  price: number
-  image: string
-  category: string
+  product: Product
 }
 
-export function ProductCard({
-  id,
-  name,
-  price,
-  image,
-  category,
-}: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
   return (
     <Card className="overflow-hidden">
-      <Link href={`/products/${id}`}>
+      <Link href={`/products/${product.id}`}>
         <CardContent className="p-0">
           <div className="relative aspect-square">
             <Image
-              src={image}
-              alt={name}
+              src={
+                product.media[0].content?.image?.src
+                  ? product.media[0].content?.image?.src
+                  : "/no-image.png"
+              }
+              alt={product.name}
               fill
               className="object-cover transition-all duration-300 hover:scale-105"
             />
@@ -42,9 +37,11 @@ export function ProductCard({
           </div>
         </CardContent>
         <CardFooter className="flex flex-col items-start p-4">
-          <div className="text-sm text-muted-foreground">{category}</div>
-          <h3 className="font-semibold text-lg mt-1">{name}</h3>
-          <div className="mt-2 font-bold">¥{price.toLocaleString()}</div>
+          <div className="text-sm text-muted-foreground">dummy</div>
+          <h3 className="font-semibold text-lg mt-1">{product.name}</h3>
+          <div className="mt-2 font-bold">
+            ¥{product.variants[0].price.toLocaleString()}
+          </div>
         </CardFooter>
       </Link>
     </Card>
