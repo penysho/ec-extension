@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation"
 import { useEffect } from "react"
 
-import ProductImage from "@/components/elements/productImage"
+import ProductImage from "@/components/elements/ProductImage"
 import { useGetProduct } from "@/generated/backend"
 
 export default function ProductDetail() {

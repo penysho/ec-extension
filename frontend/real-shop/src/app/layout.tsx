@@ -2,8 +2,8 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { Metadata } from "next"
 import { Inter } from "next/font/google"
 
-import { Footer } from "@/components/layouts/footer/footer"
-import { Header } from "@/components/layouts/header/header"
+import { Footer } from "@/components/layouts/footer"
+import { Header } from "@/components/layouts/header"
 import QueryProvider from "@/lib/queryProvider"
 import "./globals.css"
 
