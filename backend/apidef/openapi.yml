@@ -1,0 +1,339 @@
+openapi: 3.0.3
+info:
+  version: 0.0.1
+  title: ec-extension_backend
+tags:
+  - name: products
+    description: 商品情報に関するエンドポイント
+paths:
+  /ec-extension/products/{id}:
+    get:
+      summary: Get detailed product information
+      description: Get detailed product information
+      operationId: getProduct
+      tags:
+        - products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID
+          example: 000PRODUCTID001
+          schema:
+            type: integer
+      responses:
+        "200":
+          $ref: "#/components/responses/GetProductResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /ec-extension/products:
+    get:
+      summary: Get a list of products
+      description: Get a list of products
+      operationId: getProducts
+      tags:
+        - products
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: limit
+          example: 100
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          description: offset
+          example: 0
+          schema:
+            type: integer
+      responses:
+        "200":
+          $ref: "#/components/responses/GetProducsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+components:
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - status
+        - media
+        - variants
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the product.
+          example: "prod_12345"
+        name:
+          type: string
+          description: The name of the product.
+          example: "Wireless Earbuds"
+        description:
+          type: string
+          description: A detailed description of the product.
+          example: "High-quality wireless earbuds with noise cancellation."
+        status:
+          $ref: '#/components/schemas/ProductStatus'
+        category_id:
+          type: string
+          nullable: true
+          description: The ID of the category to which the product belongs.
+          example: "cat_67890"
+        media:
+          type: array
+          description: A list of media associated with the product.
+          items:
+            $ref: '#/components/schemas/Media'
+        variants:
+          type: array
+          description: A list of variants of the product.
+          items:
+            $ref: '#/components/schemas/Variant'
+
+    ProductStatus:
+      type: string
+      enum:
+        - Active
+        - Inactive
+        - Draft
+      description: The status of the product.
+      example: "Active"
+
+    Variant:
+      type: object
+      required:
+        - id
+        - available_for_sale
+        - list_order
+        - inventory_item_id
+        - inventory_policy
+        - price
+        - taxable
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the variant.
+          example: "var_12345"
+        name:
+          type: string
+          nullable: true
+          description: The name of the variant.
+          example: "Black"
+        sku:
+          type: string
+          nullable: true
+          description: The stock keeping unit of the variant.
+          example: "12345-678"
+        barcode:
+          type: string
+          nullable: true
+          description: The barcode of the variant.
+          example: "1234567890123"
+        available_for_sale:
+          type: boolean
+          description: Whether the variant is available for sale.
+          example: true
+        list_order:
+          type: integer
+          description: The position of the variant in a list.
+          example: 1
+        inventory_item_id:
+          type: string
+          description: The unique identifier for the inventory item.
+          example: "inv_98765"
+        inventory_policy:
+          $ref: '#/components/schemas/InventoryPolicy'
+        inventory_quantity:
+          type: integer
+          nullable: true
+          description: The quantity available in inventory.
+          example: 150
+        price:
+          type: number
+          format: float
+          description: The price of the variant.
+          example: 99.99
+        taxable:
+          type: boolean
+          description: Whether the variant is taxable.
+          example: true
+        tax_code:
+          type: string
+          nullable: true
+          description: The tax code applicable to the variant.
+          example: "P000000"
+        created_at:
+          type: string
+          format: date-time
+          description: The timestamp when the variant was created.
+          example: "2024-10-03T12:34:56Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: The timestamp when the variant was last updated.
+          example: "2024-10-04T12:34:56Z"
+
+    InventoryPolicy:
+      type: string
+      enum:
+        - Deny
+        - Continue
+      description: The policy for inventory management.
+      example: "Deny"
+
+    Media:
+      type: object
+      required:
+        - id
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the media.
+          example: "media_12345"
+        name:
+          type: string
+          nullable: true
+          description: The name of the media file.
+          example: "product_image_1"
+        status:
+          $ref: '#/components/schemas/MediaStatus'
+        content:
+          $ref: '#/components/schemas/MediaContent'
+        created_at:
+          type: string
+          format: date-time
+          description: The timestamp when the media was created.
+          example: "2024-10-03T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: The timestamp when the media was last updated.
+          example: "2024-10-04T10:00:00Z"
+
+    MediaStatus:
+      type: string
+      enum:
+        - Active
+        - Inactive
+        - InPreparation
+      description: The status of the media.
+      example: "Active"
+
+    MediaContent:
+      type: object
+      properties:
+        image:
+          $ref: '#/components/schemas/Image'
+          description: The image content associated with the media.
+
+    Image:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the image.
+          example: "img_12345"
+        alt:
+          type: string
+          nullable: true
+          description: The alternative text for the image.
+          example: "A pair of wireless earbuds."
+        src:
+          type: string
+          nullable: true
+          description: The source URL of the image.
+          example: "https://example.com/images/img_12345.jpg"
+
+    DomainError:
+      type: object
+      description: エラーレスポンス
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Error Messages
+
+  responses:
+    GetProductResponse:
+      description:  Get detailed product information resoponse
+      content:
+        application/json:
+          schema:
+            type: object
+            description: 商品詳細レスポンス
+            required:
+              - product
+            properties:
+              product:
+                $ref: "#/components/schemas/Product"
+
+    GetProducsResponse:
+      description:  Get a list of products resoponse
+      content:
+        application/json:
+          schema:
+            type: object
+            description: 商品詳細レスポンス
+            required:
+              - products
+            properties:
+              products:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+
+
+    ServiceUnavailable:
+      description: Service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
