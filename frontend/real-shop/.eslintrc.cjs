@@ -26,15 +26,15 @@ module.exports = {
           "object",
           "type",
         ],
-        // グループ間に一行設ける
+        // Provide one line between groups
         "newlines-between": "always",
-        // pathGroupsによって処理されないインポートタイプを定義
+        // Define import types not processed by pathGroups
         pathGroupsExcludedImportTypes: ["builtin"],
-        // 大文字小文字を区別せずアルファベット順に整列
+        // Case-insensitive alphabetical alignment
         alphabetize: { order: "asc", caseInsensitive: true },
-        // パスを指定してグループ化する
+        // Grouping by path
         pathGroups: [
-          // CSSは末尾に配置する
+          // CSS is placed at the end
           { pattern: "*.css", group: "index", position: "before" },
         ],
       },
@@ -56,7 +56,7 @@ module.exports = {
     // https://www.npmjs.com/package//eslint-plugin-import#typescript
     "import/resolver": {
       // https://www.npmjs.com/package/eslint-import-resolver-typescript
-      // Monorepoではリポジトリにおける対象プロジェクトへのパスを指定
+      // In Monorepo, specify the path to the target project in the repository
       typescript: {
         project: ["frontend/real-shop"],
       },
