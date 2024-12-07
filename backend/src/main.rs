@@ -32,6 +32,7 @@ async fn main() -> std::io::Result<()> {
             .allowed_origin("http://localhost:3000")
             .allowed_methods(vec!["GET"])
             .allowed_headers(vec![http::header::CONTENT_TYPE, http::header::ACCEPT])
+            .supports_credentials()
             .max_age(0);
 
         App::new()

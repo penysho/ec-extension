@@ -1,5 +1,4 @@
 "use client"
-import { useQueryClient } from "@tanstack/react-query"
 import { Search } from "lucide-react"
 import { useState } from "react"
 
@@ -7,11 +6,7 @@ import { Pagination } from "@/components/elements/Pagination"
 import { ProductCard } from "@/components/elements/ProductCard"
 import { Sidebar } from "@/components/elements/Sidebar"
 import { Input } from "@/components/ui/input"
-import {
-  GetProductsResponseResponse,
-  Product,
-  useGetProducts,
-} from "@/generated/backend"
+import { Product, useGetProducts } from "@/generated/backend"
 
 const categories = [
   "トップス",
@@ -27,20 +22,12 @@ export default function ProductListPresenter() {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState("")
 
-  const queryClient = useQueryClient()
-  let productsData = queryClient.getQueryData<GetProductsResponseResponse>([
-    "products",
-  ])
+  const { isLoading, error, data } = useGetProducts()
 
-  if (!productsData) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { isLoading, error, data } = useGetProducts()
-    if (isLoading) return <div>Loading...</div>
-    if (error) return <div>Error: {error.message}</div>
-    productsData = data?.data
-  }
+  if (isLoading) return <div>Loading...</div>
+  if (error) return <div>Error: {error.message}</div>
 
-  const products = productsData?.products
+  const products = data?.products
 
   const itemsPerPage = 12
 

@@ -13,7 +13,7 @@ export default function Page() {
   const id = Number(params.id) || 0
 
   const { isLoading, error, data } = useGetProduct(id)
-  const product = data?.data.product
+  const product = data?.product
 
   useEffect(() => {
     if (error) {

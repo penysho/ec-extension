@@ -16,8 +16,8 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query"
-import axios from "axios"
-import type { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios"
+import { customInstance } from "../lib/axiosCustomInstance"
+import type { ErrorType } from "../lib/axiosCustomInstance"
 export type GetProductsParams = {
   /**
    * limit
@@ -206,15 +206,21 @@ export interface Product {
   variants: Variant[]
 }
 
+type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1]
+
 /**
  * Get detailed product information
  * @summary Get detailed product information
  */
 export const getProduct = (
   id: number,
-  options?: AxiosRequestConfig,
-): Promise<AxiosResponse<GetProductResponseResponse>> => {
-  return axios.get(`/ec-extension/products/${id}`, options)
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal,
+) => {
+  return customInstance<GetProductResponseResponse>(
+    { url: `/ec-extension/products/${id}`, method: "GET", signal },
+    options,
+  )
 }
 
 export const getGetProductQueryKey = (id: number) => {
@@ -223,7 +229,7 @@ export const getGetProductQueryKey = (id: number) => {
 
 export const getGetProductQueryOptions = <
   TData = Awaited<ReturnType<typeof getProduct>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -235,16 +241,16 @@ export const getGetProductQueryOptions = <
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>
     >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {}
+  const { query: queryOptions, request: requestOptions } = options ?? {}
 
   const queryKey = queryOptions?.queryKey ?? getGetProductQueryKey(id)
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getProduct>>> = ({
     signal,
-  }) => getProduct(id, { signal, ...axiosOptions })
+  }) => getProduct(id, requestOptions, signal)
 
   return {
     queryKey,
@@ -261,7 +267,7 @@ export const getGetProductQueryOptions = <
 export type GetProductQueryResult = NonNullable<
   Awaited<ReturnType<typeof getProduct>>
 >
-export type GetProductQueryError = AxiosError<
+export type GetProductQueryError = ErrorType<
   | BadRequestResponse
   | NotFoundResponse
   | InternalServerErrorResponse
@@ -270,7 +276,7 @@ export type GetProductQueryError = AxiosError<
 
 export function useGetProduct<
   TData = Awaited<ReturnType<typeof getProduct>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -290,12 +296,12 @@ export function useGetProduct<
         >,
         "initialData"
       >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useGetProduct<
   TData = Awaited<ReturnType<typeof getProduct>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -315,12 +321,12 @@ export function useGetProduct<
         >,
         "initialData"
       >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useGetProduct<
   TData = Awaited<ReturnType<typeof getProduct>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -332,7 +338,7 @@ export function useGetProduct<
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>
     >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
@@ -341,7 +347,7 @@ export function useGetProduct<
 
 export function useGetProduct<
   TData = Awaited<ReturnType<typeof getProduct>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -353,7 +359,7 @@ export function useGetProduct<
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>
     >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
   const queryOptions = getGetProductQueryOptions(id, options)
@@ -372,7 +378,7 @@ export function useGetProduct<
  */
 export const prefetchGetProduct = async <
   TData = Awaited<ReturnType<typeof getProduct>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -385,7 +391,7 @@ export const prefetchGetProduct = async <
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>
     >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): Promise<QueryClient> => {
   const queryOptions = getGetProductQueryOptions(id, options)
@@ -401,12 +407,13 @@ export const prefetchGetProduct = async <
  */
 export const getProducts = (
   params?: GetProductsParams,
-  options?: AxiosRequestConfig,
-): Promise<AxiosResponse<GetProductsResponseResponse>> => {
-  return axios.get(`/ec-extension/products`, {
-    ...options,
-    params: { ...params, ...options?.params },
-  })
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal,
+) => {
+  return customInstance<GetProductsResponseResponse>(
+    { url: `/ec-extension/products`, method: "GET", params, signal },
+    options,
+  )
 }
 
 export const getGetProductsQueryKey = (params?: GetProductsParams) => {
@@ -415,7 +422,7 @@ export const getGetProductsQueryKey = (params?: GetProductsParams) => {
 
 export const getGetProductsQueryOptions = <
   TData = Awaited<ReturnType<typeof getProducts>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -427,16 +434,16 @@ export const getGetProductsQueryOptions = <
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getProducts>>, TError, TData>
     >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {}
+  const { query: queryOptions, request: requestOptions } = options ?? {}
 
   const queryKey = queryOptions?.queryKey ?? getGetProductsQueryKey(params)
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getProducts>>> = ({
     signal,
-  }) => getProducts(params, { signal, ...axiosOptions })
+  }) => getProducts(params, requestOptions, signal)
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getProducts>>,
@@ -448,7 +455,7 @@ export const getGetProductsQueryOptions = <
 export type GetProductsQueryResult = NonNullable<
   Awaited<ReturnType<typeof getProducts>>
 >
-export type GetProductsQueryError = AxiosError<
+export type GetProductsQueryError = ErrorType<
   | BadRequestResponse
   | NotFoundResponse
   | InternalServerErrorResponse
@@ -457,7 +464,7 @@ export type GetProductsQueryError = AxiosError<
 
 export function useGetProducts<
   TData = Awaited<ReturnType<typeof getProducts>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -477,12 +484,12 @@ export function useGetProducts<
         >,
         "initialData"
       >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useGetProducts<
   TData = Awaited<ReturnType<typeof getProducts>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -502,12 +509,12 @@ export function useGetProducts<
         >,
         "initialData"
       >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 export function useGetProducts<
   TData = Awaited<ReturnType<typeof getProducts>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -519,7 +526,7 @@ export function useGetProducts<
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getProducts>>, TError, TData>
     >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
 /**
@@ -528,7 +535,7 @@ export function useGetProducts<
 
 export function useGetProducts<
   TData = Awaited<ReturnType<typeof getProducts>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -540,7 +547,7 @@ export function useGetProducts<
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getProducts>>, TError, TData>
     >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
   const queryOptions = getGetProductsQueryOptions(params, options)
@@ -559,7 +566,7 @@ export function useGetProducts<
  */
 export const prefetchGetProducts = async <
   TData = Awaited<ReturnType<typeof getProducts>>,
-  TError = AxiosError<
+  TError = ErrorType<
     | BadRequestResponse
     | NotFoundResponse
     | InternalServerErrorResponse
@@ -572,7 +579,7 @@ export const prefetchGetProducts = async <
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getProducts>>, TError, TData>
     >
-    axios?: AxiosRequestConfig
+    request?: SecondParameter<typeof customInstance>
   },
 ): Promise<QueryClient> => {
   const queryOptions = getGetProductsQueryOptions(params, options)

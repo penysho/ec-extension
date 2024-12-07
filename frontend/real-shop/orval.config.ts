@@ -10,6 +10,10 @@ export default defineConfig({
       clean: true,
       client: "react-query",
       override: {
+        mutator: {
+          path: "./src/lib/axiosCustomInstance.ts",
+          name: "customInstance",
+        },
         query: {
           useQuery: true,
           usePrefetch: true,
