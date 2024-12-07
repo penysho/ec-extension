@@ -57,7 +57,7 @@ paths:
             type: integer
       responses:
         "200":
-          $ref: "#/components/responses/GetProducsResponse"
+          $ref: "#/components/responses/GetProductsResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -294,7 +294,7 @@ components:
               product:
                 $ref: "#/components/schemas/Product"
 
-    GetProducsResponse:
+    GetProductsResponse:
       description:  Get a list of products resoponse
       content:
         application/json:

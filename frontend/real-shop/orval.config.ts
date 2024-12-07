@@ -9,6 +9,13 @@ export default defineConfig({
       target: "./src/generated/backend.ts",
       clean: true,
       client: "react-query",
+      override: {
+        query: {
+          useQuery: true,
+          usePrefetch: true,
+        },
+      },
+      httpClient: "axios",
     },
     hooks: {
       afterAllFilesWrite: ["prettier --write"],

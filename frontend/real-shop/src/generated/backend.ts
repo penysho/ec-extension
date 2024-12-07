@@ -9,6 +9,7 @@ import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
@@ -51,7 +52,7 @@ export type BadRequestResponse = DomainError
 /**
  * Get a list of products resoponse
  */
-export type GetProducsResponseResponse = {
+export type GetProductsResponseResponse = {
   products: Product[]
 }
 
@@ -367,13 +368,41 @@ export function useGetProduct<
 }
 
 /**
+ * @summary Get detailed product information
+ */
+export const prefetchGetProduct = async <
+  TData = Awaited<ReturnType<typeof getProduct>>,
+  TError = AxiosError<
+    | BadRequestResponse
+    | NotFoundResponse
+    | InternalServerErrorResponse
+    | ServiceUnavailableResponse
+  >,
+>(
+  queryClient: QueryClient,
+  id: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>
+    >
+    axios?: AxiosRequestConfig
+  },
+): Promise<QueryClient> => {
+  const queryOptions = getGetProductQueryOptions(id, options)
+
+  await queryClient.prefetchQuery(queryOptions)
+
+  return queryClient
+}
+
+/**
  * Get a list of products
  * @summary Get a list of products
  */
 export const getProducts = (
   params?: GetProductsParams,
   options?: AxiosRequestConfig,
-): Promise<AxiosResponse<GetProducsResponseResponse>> => {
+): Promise<AxiosResponse<GetProductsResponseResponse>> => {
   return axios.get(`/ec-extension/products`, {
     ...options,
     params: { ...params, ...options?.params },
@@ -523,4 +552,32 @@ export function useGetProducts<
   query.queryKey = queryOptions.queryKey
 
   return query
+}
+
+/**
+ * @summary Get a list of products
+ */
+export const prefetchGetProducts = async <
+  TData = Awaited<ReturnType<typeof getProducts>>,
+  TError = AxiosError<
+    | BadRequestResponse
+    | NotFoundResponse
+    | InternalServerErrorResponse
+    | ServiceUnavailableResponse
+  >,
+>(
+  queryClient: QueryClient,
+  params?: GetProductsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getProducts>>, TError, TData>
+    >
+    axios?: AxiosRequestConfig
+  },
+): Promise<QueryClient> => {
+  const queryOptions = getGetProductsQueryOptions(params, options)
+
+  await queryClient.prefetchQuery(queryOptions)
+
+  return queryClient
 }

@@ -6,7 +6,7 @@ import { useEffect } from "react"
 import ProductImage from "@/components/elements/ProductImage"
 import { useGetProduct } from "@/generated/backend"
 
-export default function ProductDetail() {
+export default function Page() {
   const router = useRouter()
   const params = useParams()
 

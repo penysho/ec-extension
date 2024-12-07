@@ -1,10 +1,11 @@
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import axios from "axios"
 import { Metadata } from "next"
 import { Inter } from "next/font/google"
 
 import { Footer } from "@/components/layouts/footer"
 import { Header } from "@/components/layouts/header"
-import QueryProvider from "@/lib/queryProvider"
+import ReactQueryProvider from "@/lib/ReactQueryProvider"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -19,15 +20,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  axios.defaults.baseURL = process.env.NEXT_PUBLIC_BACKEND_ENDPOINT
+
   return (
     <html lang="ja">
       <body className={inter.className}>
-        <QueryProvider>
+        <ReactQueryProvider>
           <Header />
           <ReactQueryDevtools initialIsOpen={false} />
           <main>{children}</main>
           <Footer />
-        </QueryProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   )

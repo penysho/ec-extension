@@ -27,13 +27,14 @@ function getQueryClient() {
   }
 }
 
-export default function QueryProvider({
+export default function ReactQueryProvider({
   children,
 }: {
   children: React.ReactNode
 }) {
   const queryClient = getQueryClient()
   axios.defaults.baseURL = process.env.NEXT_PUBLIC_BACKEND_ENDPOINT
+
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
