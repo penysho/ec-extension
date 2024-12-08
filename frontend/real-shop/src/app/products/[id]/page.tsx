@@ -5,20 +5,18 @@ import { notFound, useParams } from "next/navigation"
 import ProductImage from "@/components/elements/ProductImage"
 import { useGetProduct } from "@/generated/backend"
 
+import Loading from "./loading"
+
 export default function Page() {
   const params = useParams()
 
   const id = Number(params.id) || 0
 
-  const { isLoading, error, data } = useGetProduct(id)
+  const { isFetching, error, data } = useGetProduct(id)
   const product = data?.product
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    )
+  if (isFetching) {
+    return <Loading />
   }
 
   if (error?.status === 404) {
