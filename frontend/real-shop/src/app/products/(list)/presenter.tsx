@@ -4,9 +4,7 @@ import { useState } from "react"
 
 import ErrorPage from "@/app/error"
 import Loading from "@/app/loading"
-import { Pagination } from "@/components/elements/Pagination"
-import { ProductCard } from "@/components/elements/ProductCard"
-import { Sidebar } from "@/components/elements/Sidebar"
+import { Pagination, ProductCard, Sidebar } from "@/components/layouts/product"
 import { Input } from "@/components/ui/input"
 import { Product, useGetProducts } from "@/generated/backend"
 
