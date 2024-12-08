@@ -37,10 +37,12 @@
   },
 
   "[javascript][typescript][javascriptreact][typescriptreact]": {
+    "editor.tabSize": 2,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       // import漏れの追加
-      // ESlint由来かつ、TypeScript専用
+      // ライブラリで実現不可能なためこちらで定義、ESlint由来かつTypeScript専用
+      // こちらを定義しても、Next.jsの一部のコンポーネントがimportできない
       "source.addMissingImports": "explicit",
       // importの並び替えと不要なimportの削除、eslint-plugin-importとeslint-plugin-unused-importsで実施する方針
       // 一部不要なimportの削除が効かない場合があるため有効化する
@@ -50,6 +52,8 @@
     }
   },
   "eslint.format.enable": false,
+  // こちらを定義しないと、.eslintignoreが認識されないケースあり
+  "eslint.workingDirectories": [{ "mode": "auto" }],
 
   "[css][scss]": {
     "editor.formatOnSave": true,
