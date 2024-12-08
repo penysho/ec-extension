@@ -10,10 +10,10 @@ export const Header = () => {
           <Link href="/">
             <Image
               className="dark:invert"
-              src="/next.svg"
-              alt="Next.js logo"
-              width={180}
-              height={38}
+              src="/logo.png"
+              alt="logo"
+              width={30}
+              height={30}
               priority
             />
           </Link>
