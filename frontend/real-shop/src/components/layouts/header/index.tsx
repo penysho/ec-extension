@@ -21,13 +21,22 @@ export const Header = () => {
 
         {/* Navigation */}
         <nav className="navigation hidden md:flex space-x-6">
-          <Link href="/men" className="text-gray-600 hover:text-gray-800">
+          <Link
+            href="/products?men"
+            className="text-gray-600 hover:text-gray-800"
+          >
             Men
           </Link>
-          <Link href="/women" className="text-gray-600 hover:text-gray-800">
+          <Link
+            href="/products?women"
+            className="text-gray-600 hover:text-gray-800"
+          >
             Women
           </Link>
-          <Link href="/sale" className="text-red-600 hover:text-red-800">
+          <Link
+            href="/products?sale"
+            className="text-red-600 hover:text-red-800"
+          >
             Sale
           </Link>
         </nav>
