@@ -1,25 +1,17 @@
 "use client"
 
-import { useParams, useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { notFound, useParams } from "next/navigation"
 
 import ProductImage from "@/components/elements/ProductImage"
 import { useGetProduct } from "@/generated/backend"
 
 export default function Page() {
-  const router = useRouter()
   const params = useParams()
 
   const id = Number(params.id) || 0
 
   const { isLoading, error, data } = useGetProduct(id)
   const product = data?.product
-
-  useEffect(() => {
-    if (error) {
-      router.push("/error")
-    }
-  }, [error, router])
 
   if (isLoading) {
     return (
@@ -29,12 +21,12 @@ export default function Page() {
     )
   }
 
-  if (!product) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-600">商品が見つかりません。</p>
-      </div>
-    )
+  if (error?.status === 404) {
+    notFound()
+  }
+
+  if (!product || !!error) {
+    return error
   }
 
   return (
