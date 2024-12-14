@@ -10,6 +10,11 @@
       "StackName": "amplify-realshop-dev-9845c",
       "StackId": "arn:aws:cloudformation:ap-northeast-1:551152530614:stack/amplify-realshop-dev-9845c/0ba9dd40-b9dc-11ef-b9f9-06d41550627f",
       "AmplifyAppId": "d1z9v2mc4rrhed"
+    },
+    "categories": {
+      "auth": {
+        "realshop0d8aec6b": {}
+      }
     }
   }
 }

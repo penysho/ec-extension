@@ -6,6 +6,7 @@ import { Inter } from "next/font/google"
 import { Footer } from "@/components/layouts/footer"
 import { Header } from "@/components/layouts/header"
 import ReactQueryProvider from "@/lib/ReactQueryProvider"
+import "@aws-amplify/ui-react/styles.css"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
