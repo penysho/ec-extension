@@ -1,14 +1,10 @@
 "use client"
 import { withAuthenticator } from "@aws-amplify/ui-react"
-import { Amplify } from "aws-amplify"
 import Image from "next/image"
 import Link from "next/link"
 
 import { ProductCard } from "@/components/layouts/top"
 import { Button } from "@/components/ui/button"
-
-import config from "../amplifyconfiguration.json"
-Amplify.configure(config)
 
 // 仮のデータ
 const newProducts = [

@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"
 
 import { Footer } from "@/components/layouts/footer"
 import { Header } from "@/components/layouts/header"
+import { AuthProvider } from "@/context/AuthContext"
 import ReactQueryProvider from "@/lib/ReactQueryProvider"
 import "@aws-amplify/ui-react/styles.css"
 import "./globals.css"
@@ -27,10 +28,12 @@ export default function RootLayout({
     <html lang="ja">
       <body className={inter.className}>
         <ReactQueryProvider>
-          <Header />
-          <ReactQueryDevtools initialIsOpen={false} />
-          <main>{children}</main>
-          <Footer />
+          <AuthProvider>
+            <Header />
+            <ReactQueryDevtools initialIsOpen={false} />
+            <main>{children}</main>
+            <Footer />
+          </AuthProvider>
         </ReactQueryProvider>
       </body>
     </html>
