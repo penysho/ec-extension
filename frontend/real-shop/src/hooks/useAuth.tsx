@@ -2,6 +2,7 @@
 
 import { Amplify } from "aws-amplify"
 import { getCurrentUser, signIn, signOut, signUp } from "aws-amplify/auth"
+import Cookies from "js-cookie"
 import { useCallback, useEffect, useState } from "react"
 
 import config from "@/amplifyconfiguration.json"
@@ -21,13 +22,14 @@ type SignInInput = {
   password: string
 }
 
-type User = {
+export type User = {
   username: string
   userId: string
 } | null
 
 export const useAuth = () => {
   const [user, setUser] = useState<User>(null)
+  // const [user, setUser] = useAtom(userAtom)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -91,6 +93,8 @@ export const useAuth = () => {
             username: authenticatedUser.username,
             userId: authenticatedUser.userId,
           })
+
+          Cookies.set("userId", authenticatedUser.userId)
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
