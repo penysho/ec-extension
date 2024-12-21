@@ -17,13 +17,12 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useAuthContext } from "@/context/AuthContext"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function Page() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
-  const { handleSignIn, loading, error } = useAuthContext()
-  // const { handleSignIn, loading, error } = useAuth()
+  const { handleSignIn, loading, error } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {

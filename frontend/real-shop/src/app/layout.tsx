@@ -1,12 +1,13 @@
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import axios from "axios"
+import { Provider as StateProvider } from "jotai"
 import { Metadata } from "next"
 import { Inter } from "next/font/google"
 
 import { Footer } from "@/components/layouts/footer"
 import { Header } from "@/components/layouts/header"
-import { AuthProvider } from "@/context/AuthContext"
 import ReactQueryProvider from "@/lib/ReactQueryProvider"
+
 import "@aws-amplify/ui-react/styles.css"
 import "./globals.css"
 
@@ -28,12 +29,12 @@ export default function RootLayout({
     <html lang="ja">
       <body className={inter.className}>
         <ReactQueryProvider>
-          <AuthProvider>
+          <StateProvider>
             <Header />
             <ReactQueryDevtools initialIsOpen={false} />
             <main>{children}</main>
             <Footer />
-          </AuthProvider>
+          </StateProvider>
         </ReactQueryProvider>
       </body>
     </html>

@@ -2,10 +2,12 @@
 
 import { Amplify } from "aws-amplify"
 import { getCurrentUser, signIn, signOut, signUp } from "aws-amplify/auth"
+import { useAtom } from "jotai"
 import Cookies from "js-cookie"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect } from "react"
 
 import config from "@/amplifyconfiguration.json"
+import { errorAtom, loadingAtom, userAtom } from "@/lib/stores"
 
 Amplify.configure(config)
 // cognitoUserPoolsTokenProvider.setKeyValueStorage(new CookieStorage())
@@ -28,10 +30,9 @@ export type User = {
 } | null
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User>(null)
-  // const [user, setUser] = useAtom(userAtom)
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
+  const [user, setUser] = useAtom(userAtom)
+  const [loading, setLoading] = useAtom(loadingAtom)
+  const [error, setError] = useAtom(errorAtom)
 
   // Fetch current authenticated user on initial load
   useEffect(() => {
@@ -51,7 +52,7 @@ export const useAuth = () => {
       }
     }
     fetchUser()
-  }, [])
+  }, [setUser, setLoading])
 
   // Sign up a new user
   const handleSignUp = useCallback(
@@ -78,7 +79,7 @@ export const useAuth = () => {
         setLoading(false)
       }
     },
-    [],
+    [setError, setLoading],
   )
 
   // Sign in an existing user
@@ -94,7 +95,6 @@ export const useAuth = () => {
             username: authenticatedUser.username,
             userId: authenticatedUser.userId,
           })
-
           Cookies.set("userId", authenticatedUser.userId)
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -105,7 +105,7 @@ export const useAuth = () => {
         setLoading(false)
       }
     },
-    [],
+    [setError, setLoading, setUser],
   )
 
   // Sign out the current user
@@ -123,7 +123,7 @@ export const useAuth = () => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [setError, setLoading, setUser])
 
   return {
     user,
