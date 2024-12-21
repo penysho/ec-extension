@@ -43,6 +43,7 @@ export const useAuth = () => {
           username: authenticatedUser.username,
           userId: authenticatedUser.userId,
         })
+        Cookies.set("userId", authenticatedUser.userId)
       } catch {
         setUser(null) // User is not authenticated
       } finally {
@@ -114,6 +115,7 @@ export const useAuth = () => {
     try {
       await signOut({ global: true })
       setUser(null)
+      Cookies.remove("userId")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || "Error signing out")
