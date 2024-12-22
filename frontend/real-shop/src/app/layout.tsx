@@ -1,5 +1,4 @@
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
-import axios from "axios"
 import { Provider as StateProvider } from "jotai"
 import { Metadata } from "next"
 import { Inter } from "next/font/google"
@@ -23,17 +22,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  axios.defaults.baseURL = process.env.NEXT_PUBLIC_BACKEND_ENDPOINT
-
   return (
     <html lang="ja">
-      <body className={inter.className}>
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
         <ReactQueryProvider>
           <StateProvider>
             <Header />
-            <ReactQueryDevtools initialIsOpen={false} />
-            <main>{children}</main>
+            <main className="flex-grow">{children}</main>
             <Footer />
+            <ReactQueryDevtools initialIsOpen={false} />
           </StateProvider>
         </ReactQueryProvider>
       </body>
