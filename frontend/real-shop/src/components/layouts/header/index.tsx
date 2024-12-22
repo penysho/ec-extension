@@ -1,15 +1,18 @@
 "use client"
 
-import { LogIn, ShoppingCart, User } from "lucide-react"
+import { LogIn, Search, ShoppingCart, User } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { useAuth } from "@/hooks/useAuth"
+
+import { SearchModal } from "./SearchModal"
 
 export const Header = () => {
   const { user } = useAuth()
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   return (
     <header className="bg-white shadow-md">
@@ -50,21 +53,20 @@ export const Header = () => {
           </Link>
         </nav>
 
-        {/* Search */}
-        <div className="hidden md:block w-1/3">
-          <Input
-            type="text"
-            placeholder="Search for products"
-            className="w-full"
-          />
-        </div>
-
         {/* Actions */}
         <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSearchOpen(true)}
+            aria-label="商品を検索"
+          >
+            <Search className="h-5 w-5" />
+          </Button>
           {user ? (
             <Link href="/account" className="text-gray-600 hover:text-gray-800">
               <User className="h-5 w-5" />
-              <span className="sr-only">Account</span>
+              <span className="sr-only">アカウント</span>
             </Link>
           ) : (
             <Button asChild variant="default" size="sm">
@@ -76,10 +78,14 @@ export const Header = () => {
           )}
           <Link href="/cart" className="text-gray-600 hover:text-gray-800">
             <ShoppingCart className="h-5 w-5" />
-            <span className="sr-only">Cart</span>
+            <span className="sr-only">カート</span>
           </Link>
         </div>
       </div>
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </header>
   )
 }
