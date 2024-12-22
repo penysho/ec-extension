@@ -1,5 +1,4 @@
 "use client"
-import { withAuthenticator } from "@aws-amplify/ui-react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -47,7 +46,7 @@ const categories = [
   { name: "シューズ", image: "https://placehold.jp/600x600.png" },
 ]
 
-function Home() {
+export default function Home() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* ヒーローセクション */}
@@ -141,5 +140,3 @@ function Home() {
     </div>
   )
 }
-
-export default withAuthenticator(Home)
