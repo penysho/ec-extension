@@ -11,17 +11,25 @@ import { useAuth } from "@/hooks/useAuth"
 
 import Loading from "../loading"
 
-export default function AccountPage() {
-  const { user, loading, handleSignOut } = useAuth()
-  const { isFetching, error, data } = useGetCustomers({ email: user?.email })
+export default function Page() {
+  const { user, loading: authLoading, handleSignOut } = useAuth()
+  const { error, data, isFetching } = useGetCustomers({ email: user?.email })
 
-  if (isFetching || loading) return <Loading />
+  if (authLoading || isFetching) {
+    return <Loading />
+  }
 
   if (!user) {
-    return <div>ログインが必要です。</div>
+    throw new Error("ログインが必要です")
   }
-  if (!data || !!error) {
-    throw error
+
+  if (error) {
+    throw new Error("ユーザー情報の取得に失敗しました")
+  }
+
+  const customer = data?.customers?.[0]
+  if (!customer) {
+    throw new Error("ユーザーデータが見つかりませんでした")
   }
 
   return (
@@ -34,7 +42,7 @@ export default function AccountPage() {
           <TabsTrigger value="favorites">お気に入り</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
-          <UserProfile user={data.customers[0]} handleSignOut={handleSignOut} />
+          <UserProfile user={customer} handleSignOut={handleSignOut} />
         </TabsContent>
         <TabsContent value="orders">
           <OrderHistory userId={user.userId} />

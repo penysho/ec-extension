@@ -29,7 +29,7 @@ export default function Page() {
     e.preventDefault()
     try {
       await handleSignIn({ username, password })
-      router.push("/") // ログイン成功後、ホームページにリダイレクト
+      router.push("/")
     } catch (e) {
       console.error(e)
     }
