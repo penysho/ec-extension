@@ -5,6 +5,8 @@ info:
 tags:
   - name: products
     description: product endpoint
+  - name: customers
+    description: customer endpoint
 paths:
   /ec-extension/products/{id}:
     get:
@@ -58,6 +60,34 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/GetProductsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /ec-extension/customers:
+    get:
+      summary: Get a list of customers
+      description: Get a list of customers
+      operationId: getCustomers
+      tags:
+        - customers
+      parameters:
+        - name: email
+          in: query
+          required: false
+          description: email
+          example: example@example.com
+          schema:
+            type: string
+            format: email
+      responses:
+        "200":
+          $ref: "#/components/responses/GetCustomersResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -270,6 +300,141 @@ components:
           description: The source URL of the image.
           example: "https://example.com/images/img_12345.jpg"
 
+    Customer:
+      type: object
+      required:
+        - id
+        - addresses
+        - display_name
+        - status
+        - verified_email
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the customer.
+          example: "cust_12345"
+        addresses:
+          type: array
+          description: A list of addresses associated with the customer.
+          items:
+            $ref: '#/components/schemas/Address'
+        default_address:
+          $ref: '#/components/schemas/Address'
+          description: The default address of the customer.
+        display_name:
+          type: string
+          description: The display name of the customer.
+          example: "John Doe"
+        email:
+          type: string
+          nullable: true
+          description: The email address of the customer.
+          example: "john.doe@example.com"
+        first_name:
+          type: string
+          nullable: true
+          description: The first name of the customer.
+          example: "John"
+        last_name:
+          type: string
+          nullable: true
+          description: The last name of the customer.
+          example: "Doe"
+        image:
+          $ref: '#/components/schemas/Image'
+          description: An image associated with the customer.
+        phone:
+          type: string
+          nullable: true
+          description: The phone number of the customer.
+          example: "+1234567890"
+        note:
+          type: string
+          nullable: true
+          description: A note associated with the customer.
+          example: "VIP customer"
+        status:
+          $ref: '#/components/schemas/CustomerStatus'
+        verified_email:
+          type: boolean
+          description: Indicates if the customer's email is verified.
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: The timestamp when the customer was created.
+          example: "2024-10-03T12:34:56Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: The timestamp when the customer was last updated.
+          example: "2024-10-04T12:34:56Z"
+
+    CustomerStatus:
+      type: string
+      enum:
+        - Active
+        - Inactive
+      description: The status of the customer.
+      example: "Active"
+
+    Address:
+      type: object
+      required:
+        - coordinates_validated
+      properties:
+        address1:
+          type: string
+          nullable: true
+          description: The primary address line.
+          example: "123 Main Street"
+        address2:
+          type: string
+          nullable: true
+          description: The secondary address line, such as apartment or suite number.
+          example: "Apt 4B"
+        city:
+          type: string
+          nullable: true
+          description: The city of the address.
+          example: "New York"
+        coordinates_validated:
+          type: boolean
+          description: Indicates if the address coordinates are validated.
+          example: true
+        country:
+          type: string
+          nullable: true
+          description: The country of the address.
+          example: "United States"
+        first_name:
+          type: string
+          nullable: true
+          description: The first name associated with the address.
+          example: "John"
+        last_name:
+          type: string
+          nullable: true
+          description: The last name associated with the address.
+          example: "Doe"
+        province:
+          type: string
+          nullable: true
+          description: The state or province of the address.
+          example: "NY"
+        zip:
+          type: string
+          nullable: true
+          description: The postal code of the address.
+          example: "10001"
+        phone:
+          type: string
+          nullable: true
+          description: The phone number associated with the address.
+          example: "+1234567890"
+
     DomainError:
       type: object
       description: Common Error Responses
@@ -308,6 +473,21 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/Product"
+
+    GetCustomersResponse:
+      description: Get a list of customers resoponse
+      content:
+        application/json:
+          schema:
+            type: object
+            description: Get a list of customers resoponse
+            required:
+              - customers
+            properties:
+              customers:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
 
     BadRequest:
       description: Bad request
