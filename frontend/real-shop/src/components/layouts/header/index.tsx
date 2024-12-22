@@ -1,6 +1,6 @@
 "use client"
 
-import { LogIn, Search, ShoppingCart, User } from "lucide-react"
+import { Search, ShoppingCart, User } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
@@ -69,12 +69,10 @@ export const Header = () => {
               <span className="sr-only">アカウント</span>
             </Link>
           ) : (
-            <Button asChild variant="default" size="sm">
-              <Link href="/login">
-                <LogIn className="mr-2 h-4 w-4" />
-                <span>ログイン</span>
-              </Link>
-            </Button>
+            <Link href="/login" className="text-gray-600 hover:text-gray-800">
+              <User className="h-5 w-5" />
+              <span className="sr-only">ログイン</span>
+            </Link>
           )}
           <Link href="/cart" className="text-gray-600 hover:text-gray-800">
             <ShoppingCart className="h-5 w-5" />
