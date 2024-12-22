@@ -1,9 +1,18 @@
+"use client"
+
+import { LogIn, ShoppingCart, User } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { useAuth } from "@/hooks/useAuth"
+
 export const Header = () => {
+  const { user } = useAuth()
+
   return (
-    <header className="header bg-white shadow-md">
+    <header className="bg-white shadow-md">
       <div className="container mx-auto flex items-center justify-between py-4 px-6">
         {/* Logo */}
         <div className="logo">
@@ -20,7 +29,7 @@ export const Header = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="navigation hidden md:flex space-x-6">
+        <nav className="hidden md:flex space-x-6">
           <Link
             href="/products?men"
             className="text-gray-600 hover:text-gray-800"
@@ -42,21 +51,32 @@ export const Header = () => {
         </nav>
 
         {/* Search */}
-        <div className="search hidden md:block">
-          <input
+        <div className="hidden md:block w-1/3">
+          <Input
             type="text"
             placeholder="Search for products"
-            className="border border-gray-300 rounded px-4 py-2"
+            className="w-full"
           />
         </div>
 
         {/* Actions */}
-        <div className="actions flex items-center space-x-4">
+        <div className="flex items-center space-x-4">
+          {user ? (
+            <Link href="/account" className="text-gray-600 hover:text-gray-800">
+              <User className="h-5 w-5" />
+              <span className="sr-only">Account</span>
+            </Link>
+          ) : (
+            <Button asChild variant="default" size="sm">
+              <Link href="/login">
+                <LogIn className="mr-2 h-4 w-4" />
+                <span>ログイン</span>
+              </Link>
+            </Button>
+          )}
           <Link href="/cart" className="text-gray-600 hover:text-gray-800">
-            <i className="fas fa-shopping-cart"></i> Cart
-          </Link>
-          <Link href="/account" className="text-gray-600 hover:text-gray-800">
-            <i className="fas fa-user"></i> Account
+            <ShoppingCart className="h-5 w-5" />
+            <span className="sr-only">Cart</span>
           </Link>
         </div>
       </div>

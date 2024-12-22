@@ -26,6 +26,7 @@ type SignInInput = {
 
 export type User = {
   username: string
+  email: string
   userId: string
 } | null
 
@@ -42,8 +43,10 @@ export const useAuth = () => {
         const authenticatedUser = await getCurrentUser()
         setUser({
           username: authenticatedUser.username,
+          email: authenticatedUser.signInDetails?.loginId || "",
           userId: authenticatedUser.userId,
         })
+
         Cookies.set("userId", authenticatedUser.userId)
       } catch {
         setUser(null) // User is not authenticated
@@ -93,6 +96,7 @@ export const useAuth = () => {
           const authenticatedUser = await getCurrentUser()
           setUser({
             username: authenticatedUser.username,
+            email: authenticatedUser.signInDetails?.loginId || "",
             userId: authenticatedUser.userId,
           })
           Cookies.set("userId", authenticatedUser.userId)
