@@ -1,5 +1,5 @@
 use actix_cors::Cors;
-use actix_web::middleware::{from_fn, Logger};
+use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
 use env_logger::Env;
 use infrastructure::auth::auth_middleware;
@@ -37,7 +37,7 @@ async fn main() -> std::io::Result<()> {
             .max_age(0);
 
         App::new()
-            .wrap(from_fn(auth_middleware::auth_middleware))
+            .wrap(auth_middleware::AuthTransform)
             .wrap(cors)
             .wrap(Logger::default().exclude("/health"))
             .app_data(controller.clone())
