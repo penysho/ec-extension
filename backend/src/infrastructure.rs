@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod config;
 mod ec;
 mod error;
