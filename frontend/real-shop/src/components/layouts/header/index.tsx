@@ -15,45 +15,20 @@ export const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   return (
-    <header className="bg-white shadow-md">
-      <div className="container mx-auto flex items-center justify-between py-4 px-6">
-        {/* Logo */}
-        <div className="logo">
-          <Link href="/">
-            <Image
-              className="dark:invert"
-              src="/logo.png"
-              alt="logo"
-              width={30}
-              height={30}
-              priority
-            />
-          </Link>
-        </div>
-
-        {/* Navigation */}
-        <nav className="hidden md:flex space-x-6">
-          <Link
-            href="/products?men"
-            className="text-gray-600 hover:text-gray-800"
-          >
-            Men
-          </Link>
-          <Link
-            href="/products?women"
-            className="text-gray-600 hover:text-gray-800"
-          >
-            Women
-          </Link>
-          <Link
-            href="/products?sale"
-            className="text-red-600 hover:text-red-800"
-          >
-            Sale
-          </Link>
-        </nav>
-
-        {/* Actions */}
+    <header className="bg-white relative">
+      <div className="absolute top-5 left-1/2 -translate-x-1/2">
+        <Link href="/">
+          <Image
+            className="dark:invert"
+            src="/logo.svg"
+            alt="logo"
+            width={140}
+            height={140}
+            priority
+          />
+        </Link>
+      </div>
+      <div className="container mx-auto flex items-center justify-end py-4 px-6 h-20">
         <div className="flex items-center space-x-4">
           <Button
             variant="ghost"
