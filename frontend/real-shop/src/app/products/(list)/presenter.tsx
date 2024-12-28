@@ -2,9 +2,9 @@
 import { Search } from "lucide-react"
 import { useState } from "react"
 
-import { Pagination } from "@/components/elements/Pagination"
-import { ProductCard } from "@/components/elements/ProductCard"
-import { Sidebar } from "@/components/elements/Sidebar"
+import ErrorPage from "@/app/error"
+import Loading from "@/app/loading"
+import { Pagination, ProductCard, Sidebar } from "@/components/layouts/product"
 import { Input } from "@/components/ui/input"
 import { Product, useGetProducts } from "@/generated/backend"
 
@@ -22,10 +22,10 @@ export default function ProductListPresenter() {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchQuery, setSearchQuery] = useState("")
 
-  const { isLoading, error, data } = useGetProducts()
+  const { isFetching, error, data } = useGetProducts()
 
-  if (isLoading) return <div>Loading...</div>
-  if (error) return <div>Error: {error.message}</div>
+  if (isFetching) return <Loading />
+  if (error) return <ErrorPage error={error} reset={() => {}} />
 
   const products = data?.products
 

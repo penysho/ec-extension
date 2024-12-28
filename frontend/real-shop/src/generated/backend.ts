@@ -18,6 +18,13 @@ import type {
 } from "@tanstack/react-query"
 import { customInstance } from "../lib/axiosCustomInstance"
 import type { ErrorType } from "../lib/axiosCustomInstance"
+export type GetCustomersParams = {
+  /**
+   * email
+   */
+  email?: string
+}
+
 export type GetProductsParams = {
   /**
    * limit
@@ -30,24 +37,16 @@ export type GetProductsParams = {
 }
 
 /**
- * Service unavailable
- */
-export type ServiceUnavailableResponse = DomainError
-
-/**
- * Internal server error
- */
-export type InternalServerErrorResponse = DomainError
-
-/**
  * Not found
  */
 export type NotFoundResponse = DomainError
 
 /**
- * Bad request
+ * Get a list of customers resoponse
  */
-export type BadRequestResponse = DomainError
+export type GetCustomersResponseResponse = {
+  customers: Customer[]
+}
 
 /**
  * Get a list of products resoponse
@@ -70,6 +69,83 @@ export interface DomainError {
   message: string
 }
 
+/**
+ * Service unavailable
+ */
+export type ServiceUnavailableResponse = DomainError
+
+/**
+ * Internal server error
+ */
+export type InternalServerErrorResponse = DomainError
+
+/**
+ * Bad request
+ */
+export type BadRequestResponse = DomainError
+
+export interface Address {
+  /**
+   * The primary address line.
+   * @nullable
+   */
+  address1?: string | null
+  /**
+   * The secondary address line, such as apartment or suite number.
+   * @nullable
+   */
+  address2?: string | null
+  /**
+   * The city of the address.
+   * @nullable
+   */
+  city?: string | null
+  /** Indicates if the address coordinates are validated. */
+  coordinates_validated: boolean
+  /**
+   * The country of the address.
+   * @nullable
+   */
+  country?: string | null
+  /**
+   * The first name associated with the address.
+   * @nullable
+   */
+  first_name?: string | null
+  /**
+   * The last name associated with the address.
+   * @nullable
+   */
+  last_name?: string | null
+  /**
+   * The phone number associated with the address.
+   * @nullable
+   */
+  phone?: string | null
+  /**
+   * The state or province of the address.
+   * @nullable
+   */
+  province?: string | null
+  /**
+   * The postal code of the address.
+   * @nullable
+   */
+  zip?: string | null
+}
+
+/**
+ * The status of the customer.
+ */
+export type CustomerStatus =
+  (typeof CustomerStatus)[keyof typeof CustomerStatus]
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CustomerStatus = {
+  Active: "Active",
+  Inactive: "Inactive",
+} as const
+
 export interface Image {
   /**
    * The alternative text for the image.
@@ -83,6 +159,51 @@ export interface Image {
    * @nullable
    */
   src?: string | null
+}
+
+export interface Customer {
+  /** A list of addresses associated with the customer. */
+  addresses: Address[]
+  /** The timestamp when the customer was created. */
+  created_at: string
+  /** The default address of the customer. */
+  default_address?: Address
+  /** The display name of the customer. */
+  display_name: string
+  /**
+   * The email address of the customer.
+   * @nullable
+   */
+  email?: string | null
+  /**
+   * The first name of the customer.
+   * @nullable
+   */
+  first_name?: string | null
+  /** The unique identifier of the customer. */
+  id: string
+  /** An image associated with the customer. */
+  image?: Image
+  /**
+   * The last name of the customer.
+   * @nullable
+   */
+  last_name?: string | null
+  /**
+   * A note associated with the customer.
+   * @nullable
+   */
+  note?: string | null
+  /**
+   * The phone number of the customer.
+   * @nullable
+   */
+  phone?: string | null
+  status: CustomerStatus
+  /** The timestamp when the customer was last updated. */
+  updated_at: string
+  /** Indicates if the customer's email is verified. */
+  verified_email: boolean
 }
 
 export interface MediaContent {
@@ -583,6 +704,194 @@ export const prefetchGetProducts = async <
   },
 ): Promise<QueryClient> => {
   const queryOptions = getGetProductsQueryOptions(params, options)
+
+  await queryClient.prefetchQuery(queryOptions)
+
+  return queryClient
+}
+
+/**
+ * Get a list of customers
+ * @summary Get a list of customers
+ */
+export const getCustomers = (
+  params?: GetCustomersParams,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal,
+) => {
+  return customInstance<GetCustomersResponseResponse>(
+    { url: `/ec-extension/customers`, method: "GET", params, signal },
+    options,
+  )
+}
+
+export const getGetCustomersQueryKey = (params?: GetCustomersParams) => {
+  return [`/ec-extension/customers`, ...(params ? [params] : [])] as const
+}
+
+export const getGetCustomersQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCustomers>>,
+  TError = ErrorType<
+    | BadRequestResponse
+    | NotFoundResponse
+    | InternalServerErrorResponse
+    | ServiceUnavailableResponse
+  >,
+>(
+  params?: GetCustomersParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getCustomers>>, TError, TData>
+    >
+    request?: SecondParameter<typeof customInstance>
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {}
+
+  const queryKey = queryOptions?.queryKey ?? getGetCustomersQueryKey(params)
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCustomers>>> = ({
+    signal,
+  }) => getCustomers(params, requestOptions, signal)
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCustomers>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetCustomersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCustomers>>
+>
+export type GetCustomersQueryError = ErrorType<
+  | BadRequestResponse
+  | NotFoundResponse
+  | InternalServerErrorResponse
+  | ServiceUnavailableResponse
+>
+
+export function useGetCustomers<
+  TData = Awaited<ReturnType<typeof getCustomers>>,
+  TError = ErrorType<
+    | BadRequestResponse
+    | NotFoundResponse
+    | InternalServerErrorResponse
+    | ServiceUnavailableResponse
+  >,
+>(
+  params: undefined | GetCustomersParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getCustomers>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCustomers>>,
+          TError,
+          TData
+        >,
+        "initialData"
+      >
+    request?: SecondParameter<typeof customInstance>
+  },
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetCustomers<
+  TData = Awaited<ReturnType<typeof getCustomers>>,
+  TError = ErrorType<
+    | BadRequestResponse
+    | NotFoundResponse
+    | InternalServerErrorResponse
+    | ServiceUnavailableResponse
+  >,
+>(
+  params?: GetCustomersParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getCustomers>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCustomers>>,
+          TError,
+          TData
+        >,
+        "initialData"
+      >
+    request?: SecondParameter<typeof customInstance>
+  },
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetCustomers<
+  TData = Awaited<ReturnType<typeof getCustomers>>,
+  TError = ErrorType<
+    | BadRequestResponse
+    | NotFoundResponse
+    | InternalServerErrorResponse
+    | ServiceUnavailableResponse
+  >,
+>(
+  params?: GetCustomersParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getCustomers>>, TError, TData>
+    >
+    request?: SecondParameter<typeof customInstance>
+  },
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Get a list of customers
+ */
+
+export function useGetCustomers<
+  TData = Awaited<ReturnType<typeof getCustomers>>,
+  TError = ErrorType<
+    | BadRequestResponse
+    | NotFoundResponse
+    | InternalServerErrorResponse
+    | ServiceUnavailableResponse
+  >,
+>(
+  params?: GetCustomersParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getCustomers>>, TError, TData>
+    >
+    request?: SecondParameter<typeof customInstance>
+  },
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetCustomersQueryOptions(params, options)
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData>
+  }
+
+  query.queryKey = queryOptions.queryKey
+
+  return query
+}
+
+/**
+ * @summary Get a list of customers
+ */
+export const prefetchGetCustomers = async <
+  TData = Awaited<ReturnType<typeof getCustomers>>,
+  TError = ErrorType<
+    | BadRequestResponse
+    | NotFoundResponse
+    | InternalServerErrorResponse
+    | ServiceUnavailableResponse
+  >,
+>(
+  queryClient: QueryClient,
+  params?: GetCustomersParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getCustomers>>, TError, TData>
+    >
+    request?: SecondParameter<typeof customInstance>
+  },
+): Promise<QueryClient> => {
+  const queryOptions = getGetCustomersQueryOptions(params, options)
 
   await queryClient.prefetchQuery(queryOptions)
 
