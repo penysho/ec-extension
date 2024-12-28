@@ -1,7 +1,8 @@
 use actix_cors::Cors;
-use actix_web::middleware::Logger;
+use actix_web::middleware::{from_fn, Logger};
 use actix_web::{http, web, App, HttpServer};
 use env_logger::Env;
+use infrastructure::auth::auth_middleware;
 use infrastructure::config::config::{AppConfig, ShopifyConfig};
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
@@ -36,6 +37,7 @@ async fn main() -> std::io::Result<()> {
             .max_age(0);
 
         App::new()
+            .wrap(from_fn(auth_middleware::auth_middleware))
             .wrap(cors)
             .wrap(Logger::default().exclude("/health"))
             .app_data(controller.clone())
