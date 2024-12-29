@@ -7,7 +7,7 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 
-use super::authenticator::Authenticator;
+use super::authenticator_interface::Authenticator;
 
 const ID_TOKEN_COOKIE_NAME: &str = "ID_TOKEN";
 const EXCLUDE_AUTH_PATHS: [&str; 1] = ["/health"];

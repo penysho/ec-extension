@@ -6,16 +6,12 @@ use serde::{Deserialize, Serialize};
 use crate::{
     domain::error::error::DomainError,
     infrastructure::{
-        auth::authenticator::Authenticator,
+        auth::authenticator_interface::Authenticator,
         config::config::CognitoConfig,
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
 };
 
-pub struct CognitoAuthenticator {
-    config: CognitoConfig,
-    http_client: Client,
-}
 #[derive(Debug, Serialize, Deserialize)]
 struct Jwks {
     keys: Vec<Key>,
@@ -35,6 +31,11 @@ struct Claims {
     iat: usize,
     iss: String,
     sub: String,
+}
+
+pub struct CognitoAuthenticator {
+    config: CognitoConfig,
+    http_client: Client,
 }
 
 impl CognitoAuthenticator {

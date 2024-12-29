@@ -41,8 +41,8 @@ async fn main() -> std::io::Result<()> {
             .wrap(AuthTransform::new(CognitoAuthenticator::new(
                 cognito_config.clone(),
             )))
-            .wrap(cors)
             .wrap(Logger::default().exclude("/health"))
+            .wrap(cors)
             // Definition of app data
             .app_data(web::Data::new(Arc::new(Controller::new(Box::new(
                 InteractProviderImpl::new(shopify_config.clone()),
