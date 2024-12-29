@@ -30,9 +30,9 @@ impl AppConfig {
         let address = env::var("APP_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string());
 
         Ok(AppConfig {
-            address: address,
-            port: port,
-            log_level: log_level,
+            address,
+            port,
+            log_level,
         })
     }
 }
@@ -55,8 +55,8 @@ impl ShopifyConfig {
             DomainError::InitConfigError
         })?;
         Ok(ShopifyConfig {
-            store_url: store_url,
-            access_token: access_token,
+            store_url,
+            access_token,
         })
     }
 }
@@ -90,10 +90,10 @@ impl CognitoConfig {
         })?;
 
         Ok(CognitoConfig {
-            user_pool_id: user_pool_id,
-            client_id: client_id,
-            region: region,
-            jwks_uri: jwks_uri,
+            user_pool_id,
+            client_id,
+            region,
+            jwks_uri,
         })
     }
 }

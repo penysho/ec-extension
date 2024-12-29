@@ -41,7 +41,7 @@ pub struct CognitoAuthenticator {
 impl CognitoAuthenticator {
     pub fn new(config: CognitoConfig) -> Self {
         CognitoAuthenticator {
-            config: config,
+            config,
             http_client: Client::new(),
         }
     }
