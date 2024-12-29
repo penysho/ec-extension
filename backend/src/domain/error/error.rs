@@ -16,6 +16,7 @@ use derive_more::{Display, Error};
 /// - `ConversionError` - Conversion to entity failed.
 /// - `SaveError` - Resource persistence failed.
 /// - `DeleteError` - Resource deletion failed.
+/// - `AuthenticationError` - Authentication failed.
 ///
 /// # Example
 /// ```
@@ -62,4 +63,8 @@ pub enum DomainError {
     /// Resource deletion failed.
     #[display(fmt = "Resource deletion failed.")]
     DeleteError,
+
+    /// Authentication failed.
+    #[display(fmt = "Authentication failed.")]
+    AuthenticationError,
 }

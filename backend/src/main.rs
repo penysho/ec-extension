@@ -2,8 +2,9 @@ use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
 use env_logger::Env;
-use infrastructure::auth::auth_middleware;
-use infrastructure::config::config::{AppConfig, ShopifyConfig};
+use infrastructure::auth::auth_middleware::AuthTransform;
+use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
+use infrastructure::config::config::{AppConfig, CognitoConfig, ShopifyConfig};
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
 use std::io;
@@ -21,12 +22,10 @@ async fn main() -> std::io::Result<()> {
     let app_config = AppConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let shopify_config =
         ShopifyConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let cognito_config =
+        CognitoConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
-
-    let controller = web::Data::new(Arc::new(Controller::new(Box::new(
-        InteractProviderImpl::new(shopify_config),
-    ))));
 
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -37,10 +36,18 @@ async fn main() -> std::io::Result<()> {
             .max_age(0);
 
         App::new()
-            .wrap(auth_middleware::AuthTransform)
+            // Definition of middleware
+            // NOTE: Executed in the order of last written.
+            .wrap(AuthTransform::new(CognitoAuthenticator::new(
+                cognito_config.clone(),
+            )))
             .wrap(cors)
             .wrap(Logger::default().exclude("/health"))
-            .app_data(controller.clone())
+            // Definition of app data
+            .app_data(web::Data::new(Arc::new(Controller::new(Box::new(
+                InteractProviderImpl::new(shopify_config.clone()),
+            )))))
+            // Definition of routes
             .configure(actix_router::configure_routes)
     })
     .bind(format!("{}:{}", app_config.address(), app_config.port()))?

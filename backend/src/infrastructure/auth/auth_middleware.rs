@@ -7,30 +7,44 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 
-use super::{authenticator::Authenticator, cognito::cognito_authenticator::CognitoAuthenticator};
+use super::authenticator::Authenticator;
 
 const ID_TOKEN_COOKIE_NAME: &str = "ID_TOKEN";
 const EXCLUDE_AUTH_PATHS: [&str; 1] = ["/health"];
 
-pub struct AuthTransform;
+pub struct AuthTransform<A>
+where
+    A: Authenticator,
+{
+    authenticator: A,
+}
 
-impl<S, B> Transform<S, ServiceRequest> for AuthTransform
+impl<A> AuthTransform<A>
+where
+    A: Authenticator,
+{
+    pub fn new(authenticator: A) -> Self {
+        AuthTransform { authenticator }
+    }
+}
+
+impl<S, B, A> Transform<S, ServiceRequest> for AuthTransform<A>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
     B: 'static,
+    A: Authenticator,
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
     type InitError = ();
-    type Transform = AuthMiddleware<S, CognitoAuthenticator>;
+    type Transform = AuthMiddleware<S, A>;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        let authenticator = CognitoAuthenticator::new();
         ready(Ok(AuthMiddleware {
             service,
-            authenticator,
+            authenticator: self.authenticator.clone(),
         }))
     }
 }
@@ -73,10 +87,14 @@ where
             return Box::pin(async { Err(ErrorUnauthorized("Unauthorized")) });
         };
 
-        authenticator.validate_token(id_token.unwrap().value().to_string());
+        let token_value = id_token.unwrap().value().to_string();
+        let auth_fut = authenticator.validate_token(token_value);
 
         let fut = self.service.call(req);
         Box::pin(async move {
+            if let Err(_) = auth_fut.await {
+                return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
+            }
             let res = fut.await?;
             Ok(res)
         })

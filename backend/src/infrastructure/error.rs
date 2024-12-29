@@ -8,6 +8,8 @@ pub enum InfrastructureError {
     NetworkError(reqwest::Error),
     #[display(fmt = "Parse error.")]
     ParseError(serde_json::Error),
+    #[display(fmt = "JWT error.")]
+    JwtError(jsonwebtoken::errors::Error),
 }
 
 pub struct InfrastructureErrorMapper;
@@ -16,6 +18,7 @@ impl InfrastructureErrorMapper {
         match error {
             InfrastructureError::NetworkError(_) => DomainError::SystemError,
             InfrastructureError::ParseError(_) => DomainError::SystemError,
+            InfrastructureError::JwtError(_) => DomainError::AuthenticationError,
         }
     }
 }

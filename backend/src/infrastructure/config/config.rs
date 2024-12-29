@@ -60,3 +60,40 @@ impl ShopifyConfig {
         })
     }
 }
+
+/// CognitoConfig manages Cognito settings.
+#[derive(Getters, Clone)]
+pub struct CognitoConfig {
+    user_pool_id: String,
+    client_id: String,
+    region: String,
+    jwks_uri: String,
+}
+
+impl CognitoConfig {
+    pub fn new() -> Result<Self, DomainError> {
+        let user_pool_id = env::var("COGNITO_USER_POOL_ID").map_err(|_| {
+            eprintln!("COGNITO_USER_POOL_ID is not set as an environment variable");
+            DomainError::InitConfigError
+        })?;
+        let client_id = env::var("COGNITO_CLIENT_ID").map_err(|_| {
+            eprintln!("COGNITO_CLIENT_ID is not set as an environment variable");
+            DomainError::InitConfigError
+        })?;
+        let region = env::var("COGNITO_REGION").map_err(|_| {
+            eprintln!("COGNITO_REGION is not set as an environment variable");
+            DomainError::InitConfigError
+        })?;
+        let jwks_uri = env::var("COGNITO_JWKS_URI").map_err(|_| {
+            eprintln!("COGNITO_JWKS_URI is not set as an environment variable");
+            DomainError::InitConfigError
+        })?;
+
+        Ok(CognitoConfig {
+            user_pool_id: user_pool_id,
+            client_id: client_id,
+            region: region,
+            jwks_uri: jwks_uri,
+        })
+    }
+}
