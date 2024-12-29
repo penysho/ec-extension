@@ -33,7 +33,7 @@ where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
     B: 'static,
-    A: Authenticator,
+    A: Authenticator + Clone + 'static,
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
@@ -62,7 +62,7 @@ where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
     B: 'static,
-    A: Authenticator,
+    A: Authenticator + Clone + 'static,
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
@@ -71,7 +71,7 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let authenticator = &self.authenticator;
+        let authenticator = self.authenticator.clone();
 
         if EXCLUDE_AUTH_PATHS.contains(&req.path()) {
             let fut = self.service.call(req);
@@ -88,11 +88,10 @@ where
         };
 
         let token_value = id_token.unwrap().value().to_string();
-        let auth_fut = authenticator.validate_token(token_value);
 
         let fut = self.service.call(req);
         Box::pin(async move {
-            if let Err(_) = auth_fut.await {
+            if let Err(_) = authenticator.validate_token(token_value).await {
                 return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
             }
             let res = fut.await?;

@@ -1,7 +1,9 @@
-use futures_util::future::LocalBoxFuture;
+use async_trait::async_trait;
 
 use crate::domain::error::error::DomainError;
 
-pub trait Authenticator: Send + Sync + Clone {
-    fn validate_token(&self, token: String) -> LocalBoxFuture<'static, Result<(), DomainError>>;
+#[async_trait]
+pub trait Authenticator: Send + Sync {
+    /// Validate tokens issued by Idp.
+    async fn validate_token(&self, token: String) -> Result<(), DomainError>;
 }

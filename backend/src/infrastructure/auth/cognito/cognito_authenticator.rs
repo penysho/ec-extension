@@ -1,4 +1,4 @@
-use futures_util::future::LocalBoxFuture;
+use async_trait::async_trait;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -33,6 +33,7 @@ struct Claims {
     sub: String,
 }
 
+#[derive(Clone)]
 pub struct CognitoAuthenticator {
     config: CognitoConfig,
     http_client: Client,
@@ -79,45 +80,30 @@ impl CognitoAuthenticator {
     }
 }
 
-impl Clone for CognitoAuthenticator {
-    fn clone(&self) -> Self {
-        CognitoAuthenticator {
-            config: self.config.clone(),
-            http_client: self.http_client.clone(),
-        }
-    }
-}
-
+#[async_trait]
 impl Authenticator for CognitoAuthenticator {
-    fn validate_token(&self, token: String) -> LocalBoxFuture<'static, Result<(), DomainError>> {
-        // NOTE: Cloning generates data that can be moved in asynchronous blocks.
-        // To mitigate lifetime constraints
-        let cloned_self = self.clone();
+    async fn validate_token(&self, token: String) -> Result<(), DomainError> {
+        let header = jsonwebtoken::decode_header(&token).map_err(|e| {
+            log::error!("Failed to decode header: {}", e);
+            InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
+        })?;
+        let kid = header.kid.ok_or(DomainError::AuthenticationError)?;
+        let key = self.get_jwks_key(&kid).await?;
 
-        Box::pin(async move {
-            let header = jsonwebtoken::decode_header(&token).map_err(|e| {
-                log::error!("Failed to decode header: {}", e);
-                InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
-            })?;
-            let kid = header.kid.ok_or(DomainError::AuthenticationError)?;
+        let validation = &mut Validation::new(jsonwebtoken::Algorithm::RS256);
+        validation.set_audience(&[self.config.client_id()]);
+        validation.set_issuer(&[self.get_issuer().as_str()]);
 
-            let key = cloned_self.get_jwks_key(&kid).await?;
+        decode::<Claims>(
+            &token,
+            &DecodingKey::from_rsa_components(&key.n, &key.e).unwrap(),
+            validation,
+        )
+        .map_err(|e| {
+            log::error!("Failed to validate token: {}", e);
+            InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
+        })?;
 
-            let validation = &mut Validation::new(jsonwebtoken::Algorithm::RS256);
-            validation.set_audience(&[cloned_self.config.client_id()]);
-            validation.set_issuer(&[cloned_self.get_issuer().as_str()]);
-
-            decode::<Claims>(
-                &token,
-                &DecodingKey::from_rsa_components(&key.n, &key.e).unwrap(),
-                validation,
-            )
-            .map_err(|e| {
-                log::error!("Failed to validate token: {}", e);
-                InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
-            })?;
-
-            Ok(())
-        })
+        Ok(())
     }
 }
