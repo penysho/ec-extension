@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use tokio::sync::RwLock;
 
 use crate::{
     domain::error::error::DomainError,
@@ -37,7 +40,7 @@ struct Claims {
 pub struct CognitoAuthenticator {
     config: CognitoConfig,
     http_client: Client,
-    keys: Vec<Key>,
+    keys: Arc<RwLock<Vec<Key>>>,
 }
 
 impl CognitoAuthenticator {
@@ -45,7 +48,7 @@ impl CognitoAuthenticator {
         CognitoAuthenticator {
             config,
             http_client: Client::new(),
-            keys: Vec::new(),
+            keys: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
@@ -78,14 +81,21 @@ impl CognitoAuthenticator {
     }
 
     async fn get_jwks_key(&mut self, kid: &str) -> Result<Key, DomainError> {
-        let cached_key = self.keys.clone().into_iter().find(|key| key.kid == kid);
+        let cached_key = self
+            .keys
+            .read()
+            .await
+            .clone()
+            .into_iter()
+            .find(|key| key.kid == kid);
         if let Some(key) = cached_key {
             log::debug!("Found cached key: {}", kid);
             return Ok(key);
         }
 
         let jwks = self.fetch_jwks().await?;
-        self.keys = jwks.keys.clone();
+        let mut keys = self.keys.write().await;
+        *keys = jwks.keys.clone();
 
         let key = jwks.keys.into_iter().find(|key| key.kid == kid);
         key.ok_or_else(|| {
