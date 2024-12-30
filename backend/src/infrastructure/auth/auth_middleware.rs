@@ -71,7 +71,7 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let authenticator = self.authenticator.clone();
+        let mut authenticator = self.authenticator.clone();
 
         if EXCLUDE_AUTH_PATHS.contains(&req.path()) {
             let fut = self.service.call(req);
