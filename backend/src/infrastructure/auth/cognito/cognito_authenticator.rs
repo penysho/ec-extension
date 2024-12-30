@@ -34,6 +34,7 @@ struct Claims {
     iat: usize,
     iss: String,
     sub: String,
+    token_use: String,
 }
 
 #[derive(Clone)]
@@ -67,13 +68,13 @@ impl CognitoAuthenticator {
             .send()
             .await
             .map_err(|e| {
-                log::error!("Failed to get jwks: {}", e);
+                log::error!("Failed to fetch JWKs: {}", e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?
             .json::<Jwks>()
             .await
             .map_err(|e| {
-                log::error!("Failed to parse get JWKs response: {}", e);
+                log::error!("Failed to parse fetch JWKs response: {}", e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
@@ -93,6 +94,10 @@ impl CognitoAuthenticator {
             return Ok(key);
         }
 
+        log::warn!(
+            "Since the cache is not found, it is retrieved from JWKS_URI. kid: {}",
+            kid
+        );
         let jwks = self.fetch_jwks().await?;
         let mut keys = self.keys.write().await;
         *keys = jwks.keys.clone();
@@ -122,7 +127,7 @@ impl Authenticator for CognitoAuthenticator {
         validation.set_audience(&[self.config.client_id()]);
         validation.set_issuer(&[self.get_issuer().as_str()]);
 
-        decode::<Claims>(
+        let decoded_token = decode::<Claims>(
             &token,
             &DecodingKey::from_rsa_components(&key.n, &key.e).unwrap(),
             validation,
@@ -131,6 +136,11 @@ impl Authenticator for CognitoAuthenticator {
             log::error!("Failed to validate token: {}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
         })?;
+
+        if decoded_token.claims.token_use != "id" {
+            log::error!("Token is not id token");
+            return Err(DomainError::AuthenticationError);
+        }
 
         Ok(())
     }
