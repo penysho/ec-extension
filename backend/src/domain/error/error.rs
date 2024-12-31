@@ -17,6 +17,7 @@ use derive_more::{Display, Error};
 /// - `SaveError` - Resource persistence failed.
 /// - `DeleteError` - Resource deletion failed.
 /// - `AuthenticationError` - Authentication failed.
+/// - `AuthenticationExpired` - Authentication expired.
 ///
 /// # Example
 /// ```
@@ -67,4 +68,8 @@ pub enum DomainError {
     /// Authentication failed.
     #[display(fmt = "Authentication failed.")]
     AuthenticationError,
+
+    /// Authentication expired.
+    #[display(fmt = "Authentication expired.")]
+    AuthenticationExpired,
 }

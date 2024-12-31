@@ -2,14 +2,14 @@ use std::future::{ready, Ready};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    error::ErrorUnauthorized,
-    Error,
+    error, Error,
 };
 use futures_util::future::LocalBoxFuture;
 
 use super::authenticator_interface::Authenticator;
 
 const ID_TOKEN_COOKIE_NAME: &str = "ID_TOKEN";
+const REFRESH_TOKEN_COOKIE_NAME: &str = "REFRESH_TOKEN";
 const EXCLUDE_AUTH_PATHS: [&str; 1] = ["/health"];
 
 pub struct AuthTransform<A>
@@ -82,17 +82,26 @@ where
         }
 
         let id_token = req.cookie(ID_TOKEN_COOKIE_NAME);
-        if id_token.is_none() {
-            log::error!("IDTOKEN cannot be retrieved from cookie.");
-            return Box::pin(async { Err(ErrorUnauthorized("Unauthorized")) });
-        };
+        let refresh_token = req.cookie(REFRESH_TOKEN_COOKIE_NAME);
 
-        let token_value = id_token.unwrap().value().to_string();
+        let id_token_string = if id_token.is_some() {
+            Some(id_token.unwrap().value().to_string())
+        } else {
+            None
+        };
+        let refresh_token_string = if refresh_token.is_some() {
+            Some(refresh_token.unwrap().value().to_string())
+        } else {
+            None
+        };
 
         let fut = self.service.call(req);
         Box::pin(async move {
-            if let Err(_) = authenticator.validate_token(token_value).await {
-                return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
+            if let Err(_) = authenticator
+                .validate_token(id_token_string, refresh_token_string)
+                .await
+            {
+                return Err(error::ErrorUnauthorized("Unauthorized"));
             }
             let res = fut.await?;
             Ok(res)

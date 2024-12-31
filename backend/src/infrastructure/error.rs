@@ -1,3 +1,4 @@
+use aws_sdk_cognitoidentityprovider::operation::initiate_auth::InitiateAuthError;
 use derive_more::{Display, Error};
 
 use crate::domain::error::error::DomainError;
@@ -10,6 +11,8 @@ pub enum InfrastructureError {
     ParseError(serde_json::Error),
     #[display(fmt = "JWT error.")]
     JwtError(jsonwebtoken::errors::Error),
+    #[display(fmt = "Cognito InitiateAuth execution failed.")]
+    CognitoInitiateAuthError(aws_sdk_cognitoidentityprovider::error::SdkError<InitiateAuthError>),
 }
 
 pub struct InfrastructureErrorMapper;
@@ -19,6 +22,7 @@ impl InfrastructureErrorMapper {
             InfrastructureError::NetworkError(_) => DomainError::SystemError,
             InfrastructureError::ParseError(_) => DomainError::SystemError,
             InfrastructureError::JwtError(_) => DomainError::AuthenticationError,
+            InfrastructureError::CognitoInitiateAuthError(_) => DomainError::AuthenticationError,
         }
     }
 }

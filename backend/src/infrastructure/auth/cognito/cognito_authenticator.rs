@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use jsonwebtoken::{decode, DecodingKey, Validation};
-use reqwest::Client;
+use aws_config::SdkConfig;
+use aws_sdk_cognitoidentityprovider::{types::AuthFlowType, Client as CognitoClient};
+use jsonwebtoken::{decode, errors::ErrorKind, DecodingKey, Validation};
+use reqwest::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
@@ -40,15 +42,17 @@ struct Claims {
 #[derive(Clone)]
 pub struct CognitoAuthenticator {
     config: CognitoConfig,
-    http_client: Client,
+    http_client: ReqwestClient,
+    cognito_client: CognitoClient,
     keys: Arc<RwLock<Vec<Key>>>,
 }
 
 impl CognitoAuthenticator {
-    pub fn new(config: CognitoConfig) -> Self {
+    pub fn new(config: CognitoConfig, shared_config: &SdkConfig) -> Self {
         CognitoAuthenticator {
             config,
-            http_client: Client::new(),
+            http_client: ReqwestClient::new(),
+            cognito_client: CognitoClient::new(shared_config),
             keys: Arc::new(RwLock::new(Vec::new())),
         }
     }
@@ -108,12 +112,63 @@ impl CognitoAuthenticator {
             return DomainError::AuthenticationError;
         })
     }
+
+    fn validate_id_token(&self, id_token_value: &str, key: &Key) -> Result<(), DomainError> {
+        // https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html#amazon-cognito-user-pools-using-tokens-step-3
+        let validation = &mut Validation::new(jsonwebtoken::Algorithm::RS256);
+        validation.set_audience(&[self.config.client_id()]);
+        validation.set_issuer(&[self.get_issuer().as_str()]);
+
+        let decoded_token = decode::<Claims>(
+            id_token_value,
+            &DecodingKey::from_rsa_components(&key.n, &key.e).unwrap(),
+            validation,
+        )
+        .map_err(|e| {
+            if e.kind().to_owned() == ErrorKind::ExpiredSignature {
+                log::warn!("ID Token is expired");
+                return DomainError::AuthenticationExpired;
+            }
+
+            log::error!("Failed to validate ID Token: {}", e);
+            InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
+        })?;
+
+        if decoded_token.claims.token_use != "id" {
+            log::error!(
+                "Token is not ID Token. token_use: {}",
+                decoded_token.claims.token_use
+            );
+            return Err(DomainError::AuthenticationError);
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait]
 impl Authenticator for CognitoAuthenticator {
-    async fn validate_token(&mut self, token: String) -> Result<(), DomainError> {
-        let header = jsonwebtoken::decode_header(&token).map_err(|e| {
+    async fn validate_token(
+        &mut self,
+        id_token: Option<String>,
+        refresh_token: Option<String>,
+    ) -> Result<String, DomainError> {
+        if id_token.is_none() && refresh_token.is_none() {
+            log::error!("Neither the ID token nor the refresh token is present in the cookie.");
+            return Err(DomainError::AuthenticationError);
+        };
+
+        let mut id_token_value = String::new();
+        match id_token {
+            Some(token) => id_token_value = token,
+            None => {
+                id_token_value = self
+                    .get_id_token_by_refresh_token(refresh_token.clone().unwrap())
+                    .await?
+            }
+        }
+
+        let header = jsonwebtoken::decode_header(&id_token_value).map_err(|e| {
             log::error!("Failed to decode header: {}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
         })?;
@@ -122,26 +177,65 @@ impl Authenticator for CognitoAuthenticator {
         let kid = header.kid.ok_or(DomainError::AuthenticationError)?;
         let key = self.get_jwks_key(&kid).await?;
 
-        // https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html#amazon-cognito-user-pools-using-tokens-step-3
-        let validation = &mut Validation::new(jsonwebtoken::Algorithm::RS256);
-        validation.set_audience(&[self.config.client_id()]);
-        validation.set_issuer(&[self.get_issuer().as_str()]);
+        match self.validate_id_token(&id_token_value, &key) {
+            Ok(()) => {
+                return Ok(id_token_value);
+            }
+            Err(e) => {
+                if e == DomainError::AuthenticationExpired && refresh_token.is_some() {
+                    log::debug!("ID Token is expired. Attempting to refresh the ID Token.");
 
-        let decoded_token = decode::<Claims>(
-            &token,
-            &DecodingKey::from_rsa_components(&key.n, &key.e).unwrap(),
-            validation,
-        )
-        .map_err(|e| {
-            log::error!("Failed to validate token: {}", e);
-            InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
-        })?;
+                    let new_id_token_value = self
+                        .get_id_token_by_refresh_token(refresh_token.clone().unwrap())
+                        .await?;
 
-        if decoded_token.claims.token_use != "id" {
-            log::error!("Token is not id token");
-            return Err(DomainError::AuthenticationError);
+                    match self.validate_id_token(&new_id_token_value, &key) {
+                        Ok(()) => {
+                            return Ok(new_id_token_value);
+                        }
+                        Err(e) => {
+                            return Err(e);
+                        }
+                    }
+                }
+
+                return Err(e);
+            }
         }
+    }
 
-        Ok(())
+    async fn get_id_token_by_refresh_token(
+        &self,
+        refresh_token: String,
+    ) -> Result<String, DomainError> {
+        // https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-the-refresh-token.html#amazon-cognito-user-pools-using-the-refresh-token_initiate-token
+        let result = self
+            .cognito_client
+            .initiate_auth()
+            .auth_flow(AuthFlowType::RefreshTokenAuth)
+            .auth_parameters("REFRESH_TOKEN", refresh_token)
+            .send()
+            .await
+            .map_err(|e| {
+                log::error!("Failed to get ID Token by refresh token: {}", e);
+                InfrastructureErrorMapper::to_domain(InfrastructureError::CognitoInitiateAuthError(
+                    e,
+                ))
+            })?
+            .authentication_result
+            .ok_or_else(|| {
+                log::error!("Failed to get authentication result");
+                DomainError::SystemError
+            })?;
+
+        let id_token = result
+            .id_token()
+            .ok_or_else(|| {
+                log::error!("Failed to get ID token");
+                DomainError::SystemError
+            })?
+            .to_string();
+
+        Ok(id_token)
     }
 }
