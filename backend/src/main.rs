@@ -24,6 +24,7 @@ async fn main() -> std::io::Result<()> {
         ShopifyConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let cognito_config =
         CognitoConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let aws_config = aws_config::load_from_env().await;
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
@@ -40,6 +41,7 @@ async fn main() -> std::io::Result<()> {
             // NOTE: Executed in the order of last written.
             .wrap(AuthTransform::new(CognitoAuthenticator::new(
                 cognito_config.clone(),
+                aws_config.clone(),
             )))
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)

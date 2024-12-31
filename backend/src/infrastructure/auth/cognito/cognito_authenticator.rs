@@ -48,11 +48,11 @@ pub struct CognitoAuthenticator {
 }
 
 impl CognitoAuthenticator {
-    pub fn new(config: CognitoConfig, shared_config: &SdkConfig) -> Self {
+    pub fn new(cognito_config: CognitoConfig, sdk_config: SdkConfig) -> Self {
         CognitoAuthenticator {
-            config,
+            config: cognito_config,
             http_client: ReqwestClient::new(),
-            cognito_client: CognitoClient::new(shared_config),
+            cognito_client: CognitoClient::new(&sdk_config),
             keys: Arc::new(RwLock::new(Vec::new())),
         }
     }
@@ -130,7 +130,7 @@ impl CognitoAuthenticator {
                 return DomainError::AuthenticationExpired;
             }
 
-            log::error!("Failed to validate ID Token: {}", e);
+            log::error!("Failed to validate ID Token: {:?}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
         })?;
 
@@ -158,15 +158,13 @@ impl Authenticator for CognitoAuthenticator {
             return Err(DomainError::AuthenticationError);
         };
 
-        let mut id_token_value = String::new();
-        match id_token {
-            Some(token) => id_token_value = token,
+        let id_token_value = match id_token {
+            Some(token) => token,
             None => {
-                id_token_value = self
-                    .get_id_token_by_refresh_token(refresh_token.clone().unwrap())
+                self.get_id_token_by_refresh_token(refresh_token.clone().unwrap())
                     .await?
             }
-        }
+        };
 
         let header = jsonwebtoken::decode_header(&id_token_value).map_err(|e| {
             log::error!("Failed to decode header: {}", e);
@@ -212,12 +210,13 @@ impl Authenticator for CognitoAuthenticator {
         let result = self
             .cognito_client
             .initiate_auth()
+            .client_id(self.config.client_id().to_string())
             .auth_flow(AuthFlowType::RefreshTokenAuth)
             .auth_parameters("REFRESH_TOKEN", refresh_token)
             .send()
             .await
             .map_err(|e| {
-                log::error!("Failed to get ID Token by refresh token: {}", e);
+                log::error!("Failed to get ID Token by refresh token: {:?}", e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::CognitoInitiateAuthError(
                     e,
                 ))
