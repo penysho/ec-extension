@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 
 use crate::{
-    domain::{customer::customer::Customer, error::error::DomainError},
+    domain::{customer::customer::Customer, email::email::Email, error::error::DomainError},
+    infrastructure::auth::authenticator_interface::Authenticator,
     usecase::{
         interactor::auth_interactor_interface::AuthInteractor,
         repository::customer_repository_interface::CustomerRepository,
@@ -9,26 +10,48 @@ use crate::{
 };
 
 /// Auth Interactor.
-pub struct AuthInteractorImpl {
-    customer_repository: Box<dyn CustomerRepository>,
+///
+pub struct AuthInteractorImpl<A, C>
+where
+    A: Authenticator,
+    C: CustomerRepository,
+{
+    authenticator: A,
+    customer_repository: C,
 }
 
-impl AuthInteractorImpl {
-    pub fn new(customer_repository: Box<dyn CustomerRepository>) -> Self {
+impl<A, C> AuthInteractorImpl<A, C>
+where
+    A: Authenticator,
+    C: CustomerRepository,
+{
+    pub fn new(authenticator: A, customer_repository: C) -> Self {
         Self {
-            customer_repository: customer_repository,
+            authenticator,
+            customer_repository,
         }
     }
 }
 
 #[async_trait]
-impl AuthInteractor for AuthInteractorImpl {
+impl<A, C> AuthInteractor for AuthInteractorImpl<A, C>
+where
+    A: Authenticator,
+    C: CustomerRepository,
+{
     async fn authenticate(
         &self,
-        id_token: String,
-        refresh_token: String,
+        id_token: Option<String>,
+        refresh_token: Option<String>,
     ) -> Result<Customer, DomainError> {
-        // TODO: implement
-        unimplemented!()
+        let (idp_user, _) = self
+            .authenticator
+            .clone()
+            .validate_token(id_token, refresh_token)
+            .await?;
+
+        self.customer_repository
+            .find_customer_by_email(&Email::new(idp_user.email)?)
+            .await
     }
 }

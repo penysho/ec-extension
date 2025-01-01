@@ -33,7 +33,7 @@ where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
     B: 'static,
-    A: Authenticator + Clone + 'static,
+    A: Authenticator + 'static,
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
@@ -62,7 +62,7 @@ where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
     B: 'static,
-    A: Authenticator + Clone + 'static,
+    A: Authenticator + 'static,
 {
     type Response = ServiceResponse<B>;
     type Error = Error;

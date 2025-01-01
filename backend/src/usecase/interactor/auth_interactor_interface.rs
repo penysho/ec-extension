@@ -26,7 +26,7 @@ pub trait AuthInteractor {
     /// * Returns a domain error if the customer repository fails.
     async fn authenticate(
         &self,
-        id_token: String,
-        refresh_token: String,
+        id_token: Option<String>,
+        refresh_token: Option<String>,
     ) -> Result<Customer, DomainError>;
 }

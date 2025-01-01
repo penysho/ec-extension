@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use aws_config::SdkConfig;
 use aws_sdk_cognitoidentityprovider::{types::AuthFlowType, Client as CognitoClient};
-use jsonwebtoken::{decode, errors::ErrorKind, DecodingKey, Validation};
+use jsonwebtoken::{decode, errors::ErrorKind, DecodingKey, TokenData, Validation};
 use reqwest::Client as ReqwestClient;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
@@ -11,7 +11,7 @@ use tokio::sync::RwLock;
 use crate::{
     domain::error::error::DomainError,
     infrastructure::{
-        auth::authenticator_interface::Authenticator,
+        auth::authenticator_interface::{Authenticator, IdpUser},
         config::config::CognitoConfig,
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
@@ -37,6 +37,7 @@ struct Claims {
     iss: String,
     sub: String,
     token_use: String,
+    email: String,
 }
 
 #[derive(Clone)]
@@ -113,7 +114,11 @@ impl CognitoAuthenticator {
         })
     }
 
-    fn validate_id_token(&self, id_token_value: &str, key: &Key) -> Result<(), DomainError> {
+    fn validate_id_token(
+        &self,
+        id_token_value: &str,
+        key: &Key,
+    ) -> Result<TokenData<Claims>, DomainError> {
         // https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html#amazon-cognito-user-pools-using-tokens-step-3
         let validation = &mut Validation::new(jsonwebtoken::Algorithm::RS256);
         validation.set_audience(&[self.config.client_id()]);
@@ -142,7 +147,7 @@ impl CognitoAuthenticator {
             return Err(DomainError::AuthenticationError);
         }
 
-        Ok(())
+        Ok(decoded_token)
     }
 }
 
@@ -152,7 +157,7 @@ impl Authenticator for CognitoAuthenticator {
         &mut self,
         id_token: Option<String>,
         refresh_token: Option<String>,
-    ) -> Result<String, DomainError> {
+    ) -> Result<(IdpUser, String), DomainError> {
         if id_token.is_none() && refresh_token.is_none() {
             log::error!("Neither the ID token nor the refresh token is present in the cookie.");
             return Err(DomainError::AuthenticationError);
@@ -176,8 +181,14 @@ impl Authenticator for CognitoAuthenticator {
         let key = self.get_jwks_key(&kid).await?;
 
         match self.validate_id_token(&id_token_value, &key) {
-            Ok(()) => {
-                return Ok(id_token_value);
+            Ok(token_data) => {
+                return Ok((
+                    IdpUser {
+                        id: token_data.claims.sub.clone(),
+                        email: token_data.claims.email.clone(),
+                    },
+                    id_token_value,
+                ));
             }
             Err(e) => {
                 if e == DomainError::AuthenticationExpired && refresh_token.is_some() {
@@ -188,8 +199,14 @@ impl Authenticator for CognitoAuthenticator {
                         .await?;
 
                     match self.validate_id_token(&new_id_token_value, &key) {
-                        Ok(()) => {
-                            return Ok(new_id_token_value);
+                        Ok(token_data) => {
+                            return Ok((
+                                IdpUser {
+                                    id: token_data.claims.sub.clone(),
+                                    email: token_data.claims.email.clone(),
+                                },
+                                id_token_value,
+                            ));
                         }
                         Err(e) => {
                             return Err(e);
