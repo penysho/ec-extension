@@ -10,7 +10,7 @@ use super::authenticator_interface::Authenticator;
 
 const ID_TOKEN_COOKIE_NAME: &str = "ID_TOKEN";
 const REFRESH_TOKEN_COOKIE_NAME: &str = "REFRESH_TOKEN";
-const EXCLUDE_AUTH_PATHS: [&str; 1] = ["/health"];
+const EXCLUDE_AUTH_PATHS: [&str; 2] = ["/health", "/ec-extension/auth/sign-in"];
 
 pub struct AuthTransform<A>
 where
