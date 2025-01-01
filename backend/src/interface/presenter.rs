@@ -1,4 +1,6 @@
 pub mod address;
+pub mod auth;
+pub mod auth_presenter_interface;
 mod common;
 pub mod customer;
 pub mod customer_presenter_interface;

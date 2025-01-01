@@ -110,22 +110,6 @@ mod tests {
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        // assert_eq!(
-        //     resp.response()
-        //         .cookies()
-        //         .find(|cookie| cookie.name() == "ID_TOKEN")
-        //         .unwrap()
-        //         .value(),
-        //     "updated-idtoken"
-        // );
-        // assert_eq!(
-        //     resp.response()
-        //         .cookies()
-        //         .find(|cookie| cookie.name() == "REFRESH_TOKEN")
-        //         .unwrap()
-        //         .value(),
-        //     "refreshtoken"
-        // );
     }
 
     #[actix_web::test]
