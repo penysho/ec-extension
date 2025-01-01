@@ -29,13 +29,13 @@ pub trait Authenticator: Send + Sync + Clone {
     /// * Returns a error encountered in token validation
     async fn validate_token(
         &mut self,
-        id_token: Option<String>,
-        refresh_token: Option<String>,
+        id_token: Option<&str>,
+        refresh_token: Option<&str>,
     ) -> Result<(IdpUser, String), DomainError>;
 
     /// Obtain an ID Token by means of a refresh token.
     async fn get_id_token_by_refresh_token(
         &self,
-        refresh_token: String,
+        refresh_token: &str,
     ) -> Result<String, DomainError>;
 }

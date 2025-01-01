@@ -1,5 +1,9 @@
-use actix_web::{cookie::Cookie, web, HttpResponse, Responder};
+use actix_web::{web, Responder};
 use serde::{Deserialize, Serialize};
+
+use crate::interface::presenter::{
+    auth::auth_impl::AuthPresenterImpl, auth_presenter_interface::AuthPresenter,
+};
 
 use super::controller::Controller;
 
@@ -19,37 +23,9 @@ impl Controller {
         let interactor = self.interact_provider.provide_auth_interactor().await;
         let result = interactor.authenticate(&id_token, &refresh_token).await;
 
-        match result {
-            Ok((customer, new_id_token)) => {
-                let cookie_id_token = Cookie::build("ID_TOKEN", new_id_token)
-                    .secure(true)
-                    .http_only(true)
-                    .path("/")
-                    .finish();
-
-                let mut cookie_refresh_token = Cookie::build("REFRESH_TOKEN", "")
-                    .secure(true)
-                    .http_only(true)
-                    .path("/")
-                    .finish();
-                if refresh_token.is_some() {
-                    cookie_refresh_token.set_value(refresh_token.unwrap());
-                }
-
-                let cookie_customer_id = Cookie::build("CUSTOMER_ID", customer.id())
-                    .secure(true)
-                    .http_only(false)
-                    .path("/")
-                    .finish();
-
-                return HttpResponse::Ok()
-                    .cookie(cookie_id_token)
-                    .cookie(cookie_refresh_token)
-                    .cookie(cookie_customer_id)
-                    .finish();
-            }
-            Err(_) => HttpResponse::Unauthorized().finish(),
-        }
+        AuthPresenterImpl::new()
+            .present_post_sign_in(result, refresh_token.as_deref())
+            .await
     }
 }
 

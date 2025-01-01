@@ -98,7 +98,7 @@ where
         let fut = self.service.call(req);
         Box::pin(async move {
             if let Err(_) = authenticator
-                .validate_token(id_token_string, refresh_token_string)
+                .validate_token(id_token_string.as_deref(), refresh_token_string.as_deref())
                 .await
             {
                 return Err(error::ErrorUnauthorized("Unauthorized"));

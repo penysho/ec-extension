@@ -110,7 +110,7 @@ mod tests {
         let presenter = AuthPresenterImpl::new();
 
         let result = presenter
-            .present_post_sign_in(Err(DomainError::SystemError), Some("refresh_token"))
+            .present_post_sign_in(Err(DomainError::SystemError), Some("refreshtoken"))
             .await;
 
         assert!(matches!(result, Err(PostSingInErrorResponse::Unauthorized)));

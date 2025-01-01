@@ -155,8 +155,8 @@ impl CognitoAuthenticator {
 impl Authenticator for CognitoAuthenticator {
     async fn validate_token(
         &mut self,
-        id_token: Option<String>,
-        refresh_token: Option<String>,
+        id_token: Option<&str>,
+        refresh_token: Option<&str>,
     ) -> Result<(IdpUser, String), DomainError> {
         if id_token.is_none() && refresh_token.is_none() {
             log::error!("Neither the ID token nor the refresh token is present in the cookie.");
@@ -164,9 +164,9 @@ impl Authenticator for CognitoAuthenticator {
         };
 
         let id_token_value = match id_token {
-            Some(token) => token,
+            Some(token) => token.to_string(),
             None => {
-                self.get_id_token_by_refresh_token(refresh_token.clone().unwrap())
+                self.get_id_token_by_refresh_token(refresh_token.unwrap())
                     .await?
             }
         };
@@ -187,7 +187,7 @@ impl Authenticator for CognitoAuthenticator {
                         id: token_data.claims.sub.clone(),
                         email: token_data.claims.email.clone(),
                     },
-                    id_token_value,
+                    id_token_value.to_string(),
                 ));
             }
             Err(e) => {
@@ -195,7 +195,7 @@ impl Authenticator for CognitoAuthenticator {
                     log::debug!("ID Token is expired. Attempting to refresh the ID Token.");
 
                     let new_id_token_value = self
-                        .get_id_token_by_refresh_token(refresh_token.clone().unwrap())
+                        .get_id_token_by_refresh_token(refresh_token.unwrap())
                         .await?;
 
                     match self.validate_id_token(&new_id_token_value, &key) {
@@ -205,7 +205,7 @@ impl Authenticator for CognitoAuthenticator {
                                     id: token_data.claims.sub.clone(),
                                     email: token_data.claims.email.clone(),
                                 },
-                                id_token_value,
+                                new_id_token_value.to_string(),
                             ));
                         }
                         Err(e) => {
@@ -221,7 +221,7 @@ impl Authenticator for CognitoAuthenticator {
 
     async fn get_id_token_by_refresh_token(
         &self,
-        refresh_token: String,
+        refresh_token: &str,
     ) -> Result<String, DomainError> {
         // https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-the-refresh-token.html#amazon-cognito-user-pools-using-the-refresh-token_initiate-token
         let result = self
