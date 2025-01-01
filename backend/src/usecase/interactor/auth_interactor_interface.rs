@@ -4,7 +4,7 @@ use mockall::automock;
 use crate::domain::customer::customer::Customer;
 use crate::domain::error::error::DomainError;
 
-/// Interactor interface for customer.
+/// Interactor interface for auth.
 #[automock]
 #[async_trait]
 pub trait AuthInteractor {
@@ -17,8 +17,8 @@ pub trait AuthInteractor {
     ///
     /// # Returns
     ///
-    /// * `Result<Customer, DomainError>` - The result of the operation.
-    ///   - `Ok(Customer)` - The Authenticated customer.
+    /// * `Result<(Customer, String), DomainError>` - The result of the operation.
+    ///   - `Ok((Customer, String))` - The Authenticated customer and ID Token. If an ID token is obtained using a refresh token, the updated ID token is returned, not the one received as an argument.
     ///   - `Err(DomainError)` - The error.
     ///
     /// # Errors
@@ -26,7 +26,7 @@ pub trait AuthInteractor {
     /// * Returns a domain error if the customer repository fails.
     async fn authenticate(
         &self,
-        id_token: Option<String>,
-        refresh_token: Option<String>,
-    ) -> Result<Customer, DomainError>;
+        id_token: &Option<String>,
+        refresh_token: &Option<String>,
+    ) -> Result<(Customer, String), DomainError>;
 }

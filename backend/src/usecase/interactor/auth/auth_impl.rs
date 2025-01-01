@@ -41,17 +41,20 @@ where
 {
     async fn authenticate(
         &self,
-        id_token: Option<String>,
-        refresh_token: Option<String>,
-    ) -> Result<Customer, DomainError> {
-        let (idp_user, _) = self
+        id_token: &Option<String>,
+        refresh_token: &Option<String>,
+    ) -> Result<(Customer, String), DomainError> {
+        let (idp_user, new_id_token) = self
             .authenticator
             .clone()
-            .validate_token(id_token, refresh_token)
+            .validate_token(id_token.clone(), refresh_token.clone())
             .await?;
 
-        self.customer_repository
+        let customer = self
+            .customer_repository
             .find_customer_by_email(&Email::new(idp_user.email)?)
-            .await
+            .await?;
+
+        Ok((customer, new_id_token))
     }
 }

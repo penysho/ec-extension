@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use crate::domain::error::error::DomainError;
 
+#[warn(dead_code)]
 pub struct IdpUser {
     pub id: String,
     pub email: String,
@@ -19,8 +20,8 @@ pub trait Authenticator: Send + Sync + Clone {
     ///
     /// # Returns
     ///
-    /// * `Result<String, DomainError>` - The result of the operation.
-    ///   - `Ok(String)` - ID Token. If an ID token is obtained using a refresh token, the updated ID token is returned, not the one received as an argument.
+    /// * `Result<(IdpUser, String), DomainError>` - The result of the operation.
+    ///   - `Ok((IdpUser, String))` - Idp user information and ID Token. If an ID token is obtained using a refresh token, the updated ID token is returned, not the one received as an argument.
     ///   - `Err(DomainError)` - The error.
     ///
     /// # Errors

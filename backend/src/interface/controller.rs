@@ -10,5 +10,6 @@ pub mod get_products;
 pub mod get_related_products;
 pub mod interact_provider_interface;
 pub mod post_draft_order;
+pub mod post_sign_in;
 pub mod put_inventory_quantity_by_sku;
 mod schema;

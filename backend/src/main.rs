@@ -47,7 +47,11 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             // Definition of app data
             .app_data(web::Data::new(Arc::new(Controller::new(Box::new(
-                InteractProviderImpl::new(shopify_config.clone()),
+                InteractProviderImpl::new(
+                    shopify_config.clone(),
+                    cognito_config.clone(),
+                    aws_config.clone(),
+                ),
             )))))
             // Definition of routes
             .configure(actix_router::configure_routes)
