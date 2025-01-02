@@ -3,7 +3,7 @@ use derive_getters::Getters;
 
 use crate::domain::{
     address::address::Address, email::email::Email, error::error::DomainError,
-    media::media_content::image::image::Image, phone::phone::Phone,
+    media::media_content::image::image::Image, phone::phone::Phone, user::user::Id as UserId,
 };
 
 pub type Id = String;
@@ -27,6 +27,7 @@ pub enum CustomerStatus {
 ///
 /// # Fields
 /// - `id` - A unique identifier for the customer.
+/// - `user_id` - A unique identifier for for authentication and authorization.
 /// - `addresses` - A list of addresses associated with the customer.
 /// - `default_address` - The default address for the customer, if applicable.
 /// - `display_name` - The name displayed for the customer.
@@ -43,6 +44,7 @@ pub enum CustomerStatus {
 #[derive(Debug, Getters)]
 pub struct Customer {
     id: Id,
+    user_id: UserId,
     addresses: Vec<Address>,
     default_address: Option<Address>,
     display_name: String,
@@ -62,6 +64,7 @@ impl Customer {
     /// Constructor to be used from the repository.
     pub fn new(
         id: impl Into<String>,
+        user_id: impl Into<String>,
         addresses: Vec<Address>,
         default_address: Option<Address>,
         display_name: impl Into<String>,
@@ -98,6 +101,7 @@ impl Customer {
 
         Ok(Self {
             id,
+            user_id: user_id.into(),
             addresses,
             default_address,
             display_name,
@@ -140,6 +144,7 @@ mod tests {
     fn test_new_success() {
         let customer = Customer::new(
             "123",
+            "user123",
             vec![mock_address()],
             Some(mock_address()),
             "John Doe",
@@ -159,6 +164,7 @@ mod tests {
 
         let customer = customer.unwrap();
         assert_eq!(customer.id(), "123");
+        assert_eq!(customer.user_id(), "user123");
         assert_eq!(customer.display_name(), "John Doe");
         assert_eq!(
             customer.email().as_ref().unwrap().value(),
@@ -176,6 +182,7 @@ mod tests {
     fn test_new_error_empty_id() {
         let customer = Customer::new(
             "",
+            "user123",
             vec![mock_address()],
             Some(mock_address()),
             "John Doe",
@@ -199,6 +206,7 @@ mod tests {
     fn test_new_error_empty_display_name() {
         let customer = Customer::new(
             "123",
+            "user123",
             vec![mock_address()],
             Some(mock_address()),
             "",
@@ -222,6 +230,7 @@ mod tests {
     fn test_new_error_invalid_default_address() {
         let customer = Customer::new(
             "123",
+            "user123",
             vec![mock_address()],
             Some(
                 Address::new(

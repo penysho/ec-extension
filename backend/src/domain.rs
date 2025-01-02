@@ -12,3 +12,4 @@ pub mod money;
 pub mod order;
 pub mod phone;
 pub mod product;
+pub mod user;

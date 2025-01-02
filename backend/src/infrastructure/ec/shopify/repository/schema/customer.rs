@@ -9,7 +9,10 @@ use crate::{
         media::associated_id::associated_id::AssociatedId,
         phone::phone::Phone,
     },
-    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::Edges},
+    infrastructure::ec::shopify::{
+        gql_helper::ShopifyGQLHelper,
+        schema::{Edges, Metafield},
+    },
 };
 
 use super::{address::AddressNode, media::ImageNode};
@@ -32,6 +35,7 @@ impl CustomerNode {
 
         Customer::new(
             id.clone(),
+            self.user_id.value,
             self.addresses
                 .into_iter()
                 .map(|address| address.to_domain())
@@ -70,6 +74,8 @@ pub struct CustomersData {
 #[serde(rename_all = "camelCase")]
 pub struct CustomerNode {
     pub id: String,
+    #[serde(rename = "metafield")]
+    pub user_id: Metafield<String>,
     pub addresses: Vec<AddressNode>,
     pub default_address: Option<AddressNode>,
     pub display_name: String,

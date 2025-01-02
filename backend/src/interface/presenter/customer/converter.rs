@@ -6,6 +6,7 @@ impl From<Customer> for CustomerSchema {
     fn from(customer: Customer) -> Self {
         CustomerSchema {
             id: customer.id().to_string(),
+            user_id: customer.user_id().to_string(),
             addresses: customer
                 .addresses()
                 .to_owned()

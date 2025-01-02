@@ -53,8 +53,7 @@ impl AuthPresenter for AuthPresenterImpl {
                     .path("/")
                     .finish();
 
-                // TODO: Keep the Idp ID in the domain and refer to it here.
-                let cookie_user_id = Cookie::build(USER_ID_COOKIE_NAME, customer.id())
+                let cookie_user_id = Cookie::build(USER_ID_COOKIE_NAME, customer.user_id())
                     .secure(true)
                     .http_only(false)
                     .path("/")
@@ -152,7 +151,7 @@ mod tests {
                 .find(|cookie| cookie.name() == "USER_ID")
                 .unwrap()
                 .value(),
-            "0"
+            "user_0"
         );
     }
 
