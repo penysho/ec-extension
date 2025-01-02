@@ -3,3 +3,4 @@ pub mod authenticator_interface;
 pub mod authorizer_interface;
 pub mod cognito;
 pub mod idp_user;
+pub mod rbac;

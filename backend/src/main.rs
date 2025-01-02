@@ -4,6 +4,7 @@ use actix_web::{http, web, App, HttpServer};
 use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
+use infrastructure::auth::rbac::rbac_authorizer::RbacAuthorizer;
 use infrastructure::config::config::{AppConfig, CognitoConfig, ShopifyConfig};
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
@@ -46,13 +47,14 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)
             // Definition of app data
-            .app_data(web::Data::new(Arc::new(Controller::new(Box::new(
-                InteractProviderImpl::new(
+            .app_data(web::Data::new(Arc::new(Controller::new(
+                Box::new(InteractProviderImpl::new(
                     shopify_config.clone(),
                     cognito_config.clone(),
                     aws_config.clone(),
-                ),
-            )))))
+                )),
+                Box::new(RbacAuthorizer::new()),
+            ))))
             // Definition of routes
             .configure(actix_router::configure_routes)
     })

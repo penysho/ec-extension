@@ -61,6 +61,7 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
 
+    use crate::infrastructure::auth::authorizer_interface::MockAuthorizer;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::mock::domain_mock::{mock_inventory_items, mock_inventory_level_map};
@@ -86,7 +87,12 @@ mod tests {
             .expect_provide_inventory_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn InventoryInteractor>);
 
-        let controller = web::Data::new(Arc::new(Controller::new(Box::new(interact_provider))));
+        let authorizer_mock = MockAuthorizer::new();
+
+        let controller = web::Data::new(Arc::new(Controller::new(
+            Box::new(interact_provider),
+            Box::new(authorizer_mock),
+        )));
 
         // Create an application for testing
         test::init_service(

@@ -17,6 +17,15 @@ use crate::{
     },
 };
 
+/// Authenticator with Cognito wrap.
+#[derive(Clone)]
+pub struct CognitoAuthenticator {
+    config: CognitoConfig,
+    http_client: ReqwestClient,
+    cognito_client: CognitoClient,
+    keys: Arc<RwLock<Vec<Key>>>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct Jwks {
     keys: Vec<Key>,
@@ -38,15 +47,6 @@ struct Claims {
     sub: String,
     token_use: String,
     email: String,
-}
-
-/// Authenticator with Cognito wrap.
-#[derive(Clone)]
-pub struct CognitoAuthenticator {
-    config: CognitoConfig,
-    http_client: ReqwestClient,
-    cognito_client: CognitoClient,
-    keys: Arc<RwLock<Vec<Key>>>,
 }
 
 impl CognitoAuthenticator {
