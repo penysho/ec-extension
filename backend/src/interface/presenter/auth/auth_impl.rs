@@ -1,7 +1,4 @@
-use actix_web::{
-    cookie::{self, Cookie},
-    HttpResponse,
-};
+use actix_web::{cookie::Cookie, HttpResponse};
 use async_trait::async_trait;
 
 use crate::{
@@ -168,5 +165,45 @@ mod tests {
             .await;
 
         assert!(matches!(result, Err(PostSingInErrorResponse::Unauthorized)));
+    }
+
+    #[actix_web::test]
+    async fn test_present_post_sign_out_success() {
+        let presenter = AuthPresenterImpl::new();
+
+        let result = presenter.present_post_sign_out().await;
+
+        assert_eq!(
+            result
+                .cookies()
+                .find(|cookie| cookie.name() == "ID_TOKEN")
+                .unwrap()
+                .value(),
+            ""
+        );
+        assert_eq!(
+            result
+                .cookies()
+                .find(|cookie| cookie.name() == "REFRESH_TOKEN")
+                .unwrap()
+                .value(),
+            ""
+        );
+        assert_eq!(
+            result
+                .cookies()
+                .find(|cookie| cookie.name() == "CUSTOMER_ID")
+                .unwrap()
+                .value(),
+            ""
+        );
+        assert_eq!(
+            result
+                .cookies()
+                .find(|cookie| cookie.name() == "USER_ID")
+                .unwrap()
+                .value(),
+            ""
+        );
     }
 }
