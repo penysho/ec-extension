@@ -1,4 +1,7 @@
-use actix_web::{cookie::Cookie, HttpResponse};
+use actix_web::{
+    cookie::{self, Cookie},
+    HttpResponse,
+};
 use async_trait::async_trait;
 
 use crate::{
@@ -19,6 +22,7 @@ impl AuthPresenterImpl {
 const ID_TOKEN_COOKIES_NAME: &str = "ID_TOKEN";
 const REFRESH_TOKEN_COOKIES_NAME: &str = "REFRESH_TOKEN";
 const CUSTOMER_ID_COOKIES_NAME: &str = "CUSTOMER_ID";
+const USER_ID_COOKIE_NAME: &str = "USER_ID";
 
 #[async_trait]
 impl AuthPresenter for AuthPresenterImpl {
@@ -52,10 +56,18 @@ impl AuthPresenter for AuthPresenterImpl {
                     .path("/")
                     .finish();
 
+                // TODO: Keep the Idp ID in the domain and refer to it here.
+                let cookie_user_id = Cookie::build(USER_ID_COOKIE_NAME, customer.id())
+                    .secure(true)
+                    .http_only(false)
+                    .path("/")
+                    .finish();
+
                 return Ok(HttpResponse::Ok()
                     .cookie(cookie_id_token)
                     .cookie(cookie_refresh_token)
                     .cookie(cookie_customer_id)
+                    .cookie(cookie_user_id)
                     .finish());
             }
             Err(_) => Err(PostSingInErrorResponse::Unauthorized),
@@ -82,10 +94,17 @@ impl AuthPresenter for AuthPresenterImpl {
             .path("/")
             .finish();
 
+        let cookie_user_id = Cookie::build(USER_ID_COOKIE_NAME, "")
+            .secure(true)
+            .http_only(false)
+            .path("/")
+            .finish();
+
         HttpResponse::Ok()
             .cookie(cookie_id_token)
             .cookie(cookie_refresh_token)
             .cookie(cookie_customer_id)
+            .cookie(cookie_user_id)
             .finish()
     }
 }
@@ -126,6 +145,14 @@ mod tests {
             result
                 .cookies()
                 .find(|cookie| cookie.name() == "CUSTOMER_ID")
+                .unwrap()
+                .value(),
+            "0"
+        );
+        assert_eq!(
+            result
+                .cookies()
+                .find(|cookie| cookie.name() == "USER_ID")
                 .unwrap()
                 .value(),
             "0"

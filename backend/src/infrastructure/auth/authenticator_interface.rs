@@ -2,11 +2,7 @@ use async_trait::async_trait;
 
 use crate::domain::error::error::DomainError;
 
-#[warn(dead_code)]
-pub struct IdpUser {
-    pub id: String,
-    pub email: String,
-}
+use super::idp_user::IdpUser;
 
 /// Authentication interface.
 #[async_trait]

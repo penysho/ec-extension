@@ -11,7 +11,7 @@ use tokio::sync::RwLock;
 use crate::{
     domain::error::error::DomainError,
     infrastructure::{
-        auth::authenticator_interface::{Authenticator, IdpUser},
+        auth::{authenticator_interface::Authenticator, idp_user::IdpUser},
         config::config::CognitoConfig,
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
