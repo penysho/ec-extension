@@ -191,30 +191,25 @@ impl Authenticator for CognitoAuthenticator {
                     id_token_value.to_string(),
                 ));
             }
+            Err(e) if e == DomainError::AuthenticationExpired && refresh_token.is_some() => {
+                log::debug!("ID Token is expired. Attempting to refresh the ID Token.");
+
+                let new_id_token_value = self
+                    .get_id_token_by_refresh_token(refresh_token.unwrap())
+                    .await?;
+
+                self.validate_id_token(&new_id_token_value, &key)
+                    .map(|token_data| {
+                        (
+                            IdpUser {
+                                id: token_data.claims.sub.clone(),
+                                email: token_data.claims.email.clone(),
+                            },
+                            new_id_token_value,
+                        )
+                    })
+            }
             Err(e) => {
-                if e == DomainError::AuthenticationExpired && refresh_token.is_some() {
-                    log::debug!("ID Token is expired. Attempting to refresh the ID Token.");
-
-                    let new_id_token_value = self
-                        .get_id_token_by_refresh_token(refresh_token.unwrap())
-                        .await?;
-
-                    match self.validate_id_token(&new_id_token_value, &key) {
-                        Ok(token_data) => {
-                            return Ok((
-                                IdpUser {
-                                    id: token_data.claims.sub.clone(),
-                                    email: token_data.claims.email.clone(),
-                                },
-                                new_id_token_value.to_string(),
-                            ));
-                        }
-                        Err(e) => {
-                            return Err(e);
-                        }
-                    }
-                }
-
                 return Err(e);
             }
         }
