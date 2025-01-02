@@ -93,5 +93,11 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
                     controller.post_sign_in(body).await
                 }),
             )
+            .route(
+                "/auth/sign-out",
+                 web::post().to(|controller: web::Data<Arc<Controller>>| async move {
+                    controller.post_sign_out().await
+                }),
+            )
     );
 }

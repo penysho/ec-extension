@@ -8,6 +8,7 @@ pub struct IdpUser {
     pub email: String,
 }
 
+/// Authentication interface.
 #[async_trait]
 pub trait Authenticator: Send + Sync + Clone {
     /// Validate tokens issued by Idp.

@@ -13,4 +13,8 @@ pub trait AuthPresenter {
         result: Result<(Customer, String), DomainError>,
         refresh_token: Option<&str>,
     ) -> Result<Self::PostSiginInResponse, Self::PostSiginInErrorResponse>;
+
+    type PostSignOutResponse;
+    /// Generate a response of sign out.
+    async fn present_post_sign_out(&self) -> Self::PostSignOutResponse;
 }

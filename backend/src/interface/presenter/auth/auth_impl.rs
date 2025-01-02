@@ -61,6 +61,33 @@ impl AuthPresenter for AuthPresenterImpl {
             Err(_) => Err(PostSingInErrorResponse::Unauthorized),
         }
     }
+
+    type PostSignOutResponse = HttpResponse;
+    async fn present_post_sign_out(&self) -> Self::PostSignOutResponse {
+        let cookie_id_token = Cookie::build(ID_TOKEN_COOKIES_NAME, "")
+            .secure(true)
+            .http_only(true)
+            .path("/")
+            .finish();
+
+        let cookie_refresh_token = Cookie::build(REFRESH_TOKEN_COOKIES_NAME, "")
+            .secure(true)
+            .http_only(true)
+            .path("/")
+            .finish();
+
+        let cookie_customer_id = Cookie::build(CUSTOMER_ID_COOKIES_NAME, "")
+            .secure(true)
+            .http_only(false)
+            .path("/")
+            .finish();
+
+        HttpResponse::Ok()
+            .cookie(cookie_id_token)
+            .cookie(cookie_refresh_token)
+            .cookie(cookie_customer_id)
+            .finish()
+    }
 }
 
 #[cfg(test)]

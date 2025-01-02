@@ -10,7 +10,6 @@ use crate::{
 };
 
 /// Auth Interactor.
-///
 pub struct AuthInteractorImpl<A, C>
 where
     A: Authenticator,

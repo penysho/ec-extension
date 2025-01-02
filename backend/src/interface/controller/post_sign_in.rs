@@ -14,7 +14,8 @@ pub struct PostSignInRequest {
 }
 
 impl Controller {
-    /// Perform authentication.
+    /// Perform back-end sign-in.
+    /// Initiate session management with cookies.
     pub async fn post_sign_in(&self, body: web::Json<PostSignInRequest>) -> impl Responder {
         let body = body.into_inner();
         let id_token = body.id_token;

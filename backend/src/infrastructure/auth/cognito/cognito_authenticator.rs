@@ -40,6 +40,7 @@ struct Claims {
     email: String,
 }
 
+/// Authenticator with Cognito wrap.
 #[derive(Clone)]
 pub struct CognitoAuthenticator {
     config: CognitoConfig,
