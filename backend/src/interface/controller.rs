@@ -1,3 +1,4 @@
+pub mod authorizer_interface;
 pub mod complete_draft_order;
 pub mod controller;
 pub mod delete_draft_order;

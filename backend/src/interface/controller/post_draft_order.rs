@@ -107,7 +107,7 @@ impl Controller {
 mod tests {
     use std::sync::Arc;
 
-    use crate::infrastructure::auth::authorizer_interface::MockAuthorizer;
+    use crate::interface::controller::authorizer_interface::MockAuthorizer;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::controller::schema::component::component::{

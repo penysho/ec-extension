@@ -1,11 +1,8 @@
 use actix_web::HttpMessage;
 
-use crate::{
-    domain::{error::error::DomainError, user::user::Id as UserId},
-    infrastructure::auth::authorizer_interface::Authorizer,
-};
+use crate::domain::{error::error::DomainError, user::user::Id as UserId};
 
-use super::interact_provider_interface::InteractProvider;
+use super::{authorizer_interface::Authorizer, interact_provider_interface::InteractProvider};
 
 /// Controller receives data from outside and calls usecase.
 pub struct Controller {
@@ -39,7 +36,7 @@ impl Controller {
 
 #[cfg(test)]
 mod test {
-    use crate::infrastructure::auth::authorizer_interface::MockAuthorizer;
+    use crate::interface::controller::authorizer_interface::MockAuthorizer;
     use crate::interface::controller::controller::Controller;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use actix_web::test::TestRequest;

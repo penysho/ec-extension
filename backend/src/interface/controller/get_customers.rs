@@ -3,7 +3,6 @@ use serde::Deserialize;
 
 use crate::{
     domain::{email::email::Email, error::error::DomainError},
-    infrastructure::auth::authorizer_interface::{Action, Resource},
     interface::presenter::{
         customer::customer_impl::CustomerPresenterImpl,
         customer_presenter_interface::CustomerPresenter,
@@ -11,7 +10,10 @@ use crate::{
     usecase::interactor::customer_interactor_interface::GetCustomersQuery,
 };
 
-use super::controller::Controller;
+use super::{
+    authorizer_interface::{Action, Resource},
+    controller::Controller,
+};
 
 #[derive(Deserialize)]
 pub struct GetCustomersQueryParams {
@@ -56,8 +58,8 @@ fn validate_query_params(
 mod tests {
     use std::sync::Arc;
 
-    use crate::infrastructure::auth::authorizer_interface::MockAuthorizer;
     use crate::infrastructure::router::actix_router;
+    use crate::interface::controller::authorizer_interface::MockAuthorizer;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::mock::domain_mock::mock_customers;
     use crate::usecase::interactor::customer_interactor_interface::{
