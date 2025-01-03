@@ -102,7 +102,9 @@ macro_rules! define_error_response {
                     DomainError::NotFound => $name::NotFound {
                         object_name: $object.to_string(),
                     },
-                    DomainError::InvalidRequest | DomainError::ValidationError => $name::BadRequest,
+                    DomainError::InvalidRequest
+                    | DomainError::ValidationError
+                    | DomainError::AuthorizationError => $name::BadRequest,
                     _ => $name::ServiceUnavailable,
                 }
             }

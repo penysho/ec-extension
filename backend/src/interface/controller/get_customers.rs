@@ -134,6 +134,42 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_get_customers_authorization_failed() {
+        let mut interactor = MockCustomerInteractor::new();
+        interactor
+            .expect_get_customers()
+            .returning(|_| Ok(mock_customers(10)));
+
+        let mut authorizer = MockAuthorizer::new();
+        authorizer
+            .expect_authorize()
+            .returning(|_, _, _| Err(DomainError::AuthorizationError));
+
+        let controller = web::Data::new(Arc::new(Controller::new(
+            Box::new(MockInteractProvider::new()),
+            Box::new(authorizer),
+        )));
+
+        let req = test::TestRequest::get()
+            .uri(&format!("{BASE_URL}?email=john@example.com"))
+            .to_request();
+        req.extensions_mut().insert("user_id".to_string());
+
+        let resp: ServiceResponse = test::call_service(
+            &test::init_service(
+                App::new()
+                    .app_data(controller)
+                    .configure(actix_router::configure_routes),
+            )
+            .await,
+            req,
+        )
+        .await;
+
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[actix_web::test]
     async fn test_get_customers_not_found() {
         let mut interactor = MockCustomerInteractor::new();
         interactor.expect_get_customers().returning(|_| Ok(vec![]));
