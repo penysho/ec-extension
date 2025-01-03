@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/backend/Dockerfile.local
+    container_name: ec-extension_backend
     volumes:
       - .:/app
     ports:
@@ -12,3 +13,17 @@ services:
     tty: true
     env_file:
       - "./backend/.env"
+
+  backend-db:
+    image: postgres:17.0-bookworm
+    container_name: ec-extension_backend-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+volumes:
+  postgres_data:

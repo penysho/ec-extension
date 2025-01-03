@@ -25,5 +25,6 @@ futures-util = "0.3.30"
 jsonwebtoken = "9.3.0"
 aws-config = { version = "1.5.12", features = ["behavior-version-latest"] }
 aws-sdk-cognitoidentityprovider = "1.62.0"
+diesel = { version = "2.2.6", features = ["r2d2", "postgres", "chrono",]}
 
 [dev-dependencies]
