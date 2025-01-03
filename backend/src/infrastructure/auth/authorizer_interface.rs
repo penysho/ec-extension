@@ -28,7 +28,7 @@ pub trait Authorizer: Send + Sync {
     /// Authorize the given request.
     async fn authorize(
         &self,
-        user: &IdpUser,
+        user_id: &str,
         resource: &Resource,
         action: &Action,
     ) -> Result<(), DomainError>;

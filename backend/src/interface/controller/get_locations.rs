@@ -54,17 +54,17 @@ mod tests {
     async fn setup(
         interactor: MockLocationInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
-        // Configure the InteractProvider mock
+        // Configure the mocks
         let mut interact_provider = MockInteractProvider::new();
         interact_provider
             .expect_provide_location_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn LocationInteractor>);
 
-        let authorizer_mock = MockAuthorizer::new();
+        let authorizer = MockAuthorizer::new();
 
         let controller = web::Data::new(Arc::new(Controller::new(
             Box::new(interact_provider),
-            Box::new(authorizer_mock),
+            Box::new(authorizer),
         )));
 
         // Create an application for testing

@@ -44,17 +44,17 @@ mod tests {
     async fn setup(
         interactor: MockProductInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
-        // Configure the InteractProvider mock
+        // Configure the mocks
         let mut interact_provider = MockInteractProvider::new();
         interact_provider
             .expect_provide_product_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn ProductInteractor>);
 
-        let authorizer_mock = MockAuthorizer::new();
+        let authorizer = MockAuthorizer::new();
 
         let controller = web::Data::new(Arc::new(Controller::new(
             Box::new(interact_provider),
-            Box::new(authorizer_mock),
+            Box::new(authorizer),
         )));
 
         // Create an application for testing

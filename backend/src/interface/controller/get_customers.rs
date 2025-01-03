@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 use crate::{
     domain::{email::email::Email, error::error::DomainError},
+    infrastructure::auth::authorizer_interface::{Action, Resource},
     interface::presenter::{
         customer::customer_impl::CustomerPresenterImpl,
         customer_presenter_interface::CustomerPresenter,
@@ -22,14 +23,16 @@ impl Controller {
     pub async fn get_customers(
         &self,
         params: web::Query<GetCustomersQueryParams>,
+        request: actix_web::HttpRequest,
     ) -> impl Responder {
         let presenter = CustomerPresenterImpl::new();
 
-        let query = match validate_query_params(&params) {
-            Ok(query) => query,
-            Err(error) => return presenter.present_get_customers(Err(error)).await,
-        };
+        let user_id = self.get_user_id(&request)?;
+        self.authorizer
+            .authorize(user_id.as_str(), &Resource::Customer, &Action::Read)
+            .await?;
 
+        let query = validate_query_params(&params)?;
         let interactor = self.interact_provider.provide_customer_interactor().await;
         let results = interactor.get_customers(&query).await;
 
@@ -64,8 +67,8 @@ mod tests {
     use super::*;
     use actix_http::Request;
     use actix_web::dev::{Service, ServiceResponse};
-    use actix_web::web;
     use actix_web::{http::StatusCode, test, App, Error};
+    use actix_web::{web, HttpMessage};
     use mockall::predicate::eq;
 
     const BASE_URL: &'static str = "/ec-extension/customers";
@@ -73,17 +76,18 @@ mod tests {
     async fn setup(
         interactor: MockCustomerInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
-        // Configure the InteractProvider mock
+        // Configure the mocks
         let mut interact_provider = MockInteractProvider::new();
         interact_provider
             .expect_provide_customer_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn CustomerInteractor>);
 
-        let authorizer_mock = MockAuthorizer::new();
+        let mut authorizer = MockAuthorizer::new();
+        authorizer.expect_authorize().returning(|_, _, _| Ok(()));
 
         let controller = web::Data::new(Arc::new(Controller::new(
             Box::new(interact_provider),
-            Box::new(authorizer_mock),
+            Box::new(authorizer),
         )));
 
         // Create an application for testing
@@ -108,6 +112,8 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email=john@example.com"))
             .to_request();
+        req.extensions_mut().insert("user_id".to_string());
+
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::OK);
@@ -120,6 +126,8 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email="))
             .to_request();
+        req.extensions_mut().insert("user_id".to_string());
+
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
@@ -133,6 +141,8 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email=john@example.com"))
             .to_request();
+        req.extensions_mut().insert("user_id".to_string());
+
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
@@ -148,6 +158,8 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email=john@example.com"))
             .to_request();
+        req.extensions_mut().insert("user_id".to_string());
+
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
@@ -163,6 +175,8 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email=john@example.com"))
             .to_request();
+        req.extensions_mut().insert("user_id".to_string());
+
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);

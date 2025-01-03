@@ -21,10 +21,10 @@ impl RbacAuthorizer {
 impl Authorizer for RbacAuthorizer {
     async fn authorize(
         &self,
-        user: &IdpUser,
+        user_id: &str,
         resource: &Resource,
         action: &Action,
     ) -> Result<(), DomainError> {
-        todo!()
+        Ok(())
     }
 }

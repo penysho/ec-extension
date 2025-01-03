@@ -83,8 +83,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             )
             .route(
                 "/customers",
-                 web::get().to(|controller: web::Data<Arc<Controller>>, params: web::Query<GetCustomersQueryParams>| async move {
-                    controller.get_customers(params).await
+                 web::get().to(|controller: web::Data<Arc<Controller>>, params: web::Query<GetCustomersQueryParams>, request: actix_web::HttpRequest| async move {
+                    controller.get_customers(params, request).await
                 }),
             )
             .route(
