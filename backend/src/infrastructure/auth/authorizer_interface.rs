@@ -3,8 +3,6 @@ use mockall::automock;
 
 use crate::domain::error::error::DomainError;
 
-use super::idp_user::IdpUser;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Resource {
     Product,
