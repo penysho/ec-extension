@@ -36,3 +36,37 @@ impl Controller {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::infrastructure::auth::authorizer_interface::MockAuthorizer;
+    use crate::interface::controller::controller::Controller;
+    use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use actix_web::test::TestRequest;
+    use actix_web::HttpMessage;
+
+    #[test]
+    fn test_get_user_id_success() {
+        let interact_provider = MockInteractProvider::new();
+        let authorizer = MockAuthorizer::new();
+
+        let controller = Controller::new(Box::new(interact_provider), Box::new(authorizer));
+
+        let request = TestRequest::default().to_http_request();
+        request.extensions_mut().insert("user_id".to_string());
+        let user_id = controller.get_user_id(&request);
+        assert!(user_id.is_ok());
+    }
+
+    #[test]
+    fn test_get_user_id_error() {
+        let interact_provider = MockInteractProvider::new();
+        let authorizer = MockAuthorizer::new();
+
+        let controller = Controller::new(Box::new(interact_provider), Box::new(authorizer));
+
+        let request = TestRequest::default().to_http_request();
+        let user_id = controller.get_user_id(&request);
+        assert!(user_id.is_err());
+    }
+}
