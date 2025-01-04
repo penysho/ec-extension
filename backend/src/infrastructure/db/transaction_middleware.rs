@@ -5,29 +5,26 @@ use actix_web::{
     dev::{ServiceRequest, ServiceResponse},
     error,
     middleware::Next,
-    web::Data,
-    Error, HttpMessage,
+    web, Error, HttpMessage,
 };
 
-use super::{
-    sea_orm::sea_orm_manager::SeaOrmTransactionManager,
-    transaction_manager_interface::TransactionManager,
-};
+use super::transaction_manager_interface::TransactionManager;
 
 // Fixed message is responded and no internal information is returned.
 const TRANSACTION_ERROR_MESSAGE: &str = "System error";
 
-pub async fn transaction_middleware(
+pub async fn transaction_middleware<T>(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
-) -> Result<ServiceResponse<impl MessageBody>, Error> {
-    let transaction_manager = req
-        .app_data::<Data<SeaOrmTransactionManager>>()
-        .cloned()
-        .ok_or_else(|| {
-            log::error!("Failed to get transaction manager");
-            error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
-        })?;
+) -> Result<ServiceResponse<impl MessageBody>, Error>
+where
+    T: TransactionManager + 'static,
+    T::Transaction: Send + 'static,
+{
+    let transaction_manager = req.app_data::<web::Data<T>>().cloned().ok_or_else(|| {
+        log::error!("Failed to get transaction manager");
+        error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
+    })?;
 
     let transaction = transaction_manager.begin().await.map_err(|e| {
         log::error!("Failed to start transaction: {}", e);

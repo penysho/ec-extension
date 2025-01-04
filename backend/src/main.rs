@@ -12,7 +12,6 @@ use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
 use sea_orm::Database;
 use std::io;
-use std::sync::Arc;
 
 mod domain;
 mod infrastructure;
@@ -52,7 +51,9 @@ async fn main() -> std::io::Result<()> {
                 cognito_config.clone(),
                 aws_config.clone(),
             )))
-            .wrap(from_fn(transaction_middleware::transaction_middleware))
+            .wrap(from_fn(
+                transaction_middleware::transaction_middleware::<SeaOrmTransactionManager>,
+            ))
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)
             // Definition of app data
