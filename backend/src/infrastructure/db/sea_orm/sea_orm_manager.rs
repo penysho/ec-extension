@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
-use std::sync::Arc;
 
 use crate::{
     domain::error::error::DomainError,
@@ -8,11 +7,11 @@ use crate::{
 };
 
 pub struct SeaOrmTransactionManager {
-    conn: Arc<DatabaseConnection>,
+    conn: DatabaseConnection,
 }
 
 impl SeaOrmTransactionManager {
-    pub fn new(conn: Arc<DatabaseConnection>) -> Self {
+    pub fn new(conn: DatabaseConnection) -> Self {
         Self { conn }
     }
 }

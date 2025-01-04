@@ -1,13 +1,16 @@
 use actix_cors::Cors;
-use actix_web::middleware::Logger;
+use actix_web::middleware::{from_fn, Logger};
 use actix_web::{http, web, App, HttpServer};
 use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
 use infrastructure::auth::rbac::rbac_authorizer::RbacAuthorizer;
 use infrastructure::config::config::{AppConfig, CognitoConfig, ShopifyConfig};
+use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
+use infrastructure::db::transaction_middleware;
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
+use sea_orm::Database;
 use std::io;
 use std::sync::Arc;
 
@@ -29,6 +32,11 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
+    let db = Database::connect("postgres://postgres:postgres@backend-db/postgres")
+        .await
+        .unwrap();
+    let transaction_manager = web::Data::new(SeaOrmTransactionManager::new(db));
+
     HttpServer::new(move || {
         let cors = Cors::default()
             .allowed_origin("http://localhost:3000")
@@ -44,9 +52,11 @@ async fn main() -> std::io::Result<()> {
                 cognito_config.clone(),
                 aws_config.clone(),
             )))
+            .wrap(from_fn(transaction_middleware::transaction_middleware))
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)
             // Definition of app data
+            .app_data(transaction_manager.clone())
             .app_data(web::Data::new(Arc::new(Controller::new(
                 Box::new(InteractProviderImpl::new(
                     shopify_config.clone(),

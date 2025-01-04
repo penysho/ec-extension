@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use actix_web::{web, Responder};
 use serde::Deserialize;
 
 use crate::{
     domain::{email::email::Email, error::error::DomainError},
+    infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager,
     interface::presenter::{
         customer::customer_impl::CustomerPresenterImpl,
         customer_presenter_interface::CustomerPresenter,
