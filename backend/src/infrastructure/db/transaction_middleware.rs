@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use actix_web::{
     body::MessageBody,
     dev::{ServiceRequest, ServiceResponse},
@@ -31,15 +29,17 @@ where
         error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
     })?;
 
-    let transaction = Arc::new(Mutex::new(Some(transaction)));
-    req.extensions_mut().insert(transaction.clone());
+    req.extensions_mut().insert(transaction);
 
     let res = next.call(req).await;
-
     match res {
         Ok(response) => {
             if response.status().is_success() {
-                if let Some(transaction) = transaction.lock().unwrap().take() {
+                if let Some(transaction) = response
+                    .request()
+                    .extensions_mut()
+                    .remove::<<T as TransactionManager>::Transaction>()
+                {
                     transaction_manager.commit(transaction).await.map_err(|e| {
                         log::error!("Failed to commit transaction: {}", e);
                         error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
@@ -48,19 +48,27 @@ where
                     log::error!("Transaction already consumed");
                     return Err(error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE));
                 }
+            } else {
+                if let Some(transaction) = response
+                    .request()
+                    .extensions_mut()
+                    .remove::<<T as TransactionManager>::Transaction>()
+                {
+                    transaction_manager
+                        .rollback(transaction)
+                        .await
+                        .map_err(|e| {
+                            log::error!("Failed to rollback transaction: {}", e);
+                            error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
+                        })?;
+                }
             }
             Ok(response)
         }
         Err(err) => {
-            if let Some(transaction) = transaction.lock().unwrap().take() {
-                transaction_manager
-                    .rollback(transaction)
-                    .await
-                    .map_err(|e| {
-                        log::error!("Failed to rollback transaction: {}", e);
-                        error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
-                    })?;
-            }
+            // This branch assumes an error before the application logic is called, so there is no need to explicitly roll back
+            // TODO: Consideration when the program panics
+            log::error!("Transaction cannot be rolled back because a response cannot be obtained");
             Err(err)
         }
     }
