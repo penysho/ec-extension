@@ -4,6 +4,7 @@ use mockall::automock;
 use crate::domain::customer::customer::Customer;
 use crate::domain::email::email::Email;
 use crate::domain::error::error::DomainError;
+use crate::domain::user::user::Id as UserId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GetCustomersQuery {
@@ -29,5 +30,9 @@ pub trait CustomerInteractor {
     /// # Errors
     ///
     /// * Returns a domain error if the customer repository fails.
-    async fn get_customers(&self, query: &GetCustomersQuery) -> Result<Vec<Customer>, DomainError>;
+    async fn get_customers(
+        &self,
+        user_id: &UserId,
+        query: &GetCustomersQuery,
+    ) -> Result<Vec<Customer>, DomainError>;
 }

@@ -2,23 +2,16 @@ use actix_web::HttpMessage;
 
 use crate::domain::{error::error::DomainError, user::user::Id as UserId};
 
-use super::{authorizer_interface::Authorizer, interact_provider_interface::InteractProvider};
+use super::interact_provider_interface::InteractProvider;
 
 /// Controller receives data from outside and calls usecase.
 pub struct Controller {
     pub interact_provider: Box<dyn InteractProvider>,
-    pub authorizer: Box<dyn Authorizer>,
 }
 
 impl Controller {
-    pub fn new(
-        interact_provider: Box<dyn InteractProvider>,
-        authorizer: Box<dyn Authorizer>,
-    ) -> Self {
-        Controller {
-            interact_provider,
-            authorizer,
-        }
+    pub fn new(interact_provider: Box<dyn InteractProvider>) -> Self {
+        Controller { interact_provider }
     }
 
     /// Obtain the user ID used for authorization from the actix request.
@@ -36,7 +29,6 @@ impl Controller {
 
 #[cfg(test)]
 mod test {
-    use crate::interface::controller::authorizer_interface::MockAuthorizer;
     use crate::interface::controller::controller::Controller;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use actix_web::test::TestRequest;
@@ -45,9 +37,8 @@ mod test {
     #[test]
     fn test_get_user_id_success() {
         let interact_provider = MockInteractProvider::new();
-        let authorizer = MockAuthorizer::new();
 
-        let controller = Controller::new(Box::new(interact_provider), Box::new(authorizer));
+        let controller = Controller::new(Box::new(interact_provider));
 
         let request = TestRequest::default().to_http_request();
         request.extensions_mut().insert("user_id".to_string());
@@ -58,9 +49,8 @@ mod test {
     #[test]
     fn test_get_user_id_error() {
         let interact_provider = MockInteractProvider::new();
-        let authorizer = MockAuthorizer::new();
 
-        let controller = Controller::new(Box::new(interact_provider), Box::new(authorizer));
+        let controller = Controller::new(Box::new(interact_provider));
 
         let request = TestRequest::default().to_http_request();
         let user_id = controller.get_user_id(&request);

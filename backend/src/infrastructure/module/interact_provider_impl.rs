@@ -3,7 +3,10 @@ use aws_config::SdkConfig;
 
 use crate::{
     infrastructure::{
-        auth::cognito::cognito_authenticator::CognitoAuthenticator,
+        auth::{
+            cognito::cognito_authenticator::CognitoAuthenticator,
+            rbac::rbac_authorizer::RbacAuthorizer,
+        },
         config::config::{CognitoConfig, ShopifyConfig},
         ec::shopify::{
             client_impl::ShopifyGQLClient,
@@ -107,9 +110,12 @@ impl InteractProvider for InteractProviderImpl {
     }
 
     async fn provide_customer_interactor(&self) -> Box<dyn CustomerInteractor> {
-        Box::new(CustomerInteractorImpl::new(Box::new(
-            CustomerRepositoryImpl::new(ShopifyGQLClient::new(self.shopify_config.clone())),
-        )))
+        Box::new(CustomerInteractorImpl::new(
+            Box::new(CustomerRepositoryImpl::new(ShopifyGQLClient::new(
+                self.shopify_config.clone(),
+            ))),
+            Box::new(RbacAuthorizer::new()),
+        ))
     }
 
     async fn provide_auth_interactor(&self) -> Box<dyn AuthInteractor> {

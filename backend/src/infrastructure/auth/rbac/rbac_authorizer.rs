@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::{
     domain::error::error::DomainError,
-    interface::controller::authorizer_interface::{Action, Authorizer, Resource},
+    usecase::authorizer::authorizer_interface::{Action, Authorizer, Resource},
 };
 
 /// Authorization by RBAC.

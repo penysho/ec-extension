@@ -4,7 +4,6 @@ use actix_web::{http, web, App, HttpServer};
 use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
-use infrastructure::auth::rbac::rbac_authorizer::RbacAuthorizer;
 use infrastructure::config::config::ConfigProvider;
 use infrastructure::db::sea_orm::sea_orm_manager::{
     SeaOrmConnectionProvider, SeaOrmTransactionManager,
@@ -33,14 +32,11 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
-    let controller = web::Data::new(Controller::new(
-        Box::new(InteractProviderImpl::new(
-            config_provider.shopify_config().clone(),
-            config_provider.cognito_config().clone(),
-            config_provider.aws_sdk_config().clone(),
-        )),
-        Box::new(RbacAuthorizer::new()),
-    ));
+    let controller = web::Data::new(Controller::new(Box::new(InteractProviderImpl::new(
+        config_provider.shopify_config().clone(),
+        config_provider.cognito_config().clone(),
+        config_provider.aws_sdk_config().clone(),
+    ))));
 
     let connection_provider =
         SeaOrmConnectionProvider::new(config_provider.database_config().clone())

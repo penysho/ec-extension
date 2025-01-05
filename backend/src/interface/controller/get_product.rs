@@ -21,10 +21,7 @@ impl Controller {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use crate::domain::error::error::DomainError;
-    use crate::interface::controller::authorizer_interface::MockAuthorizer;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::mock::domain_mock::{mock_media, mock_products};
@@ -50,12 +47,7 @@ mod tests {
             .expect_provide_product_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn ProductInteractor>);
 
-        let authorizer = MockAuthorizer::new();
-
-        let controller = web::Data::new(Arc::new(Controller::new(
-            Box::new(interact_provider),
-            Box::new(authorizer),
-        )));
+        let controller = web::Data::new(Controller::new(Box::new(interact_provider)));
 
         // Create an application for testing
         test::init_service(

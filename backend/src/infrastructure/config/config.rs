@@ -8,8 +8,8 @@ use crate::domain::error::error::DomainError;
 pub struct ConfigProvider {
     app_config: AppConfig,
     shopify_config: ShopifyConfig,
-    cognito_config: CognitoConfig,
     database_config: DatabaseConfig,
+    cognito_config: CognitoConfig,
     aws_sdk_config: SdkConfig,
 }
 
@@ -17,8 +17,8 @@ impl ConfigProvider {
     pub async fn new() -> Result<Self, DomainError> {
         let app_config = AppConfig::new()?;
         let shopify_config = ShopifyConfig::new()?;
-        let cognito_config = CognitoConfig::new()?;
         let database_config = DatabaseConfig::new()?;
+        let cognito_config = CognitoConfig::new()?;
         let aws_sdk_config = aws_config::load_from_env().await;
 
         Ok(ConfigProvider {
