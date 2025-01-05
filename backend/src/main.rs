@@ -5,12 +5,13 @@ use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
 use infrastructure::auth::rbac::rbac_authorizer::RbacAuthorizer;
-use infrastructure::config::config::{AppConfig, CognitoConfig, ShopifyConfig};
-use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
+use infrastructure::config::config::{AppConfig, CognitoConfig, DatabaseConfig, ShopifyConfig};
+use infrastructure::db::sea_orm::sea_orm_manager::{
+    SeaOrmConnectionProvider, SeaOrmTransactionManager,
+};
 use infrastructure::db::transaction_middleware;
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
-use sea_orm::Database;
 use std::io;
 
 mod domain;
@@ -28,13 +29,16 @@ async fn main() -> std::io::Result<()> {
     let cognito_config =
         CognitoConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let aws_config = aws_config::load_from_env().await;
+    let db_config = DatabaseConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
-    let db = Database::connect("postgres://postgres:postgres@backend-db/postgres")
+    let connection_provider = SeaOrmConnectionProvider::new(db_config)
         .await
-        .unwrap();
-    let transaction_manager = web::Data::new(SeaOrmTransactionManager::new(db));
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let transaction_manager = web::Data::new(SeaOrmTransactionManager::new(
+        connection_provider.get_connection().clone(),
+    ));
 
     HttpServer::new(move || {
         let cors = Cors::default()

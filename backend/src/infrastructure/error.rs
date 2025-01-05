@@ -13,6 +13,8 @@ pub enum InfrastructureError {
     JwtError(jsonwebtoken::errors::Error),
     #[display(fmt = "Cognito InitiateAuth execution failed.")]
     CognitoInitiateAuthError(aws_sdk_cognitoidentityprovider::error::SdkError<InitiateAuthError>),
+    #[display(fmt = "Database error.")]
+    DatabaseError(sea_orm::DbErr),
 }
 
 pub struct InfrastructureErrorMapper;
@@ -23,6 +25,7 @@ impl InfrastructureErrorMapper {
             InfrastructureError::ParseError(_) => DomainError::SystemError,
             InfrastructureError::JwtError(_) => DomainError::AuthenticationError,
             InfrastructureError::CognitoInitiateAuthError(_) => DomainError::AuthenticationError,
+            InfrastructureError::DatabaseError(_) => DomainError::SystemError,
         }
     }
 }

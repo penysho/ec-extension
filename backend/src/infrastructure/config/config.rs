@@ -97,3 +97,59 @@ impl CognitoConfig {
         })
     }
 }
+
+/// DatabaseConfig manages Database settings.
+#[derive(Getters, Clone)]
+pub struct DatabaseConfig {
+    /// Set the database URL of the pool.
+    url: String,
+    /// Set the maximum number of connections of the pool.
+    max_connections: u32,
+    /// Set the minimum number of connections of the pool.
+    min_connections: u32,
+    /// Set the timeout duration when acquiring a connection.
+    connect_timeout: u64,
+    /// Set the maximum amount of time to spend waiting for acquiring a connection.
+    acquire_timeout: u64,
+    /// Set the idle duration before closing a connection.
+    idle_timeout: u64,
+    /// Set the maximum lifetime of individual connections.
+    max_lifetime: u64,
+}
+
+impl DatabaseConfig {
+    pub fn new() -> Result<Self, DomainError> {
+        let url = env::var("DATABASE_URL").map_err(|_| {
+            eprintln!("DATABASE_URL is not set as an environment variable");
+            DomainError::InitConfigError
+        })?;
+        let max_connections = env::var("DATABASE_MAX_CONNECTIONS")
+            .map(|s| s.parse::<u32>().unwrap_or(10))
+            .unwrap_or(10);
+        let min_connections = env::var("DATABASE_MIN_CONNECTIONS")
+            .map(|s| s.parse::<u32>().unwrap_or(5))
+            .unwrap_or(5);
+        let connect_timeout = env::var("DATABASE_CONNECT_TIMEOUT")
+            .map(|s| s.parse::<u64>().unwrap_or(10))
+            .unwrap_or(10);
+        let acquire_timeout = env::var("DATABASE_ACQUIRE_TIMEOUT")
+            .map(|s| s.parse::<u64>().unwrap_or(10))
+            .unwrap_or(10);
+        let idle_timeout = env::var("DATABASE_IDLE_TIMEOUT")
+            .map(|s| s.parse::<u64>().unwrap_or(300))
+            .unwrap_or(300);
+        let max_lifetime = env::var("DATABASE_MAX_LIFETIME")
+            .map(|s| s.parse::<u64>().unwrap_or(300))
+            .unwrap_or(300);
+
+        Ok(DatabaseConfig {
+            url,
+            max_connections,
+            min_connections,
+            connect_timeout,
+            acquire_timeout,
+            idle_timeout,
+            max_lifetime,
+        })
+    }
+}
