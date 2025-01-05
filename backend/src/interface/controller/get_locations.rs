@@ -5,7 +5,7 @@ use crate::interface::presenter::{
     location::location_impl::LocationPresenterImpl, location_presenter_interface::LocationPresenter,
 };
 
-use super::controller::Controller;
+use super::{controller::Controller, interact_provider_interface::InteractProvider};
 
 #[derive(Deserialize)]
 pub struct GetLocationsQueryParams {
@@ -13,7 +13,10 @@ pub struct GetLocationsQueryParams {
     offset: Option<u32>,
 }
 
-impl Controller {
+impl<I> Controller<I>
+where
+    I: InteractProvider,
+{
     /// Get a list of locations.
     pub async fn get_locations(
         &self,
@@ -57,13 +60,13 @@ mod tests {
             .expect_provide_location_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn LocationInteractor>);
 
-        let controller = web::Data::new(Controller::new(Box::new(interact_provider)));
+         let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes),
+                .configure(actix_router::configure_routes::<MockInteractProvider>),
         )
         .await
     }

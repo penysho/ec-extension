@@ -32,11 +32,11 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
-    let controller = web::Data::new(Controller::new(Box::new(InteractProviderImpl::new(
+    let controller = web::Data::new(Controller::new(InteractProviderImpl::new(
         config_provider.shopify_config().clone(),
         config_provider.cognito_config().clone(),
         config_provider.aws_sdk_config().clone(),
-    ))));
+    )));
 
     let connection_provider =
         SeaOrmConnectionProvider::new(config_provider.database_config().clone())
@@ -70,7 +70,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(transaction_manager.clone())
             .app_data(controller.clone())
             // Definition of routes
-            .configure(actix_router::configure_routes)
+            .configure(actix_router::configure_routes::<InteractProviderImpl>)
     })
     .bind(format!("{}:{}", app_config.address(), app_config.port()))?
     .run()

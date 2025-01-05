@@ -5,7 +5,7 @@ use crate::interface::presenter::{
     auth::auth_impl::AuthPresenterImpl, auth_presenter_interface::AuthPresenter,
 };
 
-use super::controller::Controller;
+use super::{controller::Controller, interact_provider_interface::InteractProvider};
 
 #[derive(Serialize, Deserialize)]
 pub struct PostSignInRequest {
@@ -13,7 +13,10 @@ pub struct PostSignInRequest {
     refresh_token: Option<String>,
 }
 
-impl Controller {
+impl<I> Controller<I>
+where
+    I: InteractProvider,
+{
     /// Perform back-end sign-in.
     /// Initiate session management with cookies.
     pub async fn post_sign_in(&self, body: web::Json<PostSignInRequest>) -> impl Responder {
@@ -57,13 +60,13 @@ mod tests {
             .expect_provide_auth_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn AuthInteractor>);
 
-        let controller = web::Data::new(Controller::new(Box::new(interact_provider)));
+        let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes),
+                .configure(actix_router::configure_routes::<MockInteractProvider>),
         )
         .await
     }

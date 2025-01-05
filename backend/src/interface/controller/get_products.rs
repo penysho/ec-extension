@@ -5,13 +5,18 @@ use crate::interface::{
 use actix_web::{web, Responder};
 use serde::Deserialize;
 
+use super::interact_provider_interface::InteractProvider;
+
 #[derive(Deserialize)]
 pub struct GetProductsQueryParams {
     limit: Option<u32>,
     offset: Option<u32>,
 }
 
-impl Controller {
+impl<I> Controller<I>
+where
+    I: InteractProvider,
+{
     /// Get a list of products.
     pub async fn get_products(&self, params: web::Query<GetProductsQueryParams>) -> impl Responder {
         let interactor = self.interact_provider.provide_product_interactor().await;
@@ -51,13 +56,13 @@ mod tests {
             .expect_provide_product_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn ProductInteractor>);
 
-        let controller = web::Data::new(Controller::new(Box::new(interact_provider)));
+         let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes),
+                .configure(actix_router::configure_routes::<MockInteractProvider>),
         )
         .await
     }

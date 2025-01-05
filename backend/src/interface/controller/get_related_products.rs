@@ -6,7 +6,12 @@ use crate::interface::{
 };
 use actix_web::{web::Path, Responder};
 
-impl Controller {
+use super::interact_provider_interface::InteractProvider;
+
+impl<I> Controller<I>
+where
+    I: InteractProvider,
+{
     /// Obtains a list of products related to the specified product.
     pub async fn get_related_products(&self, path: Path<(String,)>) -> impl Responder {
         let id = &path.into_inner().0;
@@ -47,13 +52,13 @@ mod tests {
             .expect_provide_product_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn ProductInteractor>);
 
-        let controller = web::Data::new(Controller::new(Box::new(interact_provider)));
+         let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes),
+                .configure(actix_router::configure_routes::<MockInteractProvider>),
         )
         .await
     }

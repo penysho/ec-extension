@@ -5,12 +5,18 @@ use crate::domain::{error::error::DomainError, user::user::Id as UserId};
 use super::interact_provider_interface::InteractProvider;
 
 /// Controller receives data from outside and calls usecase.
-pub struct Controller {
-    pub interact_provider: Box<dyn InteractProvider>,
+pub struct Controller<I>
+where
+    I: InteractProvider,
+{
+    pub interact_provider: I,
 }
 
-impl Controller {
-    pub fn new(interact_provider: Box<dyn InteractProvider>) -> Self {
+impl<I> Controller<I>
+where
+    I: InteractProvider,
+{
+    pub fn new(interact_provider: I) -> Self {
         Controller { interact_provider }
     }
 
@@ -38,7 +44,7 @@ mod test {
     fn test_get_user_id_success() {
         let interact_provider = MockInteractProvider::new();
 
-        let controller = Controller::new(Box::new(interact_provider));
+        let controller = Controller::new(interact_provider);
 
         let request = TestRequest::default().to_http_request();
         request.extensions_mut().insert("user_id".to_string());
@@ -50,7 +56,7 @@ mod test {
     fn test_get_user_id_error() {
         let interact_provider = MockInteractProvider::new();
 
-        let controller = Controller::new(Box::new(interact_provider));
+        let controller = Controller::new(interact_provider);
 
         let request = TestRequest::default().to_http_request();
         let user_id = controller.get_user_id(&request);

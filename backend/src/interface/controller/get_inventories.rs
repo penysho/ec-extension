@@ -10,7 +10,7 @@ use crate::{
     usecase::interactor::inventory_interactor_interface::GetInventoriesQuery,
 };
 
-use super::controller::Controller;
+use super::{controller::Controller, interact_provider_interface::InteractProvider};
 
 #[derive(Deserialize)]
 pub struct GetInventoriesQueryParams {
@@ -18,7 +18,10 @@ pub struct GetInventoriesQueryParams {
     sku: Option<String>,
 }
 
-impl Controller {
+impl<I> Controller<I>
+where
+    I: InteractProvider,
+{
     /// Get a list of inventories.
     pub async fn get_inventories(
         &self,
@@ -85,13 +88,13 @@ mod tests {
             .expect_provide_inventory_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn InventoryInteractor>);
 
-        let controller = web::Data::new(Controller::new(Box::new(interact_provider)));
+         let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes),
+                .configure(actix_router::configure_routes::<MockInteractProvider>),
         )
         .await
     }

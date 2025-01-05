@@ -5,9 +5,12 @@ use crate::interface::presenter::{
     draft_order_presenter_interface::DraftOrderPresenter,
 };
 
-use super::controller::Controller;
+use super::{controller::Controller, interact_provider_interface::InteractProvider};
 
-impl Controller {
+impl<I> Controller<I>
+where
+    I: InteractProvider,
+{
     /// Complete a draft order.
     pub async fn complete_draft_order(&self, path: Path<(String,)>) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
@@ -49,13 +52,13 @@ mod tests {
             .expect_provide_draft_order_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn DraftOrderInteractor>);
 
-        let controller = web::Data::new(Controller::new(Box::new(interact_provider)));
+        let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes),
+                .configure(actix_router::configure_routes::<MockInteractProvider>),
         )
         .await
     }

@@ -22,7 +22,7 @@ use crate::{
     },
 };
 
-use super::controller::Controller;
+use super::{controller::Controller, interact_provider_interface::InteractProvider};
 
 #[derive(Serialize, Deserialize)]
 pub struct PutInventoryQuantityBySkuRequest {
@@ -33,7 +33,10 @@ pub struct PutInventoryQuantityBySkuRequest {
     location_id: String,
 }
 
-impl Controller {
+impl<I> Controller<I>
+where
+    I: InteractProvider,
+{
     /// Update the inventory of the specified SKU.
     pub async fn put_inventory_quantity_by_sku(
         &self,
@@ -129,13 +132,13 @@ mod tests {
             .expect_provide_inventory_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn InventoryInteractor>);
 
-        let controller = web::Data::new(Controller::new(Box::new(interact_provider)));
+        let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes),
+                .configure(actix_router::configure_routes::<MockInteractProvider>),
         )
         .await
     }

@@ -2,13 +2,17 @@ use crate::interface::controller::{
     controller::Controller, get_customers::GetCustomersQueryParams,
     get_draft_orders::GetDraftOrdersQueryParams, get_inventories::GetInventoriesQueryParams,
     get_locations::GetLocationsQueryParams, get_products::GetProductsQueryParams,
-    post_draft_order::PostDraftOrderRequest, post_sign_in::PostSignInRequest,
+    interact_provider_interface::InteractProvider, post_draft_order::PostDraftOrderRequest,
+    post_sign_in::PostSignInRequest,
     put_inventory_quantity_by_sku::PutInventoryQuantityBySkuRequest,
 };
 use actix_web::{web, HttpResponse};
 
 /// Define actix routers.
-pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+pub fn configure_routes<I>(cfg: &mut web::ServiceConfig)
+where
+    I: InteractProvider + 'static,
+{
     cfg.service(
         web::resource("/health").route(web::get().to(|| async { HttpResponse::Ok().body("ok") })),
     );
@@ -16,14 +20,18 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         web::scope("/ec-extension")
             .route(
                 "/products",
-                web::get().to(|controller: web::Data<Controller>, params: web::Query<GetProductsQueryParams>| async move {
-                    controller.get_products(params).await
-                }),
+                web::get().to(
+                    |controller: web::Data<Controller<I>>,
+                     params: web::Query<GetProductsQueryParams>| async move {
+                        controller.get_products(params).await
+                    },
+                ),
             )
             .route(
                 "/products/{id}",
                 web::get().to(
-                    |controller: web::Data<Controller>, path: web::Path<(String,)>| async move {
+                    |controller: web::Data<Controller<I>>,
+                     path: web::Path<(String,)>| async move {
                         controller.get_product(path).await
                     },
                 ),
@@ -31,71 +39,102 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             .route(
                 "/products/related/{id}",
                 web::get().to(
-                    |controller: web::Data<Controller>, path: web::Path<(String,)>| async move {
+                    |controller: web::Data<Controller<I>>,
+                     path: web::Path<(String,)>| async move {
                         controller.get_related_products(path).await
                     },
                 ),
             )
             .route(
                 "/inventories",
-                 web::get().to(|controller: web::Data<Controller>, params: web::Query<GetInventoriesQueryParams>| async move {
-                    controller.get_inventories(params).await
-                }),
+                web::get().to(
+                    |controller: web::Data<Controller<I>>,
+                     params: web::Query<GetInventoriesQueryParams>| async move {
+                        controller.get_inventories(params).await
+                    },
+                ),
             )
             .route(
                 "/inventories/quantities/sku/{sku}",
-                 web::put().to(|controller: web::Data<Controller>, path: web::Path<(String,)>,
-        body: web::Json<PutInventoryQuantityBySkuRequest>| async move {
-                    controller.put_inventory_quantity_by_sku(path, body).await
-                }),
+                web::put().to(
+                    |controller: web::Data<Controller<I>>,
+                     path: web::Path<(String,)>,
+                     body: web::Json<PutInventoryQuantityBySkuRequest>| async move {
+                        controller.put_inventory_quantity_by_sku(path, body).await
+                    },
+                ),
             )
             .route(
                 "/orders/draft",
-                 web::get().to(|controller: web::Data<Controller>, params: web::Query<GetDraftOrdersQueryParams>| async move {
-                    controller.get_draft_orders(params).await
-                }),
+                web::get().to(
+                    |controller: web::Data<Controller<I>>,
+                     params: web::Query<GetDraftOrdersQueryParams>| async move {
+                        controller.get_draft_orders(params).await
+                    },
+                ),
             )
             .route(
                 "/orders/draft",
-                 web::post().to(|controller: web::Data<Controller>, body: web::Json<PostDraftOrderRequest>| async move {
-                    controller.post_draft_order(body).await
-                }),
+                web::post().to(
+                    |controller: web::Data<Controller<I>>,
+                     body: web::Json<PostDraftOrderRequest>| async move {
+                        controller.post_draft_order(body).await
+                    },
+                ),
             )
             .route(
                 "/orders/draft/{id}",
-                 web::delete().to(|controller: web::Data<Controller>, path: web::Path<(String,)>| async move {
-                    controller.delete_draft_order(path).await
-                }),
+                web::delete().to(
+                    |controller: web::Data<Controller<I>>,
+                     path: web::Path<(String,)>| async move {
+                        controller.delete_draft_order(path).await
+                    },
+                ),
             )
             .route(
                 "/orders/draft/complete/{id}",
-                 web::put().to(|controller: web::Data<Controller>, path: web::Path<(String,)>| async move {
-                    controller.complete_draft_order(path).await
-                }),
+                web::put().to(
+                    |controller: web::Data<Controller<I>>,
+                     path: web::Path<(String,)>| async move {
+                        controller.complete_draft_order(path).await
+                    },
+                ),
             )
             .route(
                 "/locations",
-                 web::get().to(|controller: web::Data<Controller>, params: web::Query<GetLocationsQueryParams>| async move {
-                    controller.get_locations(params).await
-                }),
+                web::get().to(
+                    |controller: web::Data<Controller<I>>,
+                     params: web::Query<GetLocationsQueryParams>| async move {
+                        controller.get_locations(params).await
+                    },
+                ),
             )
             .route(
                 "/customers",
-                 web::get().to(|controller: web::Data<Controller>, params: web::Query<GetCustomersQueryParams>, request: actix_web::HttpRequest| async move {
-                    controller.get_customers(params, request).await
-                }),
+                web::get().to(
+                    |controller: web::Data<Controller<I>>,
+                     params: web::Query<GetCustomersQueryParams>,
+                     request: actix_web::HttpRequest| async move {
+                        controller.get_customers(params, request).await
+                    },
+                ),
             )
             .route(
                 "/auth/sign-in",
-                 web::post().to(|controller: web::Data<Controller>, body: web::Json<PostSignInRequest>| async move {
-                    controller.post_sign_in(body).await
-                }),
+                web::post().to(
+                    |controller: web::Data<Controller<I>>,
+                     body: web::Json<PostSignInRequest>| async move {
+                        controller.post_sign_in(body).await
+                    },
+                ),
             )
             .route(
                 "/auth/sign-out",
-                 web::post().to(|controller: web::Data<Controller>| async move {
-                    controller.post_sign_out().await
-                }),
-            )
+                web::post().to(
+                    |controller: web::Data<Controller<I>>| async move {
+                        controller.post_sign_out().await
+                    },
+                ),
+            ),
     );
 }
