@@ -5,7 +5,7 @@ use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
 use infrastructure::auth::rbac::rbac_authorizer::RbacAuthorizer;
-use infrastructure::config::config::{AppConfig, CognitoConfig, DatabaseConfig, ShopifyConfig};
+use infrastructure::config::config::ConfigProvider;
 use infrastructure::db::sea_orm::sea_orm_manager::{
     SeaOrmConnectionProvider, SeaOrmTransactionManager,
 };
@@ -23,19 +23,29 @@ use crate::infrastructure::router::actix_router;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let app_config = AppConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-    let shopify_config =
-        ShopifyConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-    let cognito_config =
-        CognitoConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-    let aws_config = aws_config::load_from_env().await;
-    let db_config = DatabaseConfig::new().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let config_provider = ConfigProvider::new().await.map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            format!("Failed to load config: {}", e),
+        )
+    })?;
+    let app_config = config_provider.app_config().clone();
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
-    let connection_provider = SeaOrmConnectionProvider::new(db_config)
-        .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let controller = web::Data::new(Controller::new(
+        Box::new(InteractProviderImpl::new(
+            config_provider.shopify_config().clone(),
+            config_provider.cognito_config().clone(),
+            config_provider.aws_sdk_config().clone(),
+        )),
+        Box::new(RbacAuthorizer::new()),
+    ));
+
+    let connection_provider =
+        SeaOrmConnectionProvider::new(config_provider.database_config().clone())
+            .await
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let transaction_manager = web::Data::new(SeaOrmTransactionManager::new(
         connection_provider.get_connection().clone(),
     ));
@@ -52,8 +62,8 @@ async fn main() -> std::io::Result<()> {
             // Definition of middleware
             // NOTE: Executed in the order of last written.
             .wrap(AuthTransform::new(CognitoAuthenticator::new(
-                cognito_config.clone(),
-                aws_config.clone(),
+                config_provider.cognito_config().clone(),
+                config_provider.aws_sdk_config().clone(),
             )))
             .wrap(from_fn(
                 transaction_middleware::transaction_middleware::<SeaOrmTransactionManager>,
@@ -62,14 +72,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             // Definition of app data
             .app_data(transaction_manager.clone())
-            .app_data(web::Data::new(Controller::new(
-                Box::new(InteractProviderImpl::new(
-                    shopify_config.clone(),
-                    cognito_config.clone(),
-                    aws_config.clone(),
-                )),
-                Box::new(RbacAuthorizer::new()),
-            )))
+            .app_data(controller.clone())
             // Definition of routes
             .configure(actix_router::configure_routes)
     })

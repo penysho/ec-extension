@@ -1,7 +1,35 @@
+use aws_config::SdkConfig;
 use derive_getters::Getters;
 use std::env;
 
 use crate::domain::error::error::DomainError;
+
+#[derive(Getters, Clone)]
+pub struct ConfigProvider {
+    app_config: AppConfig,
+    shopify_config: ShopifyConfig,
+    cognito_config: CognitoConfig,
+    database_config: DatabaseConfig,
+    aws_sdk_config: SdkConfig,
+}
+
+impl ConfigProvider {
+    pub async fn new() -> Result<Self, DomainError> {
+        let app_config = AppConfig::new()?;
+        let shopify_config = ShopifyConfig::new()?;
+        let cognito_config = CognitoConfig::new()?;
+        let database_config = DatabaseConfig::new()?;
+        let aws_sdk_config = aws_config::load_from_env().await;
+
+        Ok(ConfigProvider {
+            app_config,
+            shopify_config,
+            cognito_config,
+            database_config,
+            aws_sdk_config,
+        })
+    }
+}
 
 /// AppConfig manages application settings.
 #[derive(Getters, Clone)]
@@ -12,7 +40,7 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn new() -> Result<Self, DomainError> {
+    fn new() -> Result<Self, DomainError> {
         let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "debug".to_string());
         if !matches!(
             log_level.as_str(),
@@ -45,7 +73,7 @@ pub struct ShopifyConfig {
 }
 
 impl ShopifyConfig {
-    pub fn new() -> Result<Self, DomainError> {
+    fn new() -> Result<Self, DomainError> {
         let store_url = env::var("STORE_URL").map_err(|_| {
             eprintln!("STORE_URL is not set as an environment variable");
             DomainError::InitConfigError
@@ -71,7 +99,7 @@ pub struct CognitoConfig {
 }
 
 impl CognitoConfig {
-    pub fn new() -> Result<Self, DomainError> {
+    fn new() -> Result<Self, DomainError> {
         let user_pool_id = env::var("COGNITO_USER_POOL_ID").map_err(|_| {
             eprintln!("COGNITO_USER_POOL_ID is not set as an environment variable");
             DomainError::InitConfigError
@@ -118,7 +146,7 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
-    pub fn new() -> Result<Self, DomainError> {
+    fn new() -> Result<Self, DomainError> {
         let url = env::var("DATABASE_URL").map_err(|_| {
             eprintln!("DATABASE_URL is not set as an environment variable");
             DomainError::InitConfigError

@@ -39,19 +39,19 @@ use crate::{
 pub struct InteractProviderImpl {
     shopify_config: ShopifyConfig,
     cognito_config: CognitoConfig,
-    aws_config: SdkConfig,
+    aws_sdk_config: SdkConfig,
 }
 
 impl InteractProviderImpl {
     pub fn new(
         shopify_config: ShopifyConfig,
         cognito_config: CognitoConfig,
-        aws_config: SdkConfig,
+        aws_sdk_config: SdkConfig,
     ) -> Self {
         Self {
             shopify_config,
             cognito_config,
-            aws_config,
+            aws_sdk_config,
         }
     }
 }
@@ -114,7 +114,7 @@ impl InteractProvider for InteractProviderImpl {
 
     async fn provide_auth_interactor(&self) -> Box<dyn AuthInteractor> {
         Box::new(AuthInteractorImpl::new(
-            CognitoAuthenticator::new(self.cognito_config.clone(), self.aws_config.clone()),
+            CognitoAuthenticator::new(self.cognito_config.clone(), self.aws_sdk_config.clone()),
             CustomerRepositoryImpl::new(ShopifyGQLClient::new(self.shopify_config.clone())),
         ))
     }
