@@ -6,15 +6,14 @@ use actix_web::{
     web, Error, HttpMessage,
 };
 
-use super::{
-    sea_orm::sea_orm_manager::{SeaOrmConnectionProvider, SeaOrmTransactionManager},
-    transaction_manager_interface::TransactionManager,
-};
+use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
+
+use super::sea_orm_manager::{SeaOrmConnectionProvider, SeaOrmTransactionManager};
 
 // Fixed message is responded and no internal information is returned.
 const TRANSACTION_ERROR_MESSAGE: &str = "System error";
 
-pub async fn transaction_middleware(
+pub async fn sea_orm_transaction_middleware(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {

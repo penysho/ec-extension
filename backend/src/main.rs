@@ -6,7 +6,7 @@ use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
 use infrastructure::config::config::ConfigProvider;
 use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmConnectionProvider;
-use infrastructure::db::transaction_middleware;
+use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
 use std::io;
@@ -54,7 +54,9 @@ async fn main() -> std::io::Result<()> {
                 config_provider.cognito_config().clone(),
                 config_provider.aws_sdk_config().clone(),
             )))
-            .wrap(from_fn(transaction_middleware::transaction_middleware))
+            .wrap(from_fn(
+                sea_orm_transaction_middleware::sea_orm_transaction_middleware,
+            ))
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)
             // Definition of app data
