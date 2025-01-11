@@ -3,14 +3,14 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait TransactionManager {
-    type Transaction;
+    type Transaction: Send + Sync;
 
-    /// Initiating a transaction.
-    async fn begin(&self) -> Result<Self::Transaction, DomainError>;
+    /// Get allocated transaction.
+    async fn get_transaction(&mut self) -> Result<&mut Self::Transaction, DomainError>;
 
     /// Commit transaction.
-    async fn commit(&self, transaction: Self::Transaction) -> Result<(), DomainError>;
+    async fn commit(&mut self) -> Result<(), DomainError>;
 
     /// Roll back a transaction.
-    async fn rollback(&self, transaction: Self::Transaction) -> Result<(), DomainError>;
+    async fn rollback(&mut self) -> Result<(), DomainError>;
 }

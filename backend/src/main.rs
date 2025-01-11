@@ -38,13 +38,11 @@ async fn main() -> std::io::Result<()> {
         config_provider.aws_sdk_config().clone(),
     )));
 
-    let connection_provider =
+    let connection_provider = web::Data::new(
         SeaOrmConnectionProvider::new(config_provider.database_config().clone())
             .await
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-    let transaction_manager = web::Data::new(SeaOrmTransactionManager::new(
-        connection_provider.get_connection().clone(),
-    ));
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
+    );
 
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -61,13 +59,11 @@ async fn main() -> std::io::Result<()> {
                 config_provider.cognito_config().clone(),
                 config_provider.aws_sdk_config().clone(),
             )))
-            .wrap(from_fn(
-                transaction_middleware::transaction_middleware::<SeaOrmTransactionManager>,
-            ))
+            .wrap(from_fn(transaction_middleware::transaction_middleware))
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)
             // Definition of app data
-            .app_data(transaction_manager.clone())
+            .app_data(connection_provider.clone())
             .app_data(controller.clone())
             // Definition of routes
             .configure(actix_router::configure_routes::<InteractProviderImpl>)
