@@ -5,9 +5,7 @@ use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
 use infrastructure::config::config::ConfigProvider;
-use infrastructure::db::sea_orm::sea_orm_manager::{
-    SeaOrmConnectionProvider, SeaOrmTransactionManager,
-};
+use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmConnectionProvider;
 use infrastructure::db::transaction_middleware;
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
@@ -22,12 +20,9 @@ use crate::infrastructure::router::actix_router;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let config_provider = ConfigProvider::new().await.map_err(|e| {
-        io::Error::new(
-            io::ErrorKind::Other,
-            format!("Failed to load config: {}", e),
-        )
-    })?;
+    let config_provider = ConfigProvider::new()
+        .await
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     let app_config = config_provider.app_config().clone();
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));

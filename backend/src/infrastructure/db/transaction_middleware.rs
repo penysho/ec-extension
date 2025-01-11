@@ -30,9 +30,9 @@ pub async fn transaction_middleware(
         SeaOrmTransactionManager::new(connection_provider.get_connection().clone())
             .await
             .map_err(|e| {
-                log::error!("Failed to get transaction manager: {}", e);
+                log::error!("Initialization of transaction manager failed: {}", e);
                 error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
-            });
+            })?;
 
     req.extensions_mut().insert(transaction_manager);
 

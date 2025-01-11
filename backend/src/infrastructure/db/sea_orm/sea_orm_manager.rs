@@ -29,10 +29,12 @@ impl SeaOrmConnectionProvider {
             .max_lifetime(Duration::from_secs(*config.max_lifetime()));
 
         let conn = Database::connect(opt).await.map_err(|e| {
+            log::error!("Database connection error: {}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
 
         conn.ping().await.map_err(|e| {
+            log::error!("Database ping error: {}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
 
