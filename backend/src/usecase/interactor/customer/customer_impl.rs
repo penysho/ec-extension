@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 
 use crate::{
@@ -12,13 +14,13 @@ use crate::{
 /// Customer Interactor.
 pub struct CustomerInteractorImpl {
     customer_repository: Box<dyn CustomerRepository>,
-    authorizer: Box<dyn Authorizer>,
+    authorizer: Arc<dyn Authorizer>,
 }
 
 impl CustomerInteractorImpl {
     pub fn new(
         customer_repository: Box<dyn CustomerRepository>,
-        authorizer: Box<dyn Authorizer>,
+        authorizer: Arc<dyn Authorizer>,
     ) -> Self {
         Self {
             customer_repository,

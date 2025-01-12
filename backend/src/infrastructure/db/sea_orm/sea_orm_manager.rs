@@ -1,9 +1,10 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use sea_orm::{
     ConnectOptions, Database, DatabaseConnection, DatabaseTransaction, TransactionTrait,
 };
+use tokio::sync::{Mutex, MutexGuard};
 
 use crate::{
     domain::error::error::DomainError,
@@ -15,7 +16,7 @@ use crate::{
 };
 
 pub struct SeaOrmConnectionProvider {
-    conn: DatabaseConnection,
+    conn: Arc<DatabaseConnection>,
 }
 
 impl SeaOrmConnectionProvider {
@@ -38,25 +39,27 @@ impl SeaOrmConnectionProvider {
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
 
-        Ok(Self { conn })
+        Ok(Self {
+            conn: Arc::new(conn),
+        })
     }
 
-    pub fn get_connection(&self) -> &DatabaseConnection {
-        &self.conn
+    pub fn get_connection(&self) -> Arc<DatabaseConnection> {
+        self.conn.clone()
     }
 }
 
+#[derive(Clone)]
 pub struct SeaOrmTransactionManager {
-    conn: DatabaseConnection,
-    tran: Option<DatabaseTransaction>,
+    conn: Arc<DatabaseConnection>,
+    tran: Arc<Mutex<Option<DatabaseTransaction>>>,
 }
 
 impl SeaOrmTransactionManager {
-    pub async fn new(conn: DatabaseConnection) -> Result<Self, DomainError> {
-        let tran = conn.begin().await.map_err(|_| DomainError::SystemError)?;
+    pub async fn new(conn: Arc<DatabaseConnection>) -> Result<Self, DomainError> {
         Ok(Self {
             conn,
-            tran: Some(tran),
+            tran: Arc::new(Mutex::new(None)),
         })
     }
 }
@@ -65,30 +68,51 @@ impl SeaOrmTransactionManager {
 impl TransactionManager for SeaOrmTransactionManager {
     type Transaction = DatabaseTransaction;
 
-    async fn get_transaction(&mut self) -> Result<&mut Self::Transaction, DomainError> {
-        self.tran
-            .as_mut()
-            .ok_or(DomainError::SystemError)
-            .map_err(|_| DomainError::SystemError)
+    async fn begin(&self) -> Result<(), DomainError> {
+        let mut lock = self.tran.lock().await;
+        if lock.is_none() {
+            let tran = self
+                .conn
+                .begin()
+                .await
+                .map_err(|_| DomainError::SystemError)?;
+            *lock = Some(tran);
+            Ok(())
+        } else {
+            Err(DomainError::SystemError)
+        }
     }
 
-    async fn commit(&mut self) -> Result<(), DomainError> {
-        self.tran
-            .take()
-            .ok_or(DomainError::SystemError)?
-            .commit()
-            .await
-            .map_err(|_| DomainError::SystemError)?;
-        Ok(())
+    async fn get_transaction(
+        &self,
+    ) -> Result<MutexGuard<'_, Option<Self::Transaction>>, DomainError> {
+        let lock = self.tran.lock().await;
+        if lock.is_some() {
+            Ok(lock)
+        } else {
+            Err(DomainError::SystemError)
+        }
     }
 
-    async fn rollback(&mut self) -> Result<(), DomainError> {
-        self.tran
-            .take()
-            .ok_or(DomainError::SystemError)?
-            .rollback()
-            .await
-            .map_err(|_| DomainError::SystemError)?;
-        Ok(())
+    async fn commit(&self) -> Result<(), DomainError> {
+        let mut lock = self.tran.lock().await;
+        if let Some(tran) = lock.take() {
+            tran.commit().await.map_err(|_| DomainError::SystemError)?;
+            Ok(())
+        } else {
+            Err(DomainError::SystemError)
+        }
+    }
+
+    async fn rollback(&self) -> Result<(), DomainError> {
+        let mut lock = self.tran.lock().await;
+        if let Some(tran) = lock.take() {
+            tran.rollback()
+                .await
+                .map_err(|_| DomainError::SystemError)?;
+            Ok(())
+        } else {
+            Err(DomainError::SystemError)
+        }
     }
 }

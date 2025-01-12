@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use actix_web::{
     body::MessageBody,
     dev::{ServiceRequest, ServiceResponse},
@@ -17,21 +19,25 @@ pub async fn sea_orm_transaction_middleware(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
-    let connection_provider = req
+    let connection = req
         .app_data::<web::Data<SeaOrmConnectionProvider>>()
-        .cloned()
         .ok_or_else(|| {
             log::error!("Failed to get connection provider");
             error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
         })?;
 
     let transaction_manager =
-        SeaOrmTransactionManager::new(connection_provider.get_connection().clone())
+        SeaOrmTransactionManager::new(Arc::clone(&connection.get_connection()))
             .await
             .map_err(|e| {
                 log::error!("Initialization of transaction manager failed: {}", e);
                 error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
             })?;
+
+    transaction_manager.begin().await.map_err(|e| {
+        log::error!("Failed to begin transaction: {}", e);
+        error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
+    })?;
 
     req.extensions_mut().insert(transaction_manager);
 
@@ -39,10 +45,10 @@ pub async fn sea_orm_transaction_middleware(
     match res {
         Ok(response) => {
             if response.status().is_success() {
-                if let Some(mut transaction_manager) = response
+                if let Some(transaction_manager) = response
                     .request()
                     .extensions_mut()
-                    .remove::<SeaOrmTransactionManager>()
+                    .get::<SeaOrmTransactionManager>()
                 {
                     transaction_manager.commit().await.map_err(|e| {
                         log::error!("Failed to commit transaction: {}", e);
@@ -53,10 +59,10 @@ pub async fn sea_orm_transaction_middleware(
                     return Err(error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE));
                 }
             } else {
-                if let Some(mut transaction_manager) = response
+                if let Some(transaction_manager) = response
                     .request()
                     .extensions_mut()
-                    .remove::<SeaOrmTransactionManager>()
+                    .get::<SeaOrmTransactionManager>()
                 {
                     transaction_manager.rollback().await.map_err(|e| {
                         log::error!("Failed to rollback transaction: {}", e);

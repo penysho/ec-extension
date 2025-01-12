@@ -10,6 +10,7 @@ use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
 use std::io;
+use std::sync::Arc;
 
 mod domain;
 mod infrastructure;
@@ -27,17 +28,17 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
-    let controller = web::Data::new(Controller::new(InteractProviderImpl::new(
-        config_provider.shopify_config().clone(),
-        config_provider.cognito_config().clone(),
-        config_provider.aws_sdk_config().clone(),
-    )));
-
     let connection_provider = web::Data::new(
         SeaOrmConnectionProvider::new(config_provider.database_config().clone())
             .await
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
     );
+
+    let controller = web::Data::new(Arc::new(Controller::new(InteractProviderImpl::new(
+        config_provider.shopify_config().clone(),
+        config_provider.cognito_config().clone(),
+        config_provider.aws_sdk_config().clone(),
+    ))));
 
     HttpServer::new(move || {
         let cors = Cors::default()

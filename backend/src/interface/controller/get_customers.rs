@@ -1,8 +1,9 @@
-use actix_web::{web, Responder};
+use actix_web::{web, HttpMessage, Responder};
 use serde::Deserialize;
 
 use crate::{
     domain::{email::email::Email, error::error::DomainError},
+    infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager,
     interface::presenter::{
         customer::customer_impl::CustomerPresenterImpl,
         customer_presenter_interface::CustomerPresenter,
@@ -29,10 +30,19 @@ where
     ) -> impl Responder {
         let presenter = CustomerPresenterImpl::new();
 
+        let manager = request
+            .extensions()
+            .get::<SeaOrmTransactionManager>()
+            .cloned()
+            .unwrap();
+
         let user_id = self.get_user_id(&request)?;
         let query = validate_query_params(&params)?;
 
-        let interactor = self.interact_provider.provide_customer_interactor().await;
+        let interactor = self
+            .interact_provider
+            .provide_customer_interactor(manager)
+            .await;
         let results = interactor.get_customers(&user_id, &query).await;
 
         presenter.present_get_customers(results).await
@@ -76,7 +86,7 @@ mod tests {
         let mut interact_provider = MockInteractProvider::new();
         interact_provider
             .expect_provide_customer_interactor()
-            .return_once(move || Box::new(interactor) as Box<dyn CustomerInteractor>);
+            .return_once(move |_| Box::new(interactor) as Box<dyn CustomerInteractor>);
 
         let controller = web::Data::new(Controller::new(interact_provider));
 

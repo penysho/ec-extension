@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use aws_config::SdkConfig;
 
@@ -8,6 +10,10 @@ use crate::{
             rbac::rbac_authorizer::RbacAuthorizer,
         },
         config::config::{CognitoConfig, ShopifyConfig},
+        db::{
+            sea_orm::sea_orm_manager::SeaOrmTransactionManager,
+            transaction_manager_interface::TransactionManager,
+        },
         ec::shopify::{
             client_impl::ShopifyGQLClient,
             query_service::product::product_impl::ProductQueryServiceImpl,
@@ -109,12 +115,15 @@ impl InteractProvider for InteractProviderImpl {
         )))
     }
 
-    async fn provide_customer_interactor(&self) -> Box<dyn CustomerInteractor> {
+    async fn provide_customer_interactor(
+        &self,
+        tran: SeaOrmTransactionManager,
+    ) -> Box<dyn CustomerInteractor> {
         Box::new(CustomerInteractorImpl::new(
             Box::new(CustomerRepositoryImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
             ))),
-            Box::new(RbacAuthorizer::new()),
+            Arc::new(RbacAuthorizer::new(tran)),
         ))
     }
 

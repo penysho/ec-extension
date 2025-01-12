@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::interface::controller::{
     controller::Controller, get_customers::GetCustomersQueryParams,
     get_draft_orders::GetDraftOrdersQueryParams, get_inventories::GetInventoriesQueryParams,
@@ -112,7 +114,7 @@ where
             .route(
                 "/customers",
                 web::get().to(
-                    |controller: web::Data<Controller<I>>,
+                    |controller: web::Data<Arc<Controller<I>>>,
                      params: web::Query<GetCustomersQueryParams>,
                      request: actix_web::HttpRequest| async move {
                         controller.get_customers(params, request).await
