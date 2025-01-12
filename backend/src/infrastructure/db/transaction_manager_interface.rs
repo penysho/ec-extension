@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use tokio::sync::MutexGuard;
 
 #[async_trait]
-pub trait TransactionManager: Send + Sync + 'static {
+pub trait TransactionManager: Send + Sync {
     type Transaction;
     /// Start a transaction.
     async fn begin(&self) -> Result<(), DomainError>;

@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
-use sea_orm::ConnectionTrait;
+use sea_orm::{ConnectionTrait, DatabaseTransaction};
 
 use crate::{
     domain::error::error::DomainError,
@@ -12,11 +14,13 @@ use crate::{
 
 /// Authorization by RBAC.
 pub struct RbacAuthorizer {
-    transaction_manager: SeaOrmTransactionManager,
+    transaction_manager: Arc<dyn TransactionManager<Transaction = DatabaseTransaction>>,
 }
 
 impl RbacAuthorizer {
-    pub fn new(transaction_manager: SeaOrmTransactionManager) -> Self {
+    pub fn new(
+        transaction_manager: Arc<dyn TransactionManager<Transaction = DatabaseTransaction>>,
+    ) -> Self {
         Self {
             transaction_manager,
         }
