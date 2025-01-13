@@ -20,7 +20,7 @@ pub async fn sea_orm_transaction_middleware(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
-    let connection = req
+    let connection_provider = req
         .app_data::<web::Data<SeaOrmConnectionProvider>>()
         .ok_or_else(|| {
             log::error!("Failed to get connection provider");
@@ -28,7 +28,7 @@ pub async fn sea_orm_transaction_middleware(
         })?;
 
     let transaction_manager =
-        SeaOrmTransactionManager::new(Arc::clone(&connection.get_connection()))
+        SeaOrmTransactionManager::new(Arc::clone(&connection_provider.get_connection()))
             .await
             .map_err(|e| {
                 log::error!("Initialization of transaction manager failed: {}", e);

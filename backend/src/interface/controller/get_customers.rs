@@ -1,14 +1,8 @@
-use std::sync::Arc;
-
-use actix_web::{web, HttpMessage, Responder};
+use actix_web::{web, Responder};
 use serde::Deserialize;
 
 use crate::{
     domain::{email::email::Email, error::error::DomainError},
-    infrastructure::db::{
-        sea_orm::sea_orm_manager::SeaOrmTransactionManager,
-        transaction_manager_interface::{self, TransactionManager},
-    },
     interface::presenter::{
         customer::customer_impl::CustomerPresenterImpl,
         customer_presenter_interface::CustomerPresenter,
@@ -23,9 +17,10 @@ pub struct GetCustomersQueryParams {
     email: Option<String>,
 }
 
-impl<I> Controller<I>
+impl<I, T> Controller<I, T>
 where
-    I: InteractProvider,
+    I: InteractProvider<T>,
+    T: Send + Sync + 'static,
 {
     /// Get a list of customers.
     pub async fn get_customers(
@@ -35,18 +30,13 @@ where
     ) -> impl Responder {
         let presenter = CustomerPresenterImpl::new();
 
-        let manager = request
-            .extensions()
-            .get::<Arc<dyn TransactionManager<<I as InteractProvider>::Transaction>>>()
-            .cloned()
-            .unwrap();
-
-        let user_id = self.get_user_id(&request)?;
         let query = validate_query_params(&params)?;
+        let user_id = self.get_user_id(&request)?;
+        let transaction_manager = self.get_transaction_manager(&request)?;
 
         let interactor = self
             .interact_provider
-            .provide_customer_interactor(manager)
+            .provide_customer_interactor(transaction_manager)
             .await;
         let results = interactor.get_customers(&user_id, &query).await;
 
@@ -68,6 +58,10 @@ fn validate_query_params(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
+    use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::mock::domain_mock::mock_customers;
@@ -81,6 +75,7 @@ mod tests {
     use actix_web::{http::StatusCode, test, App, Error};
     use actix_web::{web, HttpMessage};
     use mockall::predicate::eq;
+    use sea_orm::DatabaseTransaction;
 
     const BASE_URL: &'static str = "/ec-extension/customers";
 
@@ -88,7 +83,7 @@ mod tests {
         interactor: MockCustomerInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::new();
+        let mut interact_provider = MockInteractProvider::<DatabaseTransaction>::new();
         interact_provider
             .expect_provide_customer_interactor()
             .return_once(move |_| Box::new(interactor) as Box<dyn CustomerInteractor>);
@@ -96,12 +91,20 @@ mod tests {
         let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
-        test::init_service(
-            App::new()
-                .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractProvider>),
-        )
+        test::init_service(App::new().app_data(controller).configure(
+            actix_router::configure_routes::<
+                MockInteractProvider<DatabaseTransaction>,
+                DatabaseTransaction,
+            >,
+        ))
         .await
+    }
+
+    fn add_extensions(req: &Request) {
+        req.extensions_mut().insert("user_id".to_string());
+        req.extensions_mut()
+            .insert(Arc::new(SeaOrmTransactionManager::default())
+                as Arc<dyn TransactionManager<DatabaseTransaction>>);
     }
 
     #[actix_web::test]
@@ -120,7 +123,7 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email=john@example.com"))
             .to_request();
-        req.extensions_mut().insert("user_id".to_string());
+        add_extensions(&req);
 
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
@@ -134,7 +137,7 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email="))
             .to_request();
-        req.extensions_mut().insert("user_id".to_string());
+        add_extensions(&req);
 
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
@@ -151,7 +154,7 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email=john@example.com"))
             .to_request();
-        req.extensions_mut().insert("user_id".to_string());
+        add_extensions(&req);
 
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
@@ -168,7 +171,7 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email=john@example.com"))
             .to_request();
-        req.extensions_mut().insert("user_id".to_string());
+        add_extensions(&req);
 
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
@@ -185,7 +188,7 @@ mod tests {
         let req = test::TestRequest::get()
             .uri(&format!("{BASE_URL}?email=john@example.com"))
             .to_request();
-        req.extensions_mut().insert("user_id".to_string());
+        add_extensions(&req);
 
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 

@@ -9,8 +9,8 @@ use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmConnectionProvider;
 use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
+use sea_orm::DatabaseTransaction;
 use std::io;
-use std::sync::Arc;
 
 mod domain;
 mod infrastructure;
@@ -34,11 +34,11 @@ async fn main() -> std::io::Result<()> {
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
     );
 
-    let controller = web::Data::new(Arc::new(Controller::new(InteractProviderImpl::new(
+    let controller = web::Data::new(Controller::new(InteractProviderImpl::new(
         config_provider.shopify_config().clone(),
         config_provider.cognito_config().clone(),
         config_provider.aws_sdk_config().clone(),
-    ))));
+    )));
 
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -64,7 +64,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(connection_provider.clone())
             .app_data(controller.clone())
             // Definition of routes
-            .configure(actix_router::configure_routes::<InteractProviderImpl>)
+            .configure(actix_router::configure_routes::<InteractProviderImpl, DatabaseTransaction>)
     })
     .bind(format!("{}:{}", app_config.address(), app_config.port()))?
     .run()

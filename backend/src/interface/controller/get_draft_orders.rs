@@ -17,9 +17,10 @@ pub struct GetDraftOrdersQueryParams {
     email: Option<String>,
 }
 
-impl<I> Controller<I>
+impl<I, T> Controller<I, T>
 where
-    I: InteractProvider,
+    I: InteractProvider<T>,
+    T: Send + Sync + 'static,
 {
     /// Get a list of draft orders.
     pub async fn get_draft_orders(
@@ -78,7 +79,7 @@ mod tests {
         interactor: MockDraftOrderInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::new();
+        let mut interact_provider = MockInteractProvider::<()>::new();
         interact_provider
             .expect_provide_draft_order_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn DraftOrderInteractor>);
@@ -89,7 +90,7 @@ mod tests {
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractProvider>),
+                .configure(actix_router::configure_routes::<MockInteractProvider<()>, ()>),
         )
         .await
     }

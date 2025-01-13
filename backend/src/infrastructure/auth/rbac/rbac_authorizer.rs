@@ -31,7 +31,7 @@ impl Authorizer for RbacAuthorizer {
         action: &Action,
     ) -> Result<(), DomainError> {
         let sql = r#"
-            INSERT INTO test (id, name) VALUES (4, 'test10')
+            INSERT INTO test (id, name) VALUES (5, 'test10')
         "#;
 
         self.transaction_manager

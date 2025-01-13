@@ -31,9 +31,10 @@ pub struct PostDraftOrderRequest {
     applied_discount: Option<DiscountSchema>,
 }
 
-impl<I> Controller<I>
+impl<I, T> Controller<I, T>
 where
-    I: InteractProvider,
+    I: InteractProvider<T>,
+    T: Send + Sync + 'static,
 {
     /// Create a draft order.
     pub async fn post_draft_order(&self, body: web::Json<PostDraftOrderRequest>) -> impl Responder {
@@ -131,18 +132,18 @@ mod tests {
         interactor: MockDraftOrderInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::new();
+        let mut interact_provider = MockInteractProvider::<()>::new();
         interact_provider
             .expect_provide_draft_order_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn DraftOrderInteractor>);
 
-         let controller = web::Data::new(Controller::new(interact_provider));
+        let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractProvider>),
+                .configure(actix_router::configure_routes::<MockInteractProvider<()>, ()>),
         )
         .await
     }

@@ -64,6 +64,15 @@ impl SeaOrmTransactionManager {
     }
 }
 
+impl Default for SeaOrmTransactionManager {
+    fn default() -> Self {
+        Self {
+            conn: Arc::new(DatabaseConnection::Disconnected),
+            tran: Arc::new(Mutex::new(None)),
+        }
+    }
+}
+
 #[async_trait]
 impl TransactionManager<DatabaseTransaction> for SeaOrmTransactionManager {
     async fn begin(&self) -> Result<(), DomainError> {

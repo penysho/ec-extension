@@ -64,8 +64,8 @@ impl InteractProviderImpl {
 }
 
 #[async_trait]
-impl InteractProvider for InteractProviderImpl {
-    type Transaction = DatabaseTransaction;
+impl InteractProvider<DatabaseTransaction> for InteractProviderImpl {
+    // type Transaction = DatabaseTransaction;
 
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor> {
         Box::new(ProductInteractorImpl::new(
@@ -117,7 +117,7 @@ impl InteractProvider for InteractProviderImpl {
 
     async fn provide_customer_interactor(
         &self,
-        transaction_manager: Arc<dyn TransactionManager<Self::Transaction>>,
+        transaction_manager: Arc<dyn TransactionManager<DatabaseTransaction>>,
     ) -> Box<dyn CustomerInteractor> {
         Box::new(CustomerInteractorImpl::new(
             Box::new(CustomerRepositoryImpl::new(ShopifyGQLClient::new(
