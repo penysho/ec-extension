@@ -7,6 +7,7 @@ use actix_web::{
     middleware::Next,
     web, Error, HttpMessage,
 };
+use sea_orm::DatabaseTransaction;
 
 use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
 
@@ -39,7 +40,8 @@ pub async fn sea_orm_transaction_middleware(
         error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
     })?;
 
-    req.extensions_mut().insert(transaction_manager);
+    req.extensions_mut()
+        .insert(Arc::new(transaction_manager) as Arc<dyn TransactionManager<_>>);
 
     let res = next.call(req).await;
     match res {
@@ -48,7 +50,7 @@ pub async fn sea_orm_transaction_middleware(
                 if let Some(transaction_manager) = response
                     .request()
                     .extensions_mut()
-                    .get::<SeaOrmTransactionManager>()
+                    .get::<Arc<dyn TransactionManager<DatabaseTransaction>>>()
                 {
                     transaction_manager.commit().await.map_err(|e| {
                         log::error!("Failed to commit transaction: {}", e);
@@ -62,7 +64,7 @@ pub async fn sea_orm_transaction_middleware(
                 if let Some(transaction_manager) = response
                     .request()
                     .extensions_mut()
-                    .get::<SeaOrmTransactionManager>()
+                    .get::<Arc<dyn TransactionManager<DatabaseTransaction>>>()
                 {
                     transaction_manager.rollback().await.map_err(|e| {
                         log::error!("Failed to rollback transaction: {}", e);

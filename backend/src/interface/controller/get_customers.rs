@@ -1,9 +1,14 @@
+use std::sync::Arc;
+
 use actix_web::{web, HttpMessage, Responder};
 use serde::Deserialize;
 
 use crate::{
     domain::{email::email::Email, error::error::DomainError},
-    infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager,
+    infrastructure::db::{
+        sea_orm::sea_orm_manager::SeaOrmTransactionManager,
+        transaction_manager_interface::{self, TransactionManager},
+    },
     interface::presenter::{
         customer::customer_impl::CustomerPresenterImpl,
         customer_presenter_interface::CustomerPresenter,
@@ -32,7 +37,7 @@ where
 
         let manager = request
             .extensions()
-            .get::<SeaOrmTransactionManager>()
+            .get::<Arc<dyn TransactionManager<<I as InteractProvider>::Transaction>>>()
             .cloned()
             .unwrap();
 

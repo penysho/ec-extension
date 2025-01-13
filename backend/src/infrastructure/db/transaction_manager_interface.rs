@@ -3,15 +3,12 @@ use async_trait::async_trait;
 use tokio::sync::MutexGuard;
 
 #[async_trait]
-pub trait TransactionManager: Send + Sync {
-    type Transaction;
+pub trait TransactionManager<T>: Send + Sync {
     /// Start a transaction.
     async fn begin(&self) -> Result<(), DomainError>;
 
     /// Get current transaction.
-    async fn get_transaction(
-        &self,
-    ) -> Result<MutexGuard<'_, Option<Self::Transaction>>, DomainError>;
+    async fn get_transaction(&self) -> Result<MutexGuard<'_, Option<T>>, DomainError>;
 
     /// Commit transaction.
     async fn commit(&self) -> Result<(), DomainError>;

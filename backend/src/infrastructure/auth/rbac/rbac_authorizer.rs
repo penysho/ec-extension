@@ -5,22 +5,17 @@ use sea_orm::{ConnectionTrait, DatabaseTransaction};
 
 use crate::{
     domain::error::error::DomainError,
-    infrastructure::db::{
-        sea_orm::sea_orm_manager::SeaOrmTransactionManager,
-        transaction_manager_interface::TransactionManager,
-    },
+    infrastructure::db::transaction_manager_interface::TransactionManager,
     usecase::authorizer::authorizer_interface::{Action, Authorizer, Resource},
 };
 
 /// Authorization by RBAC.
 pub struct RbacAuthorizer {
-    transaction_manager: Arc<dyn TransactionManager<Transaction = DatabaseTransaction>>,
+    transaction_manager: Arc<dyn TransactionManager<DatabaseTransaction>>,
 }
 
 impl RbacAuthorizer {
-    pub fn new(
-        transaction_manager: Arc<dyn TransactionManager<Transaction = DatabaseTransaction>>,
-    ) -> Self {
+    pub fn new(transaction_manager: Arc<dyn TransactionManager<DatabaseTransaction>>) -> Self {
         Self {
             transaction_manager,
         }

@@ -1,7 +1,11 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use mockall::automock;
+use sea_orm::DatabaseTransaction;
 
 use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
+use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
 use crate::usecase::interactor::auth_interactor_interface::AuthInteractor;
 use crate::usecase::interactor::customer_interactor_interface::CustomerInteractor;
 use crate::usecase::interactor::draft_order_interactor_interface::DraftOrderInteractor;
@@ -12,9 +16,11 @@ use crate::usecase::interactor::product_interactor_interface::ProductInteractor;
 
 /// Factory interface providing Interactor.
 #[allow(dead_code)]
-#[automock]
+// #[automock]
 #[async_trait]
 pub trait InteractProvider: Send + Sync {
+    type Transaction: Send + Sync + 'static;
+
     /// Provide Interactor for products.
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor>;
     /// Provide Interactor for media.
@@ -28,7 +34,7 @@ pub trait InteractProvider: Send + Sync {
     /// Provide Interactor for customer.
     async fn provide_customer_interactor(
         &self,
-        tran: SeaOrmTransactionManager,
+        transaction_manager: Arc<dyn TransactionManager<Self::Transaction>>,
     ) -> Box<dyn CustomerInteractor>;
     /// Provide Interactor for auth.
     async fn provide_auth_interactor(&self) -> Box<dyn AuthInteractor>;

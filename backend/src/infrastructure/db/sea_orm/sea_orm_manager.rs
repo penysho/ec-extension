@@ -65,9 +65,7 @@ impl SeaOrmTransactionManager {
 }
 
 #[async_trait]
-impl TransactionManager for SeaOrmTransactionManager {
-    type Transaction = DatabaseTransaction;
-
+impl TransactionManager<DatabaseTransaction> for SeaOrmTransactionManager {
     async fn begin(&self) -> Result<(), DomainError> {
         let mut lock = self.tran.lock().await;
         if lock.is_none() {
@@ -85,7 +83,7 @@ impl TransactionManager for SeaOrmTransactionManager {
 
     async fn get_transaction(
         &self,
-    ) -> Result<MutexGuard<'_, Option<Self::Transaction>>, DomainError> {
+    ) -> Result<MutexGuard<'_, Option<DatabaseTransaction>>, DomainError> {
         let lock = self.tran.lock().await;
         if lock.is_some() {
             Ok(lock)
