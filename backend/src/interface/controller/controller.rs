@@ -43,6 +43,7 @@ where
         }
     }
 
+    /// Obtain the transaction manager from the actix request.
     pub fn get_transaction_manager(
         &self,
         request: &actix_web::HttpRequest,

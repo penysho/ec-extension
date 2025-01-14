@@ -30,26 +30,6 @@ impl Authorizer for RbacAuthorizer {
         resource: &Resource,
         action: &Action,
     ) -> Result<(), DomainError> {
-        let sql = r#"
-            INSERT INTO test (id, name) VALUES (5, 'test10')
-        "#;
-
-        self.transaction_manager
-            .get_transaction()
-            .await
-            .map_err(|e| {
-                log::error!("Failed to get transaction: {}", e);
-                DomainError::SystemError
-            })?
-            .as_ref()
-            .unwrap()
-            .execute_unprepared(sql)
-            .await
-            .map_err(|e| {
-                log::error!("Failed to execute SQL: {}", e);
-                DomainError::SystemError
-            })?;
-
         Ok(())
     }
 }
