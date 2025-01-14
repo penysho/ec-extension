@@ -60,6 +60,15 @@ impl ShopifyGQLHelper {
         .to_string()
     }
 
+    pub fn metafield_query(key: &str, namespace: &str) -> String {
+        format!(
+            "metafield(namespace: \"{}\", key: \"{}\") {{
+            value
+        }}",
+            namespace, key
+        )
+    }
+
     /// Add Shopify gid prefix for InventoryItem.
     pub fn add_inventory_item_gid_prefix(id: &str) -> String {
         if id.contains(Self::SHOPIFY_INVENTORY_ITEM_GID_PREFIX) {

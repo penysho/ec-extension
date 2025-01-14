@@ -265,6 +265,7 @@ pub fn mock_customers(count: usize) -> Vec<Customer> {
         .map(|i| {
             Customer::new(
                 format!("{i}"),
+                format!("user_{i}"),
                 vec![mock_address()],
                 Some(mock_address()),
                 format!("Test Customer {i}"),

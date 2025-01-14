@@ -17,6 +17,7 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CustomerSchema {
     pub(super) id: String,
+    pub(super) user_id: String,
     pub(super) addresses: Vec<AddressSchema>,
     pub(super) default_address: Option<AddressSchema>,
     pub(super) display_name: String,

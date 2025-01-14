@@ -1,3 +1,5 @@
+pub mod auth;
+pub mod auth_interactor_interface;
 pub mod customer;
 pub mod customer_interactor_interface;
 pub mod draft_order;

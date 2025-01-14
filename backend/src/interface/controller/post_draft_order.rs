@@ -12,6 +12,7 @@ use crate::{
 
 use super::{
     controller::Controller,
+    interact_provider_interface::InteractProvider,
     schema::component::component::{
         AddressSchema, CurrencyCodeSchema, DiscountSchema, LineItemSchema,
     },
@@ -30,7 +31,11 @@ pub struct PostDraftOrderRequest {
     applied_discount: Option<DiscountSchema>,
 }
 
-impl Controller {
+impl<I, T> Controller<I, T>
+where
+    I: InteractProvider<T>,
+    T: Send + Sync + 'static,
+{
     /// Create a draft order.
     pub async fn post_draft_order(&self, body: web::Json<PostDraftOrderRequest>) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
@@ -105,8 +110,6 @@ impl Controller {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use crate::infrastructure::router::actix_router;
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::controller::schema::component::component::{
@@ -128,19 +131,19 @@ mod tests {
     async fn setup(
         interactor: MockDraftOrderInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
-        // Configure the InteractProvider mock
-        let mut interact_provider = MockInteractProvider::new();
+        // Configure the mocks
+        let mut interact_provider = MockInteractProvider::<()>::new();
         interact_provider
             .expect_provide_draft_order_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn DraftOrderInteractor>);
 
-        let controller = web::Data::new(Arc::new(Controller::new(Box::new(interact_provider))));
+        let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes),
+                .configure(actix_router::configure_routes::<MockInteractProvider<()>, ()>),
         )
         .await
     }

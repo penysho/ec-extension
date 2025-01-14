@@ -10,14 +10,18 @@ use crate::{
     usecase::interactor::draft_order_interactor_interface::GetDraftOrdersQuery,
 };
 
-use super::controller::Controller;
+use super::{controller::Controller, interact_provider_interface::InteractProvider};
 
 #[derive(Deserialize)]
 pub struct GetDraftOrdersQueryParams {
     email: Option<String>,
 }
 
-impl Controller {
+impl<I, T> Controller<I, T>
+where
+    I: InteractProvider<T>,
+    T: Send + Sync + 'static,
+{
     /// Get a list of draft orders.
     pub async fn get_draft_orders(
         &self,
@@ -54,9 +58,8 @@ fn validate_query_params(
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use crate::infrastructure::router::actix_router;
+
     use crate::interface::controller::interact_provider_interface::MockInteractProvider;
     use crate::interface::mock::domain_mock::mock_draft_orders;
     use crate::usecase::interactor::draft_order_interactor_interface::{
@@ -75,19 +78,19 @@ mod tests {
     async fn setup(
         interactor: MockDraftOrderInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
-        // Configure the InteractProvider mock
-        let mut interact_provider = MockInteractProvider::new();
+        // Configure the mocks
+        let mut interact_provider = MockInteractProvider::<()>::new();
         interact_provider
             .expect_provide_draft_order_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn DraftOrderInteractor>);
 
-        let controller = web::Data::new(Arc::new(Controller::new(Box::new(interact_provider))));
+        let controller = web::Data::new(Controller::new(interact_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes),
+                .configure(actix_router::configure_routes::<MockInteractProvider<()>, ()>),
         )
         .await
     }

@@ -31,6 +31,7 @@ impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C>
         let page_info = ShopifyGQLHelper::page_info();
         let address_fields = ShopifyGQLHelper::address_fields();
         let email = email.value();
+        let user_id_query = ShopifyGQLHelper::metafield_query("user_id", "custom");
 
         let query = format!(
             "query {{
@@ -63,6 +64,7 @@ impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C>
                             defaultAddress {{
                                 {address_fields}
                             }}
+                            {user_id_query}
                         }}
                     }}
                     {page_info}
@@ -115,7 +117,7 @@ mod tests {
                         media::ImageNode,
                     },
                 },
-                schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo},
+                schema::{Edges, GraphQLError, GraphQLResponse, Metafield, Node, PageInfo},
             },
         },
         usecase::repository::customer_repository_interface::CustomerRepository,
@@ -124,6 +126,9 @@ mod tests {
     fn mock_customer(id: u32) -> CustomerNode {
         CustomerNode {
             id: format!("gid://shopify/Customer/{id}"),
+            user_id: Metafield::<String> {
+                value: format!("user_{id}"),
+            },
             addresses: vec![mock_address(Some("123")), mock_address(Some("456"))],
             default_address: Some(mock_address(Some("123"))),
             display_name: "Test Customer".to_string(),
@@ -224,6 +229,7 @@ mod tests {
         assert!(result.is_ok());
         let customer = result.unwrap();
         assert_eq!(customer.id(), "0");
+        assert_eq!(customer.user_id(), "user_0");
         assert_eq!(
             customer.email().as_ref().unwrap().value(),
             "test@example.com"

@@ -65,3 +65,8 @@ pub struct UserError {
     pub field: Vec<String>,
     pub message: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct Metafield<T> {
+    pub value: T,
+}
