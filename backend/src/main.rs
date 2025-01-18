@@ -9,8 +9,9 @@ use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmConnectionProvider;
 use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interact_provider_impl::InteractProviderImpl;
 use interface::controller::controller::Controller;
-use sea_orm::DatabaseTransaction;
+use sea_orm::{DatabaseConnection, DatabaseTransaction};
 use std::io;
+use std::sync::Arc;
 
 mod domain;
 mod infrastructure;
@@ -64,7 +65,13 @@ async fn main() -> std::io::Result<()> {
             .app_data(connection_provider.clone())
             .app_data(controller.clone())
             // Definition of routes
-            .configure(actix_router::configure_routes::<InteractProviderImpl, DatabaseTransaction>)
+            .configure(
+                actix_router::configure_routes::<
+                    InteractProviderImpl,
+                    DatabaseTransaction,
+                    Arc<DatabaseConnection>,
+                >,
+            )
     })
     .bind(format!("{}:{}", app_config.address(), app_config.port()))?
     .run()

@@ -17,10 +17,11 @@ pub struct GetCustomersQueryParams {
     email: Option<String>,
 }
 
-impl<I, T> Controller<I, T>
+impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T>,
+    I: InteractProvider<T, C>,
     T: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     /// Get a list of customers.
     pub async fn get_customers(
@@ -75,7 +76,7 @@ mod tests {
     use actix_web::{http::StatusCode, test, App, Error};
     use actix_web::{web, HttpMessage};
     use mockall::predicate::eq;
-    use sea_orm::DatabaseTransaction;
+    use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
     const BASE_URL: &'static str = "/ec-extension/customers";
 
@@ -83,7 +84,8 @@ mod tests {
         interactor: MockCustomerInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::<DatabaseTransaction>::new();
+        let mut interact_provider =
+            MockInteractProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
         interact_provider
             .expect_provide_customer_interactor()
             .return_once(move |_| Box::new(interactor) as Box<dyn CustomerInteractor>);
@@ -93,8 +95,9 @@ mod tests {
         // Create an application for testing
         test::init_service(App::new().app_data(controller).configure(
             actix_router::configure_routes::<
-                MockInteractProvider<DatabaseTransaction>,
+                MockInteractProvider<DatabaseTransaction, Arc<DatabaseConnection>>,
                 DatabaseTransaction,
+                Arc<DatabaseConnection>,
             >,
         ))
         .await
@@ -104,7 +107,9 @@ mod tests {
         req.extensions_mut().insert("user_id".to_string());
         req.extensions_mut()
             .insert(Arc::new(SeaOrmTransactionManager::default())
-                as Arc<dyn TransactionManager<DatabaseTransaction>>);
+                as Arc<
+                    dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+                >);
     }
 
     #[actix_web::test]

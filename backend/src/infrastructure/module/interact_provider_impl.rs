@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use aws_config::SdkConfig;
-use sea_orm::DatabaseTransaction;
+use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
 use crate::{
     infrastructure::{
@@ -64,9 +64,7 @@ impl InteractProviderImpl {
 }
 
 #[async_trait]
-impl InteractProvider<DatabaseTransaction> for InteractProviderImpl {
-    // type Transaction = DatabaseTransaction;
-
+impl InteractProvider<DatabaseTransaction, Arc<DatabaseConnection>> for InteractProviderImpl {
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor> {
         Box::new(ProductInteractorImpl::new(
             Box::new(ProductRepositoryImpl::new(ShopifyGQLClient::new(
@@ -117,7 +115,9 @@ impl InteractProvider<DatabaseTransaction> for InteractProviderImpl {
 
     async fn provide_customer_interactor(
         &self,
-        transaction_manager: Arc<dyn TransactionManager<DatabaseTransaction>>,
+        transaction_manager: Arc<
+            dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+        >,
     ) -> Box<dyn CustomerInteractor> {
         Box::new(CustomerInteractorImpl::new(
             Box::new(CustomerRepositoryImpl::new(ShopifyGQLClient::new(

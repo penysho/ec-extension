@@ -53,13 +53,15 @@ impl SeaOrmConnectionProvider {
 pub struct SeaOrmTransactionManager {
     conn: Arc<DatabaseConnection>,
     tran: Arc<Mutex<Option<DatabaseTransaction>>>,
+    is_started: bool,
 }
 
 impl SeaOrmTransactionManager {
-    pub async fn new(conn: Arc<DatabaseConnection>) -> Result<Self, DomainError> {
+    pub async fn new(conn: Arc<DatabaseConnection>, is_started: bool) -> Result<Self, DomainError> {
         Ok(Self {
             conn,
             tran: Arc::new(Mutex::new(None)),
+            is_started,
         })
     }
 }
@@ -69,12 +71,13 @@ impl Default for SeaOrmTransactionManager {
         Self {
             conn: Arc::new(DatabaseConnection::Disconnected),
             tran: Arc::new(Mutex::new(None)),
+            is_started: false,
         }
     }
 }
 
 #[async_trait]
-impl TransactionManager<DatabaseTransaction> for SeaOrmTransactionManager {
+impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrmTransactionManager {
     async fn begin(&self) -> Result<(), DomainError> {
         let mut lock = self.tran.lock().await;
         if lock.is_none() {
@@ -90,6 +93,10 @@ impl TransactionManager<DatabaseTransaction> for SeaOrmTransactionManager {
         }
     }
 
+    async fn is_transaction_started(&self) -> bool {
+        self.is_started
+    }
+
     async fn get_transaction(
         &self,
     ) -> Result<MutexGuard<'_, Option<DatabaseTransaction>>, DomainError> {
@@ -99,6 +106,10 @@ impl TransactionManager<DatabaseTransaction> for SeaOrmTransactionManager {
         } else {
             Err(DomainError::SystemError)
         }
+    }
+
+    async fn get_connection(&self) -> Result<Arc<DatabaseConnection>, DomainError> {
+        Ok(self.conn.clone())
     }
 
     async fn commit(&self) -> Result<(), DomainError> {

@@ -33,10 +33,11 @@ pub struct PutInventoryQuantityBySkuRequest {
     location_id: String,
 }
 
-impl<I, T> Controller<I, T>
+impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T>,
+    I: InteractProvider<T, C>,
     T: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     /// Update the inventory of the specified SKU.
     pub async fn put_inventory_quantity_by_sku(
@@ -128,7 +129,7 @@ mod tests {
         interactor: MockInventoryInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::<()>::new();
+        let mut interact_provider = MockInteractProvider::<(), ()>::new();
         interact_provider
             .expect_provide_inventory_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn InventoryInteractor>);
@@ -139,7 +140,7 @@ mod tests {
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractProvider<()>, ()>),
+                .configure(actix_router::configure_routes::<MockInteractProvider<(), ()>, (), ()>),
         )
         .await
     }

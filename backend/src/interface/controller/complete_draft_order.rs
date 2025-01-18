@@ -7,10 +7,11 @@ use crate::interface::presenter::{
 
 use super::{controller::Controller, interact_provider_interface::InteractProvider};
 
-impl<I, T> Controller<I, T>
+impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T>,
+    I: InteractProvider<T, C>,
     T: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     /// Complete a draft order.
     pub async fn complete_draft_order(&self, path: Path<(String,)>) -> impl Responder {
@@ -48,7 +49,7 @@ mod tests {
         interactor: MockDraftOrderInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::<()>::new();
+        let mut interact_provider = MockInteractProvider::<(), ()>::new();
         interact_provider
             .expect_provide_draft_order_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn DraftOrderInteractor>);
@@ -59,7 +60,7 @@ mod tests {
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractProvider<()>, ()>),
+                .configure(actix_router::configure_routes::<MockInteractProvider<(), ()>, (), ()>),
         )
         .await
     }

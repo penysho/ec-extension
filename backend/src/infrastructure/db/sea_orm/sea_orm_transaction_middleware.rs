@@ -7,7 +7,7 @@ use actix_web::{
     middleware::Next,
     web, Error, HttpMessage,
 };
-use sea_orm::DatabaseTransaction;
+use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
 use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
 
@@ -28,7 +28,7 @@ pub async fn sea_orm_transaction_middleware(
         })?;
 
     let transaction_manager =
-        SeaOrmTransactionManager::new(Arc::clone(&connection_provider.get_connection()))
+        SeaOrmTransactionManager::new(Arc::clone(&connection_provider.get_connection()), false)
             .await
             .map_err(|e| {
                 log::error!("Initialization of transaction manager failed: {}", e);
@@ -40,8 +40,8 @@ pub async fn sea_orm_transaction_middleware(
         error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
     })?;
 
-    req.extensions_mut()
-        .insert(Arc::new(transaction_manager) as Arc<dyn TransactionManager<_>>);
+    req.extensions_mut().insert(Arc::new(transaction_manager)
+        as Arc<dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>>);
 
     let res = next.call(req).await;
     match res {
@@ -50,7 +50,7 @@ pub async fn sea_orm_transaction_middleware(
                 if let Some(transaction_manager) = response
                     .request()
                     .extensions_mut()
-                    .get::<Arc<dyn TransactionManager<DatabaseTransaction>>>()
+                    .get::<Arc<dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>>>()
                 {
                     transaction_manager.commit().await.map_err(|e| {
                         log::error!("Failed to commit transaction: {}", e);
@@ -64,7 +64,7 @@ pub async fn sea_orm_transaction_middleware(
                 if let Some(transaction_manager) = response
                     .request()
                     .extensions_mut()
-                    .get::<Arc<dyn TransactionManager<DatabaseTransaction>>>()
+                    .get::<Arc<dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>>>()
                 {
                     transaction_manager.rollback().await.map_err(|e| {
                         log::error!("Failed to rollback transaction: {}", e);
