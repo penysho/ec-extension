@@ -2,6 +2,7 @@ pub use sea_orm_migration::prelude::*;
 
 mod m20250119_074443_create_user;
 mod m20250119_075309_create_role;
+mod m20250119_080141_create_user_role;
 
 pub struct Migrator;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20250119_074443_create_user::Migration),
             Box::new(m20250119_075309_create_role::Migration),
+            Box::new(m20250119_080141_create_user_role::Migration),
         ]
     }
 }
