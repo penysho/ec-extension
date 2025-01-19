@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .table(UserRole::Table)
                     .if_not_exists()
                     .col(pk_auto(UserRole::Id))
-                    .col(integer(UserRole::UserId))
+                    .col(string(UserRole::UserId))
                     .col(integer(UserRole::RoleId))
                     .foreign_key(
                         ForeignKey::create()
@@ -45,7 +45,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum UserRole {
+pub(crate) enum UserRole {
     Table,
     Id,
     UserId,
