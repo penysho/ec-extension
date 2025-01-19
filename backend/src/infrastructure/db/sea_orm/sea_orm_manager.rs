@@ -53,15 +53,13 @@ impl SeaOrmConnectionProvider {
 pub struct SeaOrmTransactionManager {
     conn: Arc<DatabaseConnection>,
     tran: Arc<Mutex<Option<DatabaseTransaction>>>,
-    is_started: bool,
 }
 
 impl SeaOrmTransactionManager {
-    pub async fn new(conn: Arc<DatabaseConnection>, is_started: bool) -> Result<Self, DomainError> {
+    pub async fn new(conn: Arc<DatabaseConnection>) -> Result<Self, DomainError> {
         Ok(Self {
             conn,
             tran: Arc::new(Mutex::new(None)),
-            is_started,
         })
     }
 }
@@ -71,7 +69,6 @@ impl Default for SeaOrmTransactionManager {
         Self {
             conn: Arc::new(DatabaseConnection::Disconnected),
             tran: Arc::new(Mutex::new(None)),
-            is_started: false,
         }
     }
 }
@@ -81,20 +78,20 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
     async fn begin(&self) -> Result<(), DomainError> {
         let mut lock = self.tran.lock().await;
         if lock.is_none() {
-            let tran = self
-                .conn
-                .begin()
-                .await
-                .map_err(|_| DomainError::SystemError)?;
+            let tran = self.conn.begin().await.map_err(|e| {
+                log::error!("Database transaction error: {}", e);
+                InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
+            })?;
             *lock = Some(tran);
             Ok(())
         } else {
+            log::error!("Database transaction error: transaction is already started");
             Err(DomainError::SystemError)
         }
     }
 
     async fn is_transaction_started(&self) -> bool {
-        self.is_started
+        self.tran.lock().await.is_some()
     }
 
     async fn get_transaction(
@@ -104,6 +101,7 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
         if lock.is_some() {
             Ok(lock)
         } else {
+            log::error!("Database transaction error: transaction is not started");
             Err(DomainError::SystemError)
         }
     }
@@ -115,9 +113,13 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
     async fn commit(&self) -> Result<(), DomainError> {
         let mut lock = self.tran.lock().await;
         if let Some(tran) = lock.take() {
-            tran.commit().await.map_err(|_| DomainError::SystemError)?;
+            tran.commit().await.map_err(|e| {
+                log::error!("Database commit error: {}", e);
+                InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
+            })?;
             Ok(())
         } else {
+            log::error!("Database commit error: transaction is not started");
             Err(DomainError::SystemError)
         }
     }
@@ -125,11 +127,13 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
     async fn rollback(&self) -> Result<(), DomainError> {
         let mut lock = self.tran.lock().await;
         if let Some(tran) = lock.take() {
-            tran.rollback()
-                .await
-                .map_err(|_| DomainError::SystemError)?;
+            tran.rollback().await.map_err(|e| {
+                log::error!("Database rollback error: {}", e);
+                InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
+            })?;
             Ok(())
         } else {
+            log::error!("Database rollback error: transaction is not started");
             Err(DomainError::SystemError)
         }
     }
