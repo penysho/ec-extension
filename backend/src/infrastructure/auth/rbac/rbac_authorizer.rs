@@ -1,11 +1,20 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction};
+use sea_orm::{ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter};
 
 use crate::{
     domain::error::error::DomainError,
-    infrastructure::db::transaction_manager_interface::TransactionManager,
+    infrastructure::{
+        db::{
+            model::{
+                prelude::Permission, prelude::RoleResoucePermission, prelude::UserRole,
+                role_resouce_permission, user_role,
+            },
+            transaction_manager_interface::TransactionManager,
+        },
+        error::{InfrastructureError, InfrastructureErrorMapper},
+    },
     usecase::authorizer::authorizer_interface::{Action, Authorizer, Resource},
 };
 
@@ -34,40 +43,86 @@ impl Authorizer for RbacAuthorizer {
         resource: &Resource,
         action: &Action,
     ) -> Result<(), DomainError> {
-        let sql = r#"
-            INSERT INTO test (id, name) VALUES (7, 'test10')
-        "#;
-
-        if self.transaction_manager.is_transaction_started().await {
-            self.transaction_manager
-                .get_transaction()
+        let role_query = UserRole::find().filter(user_role::Column::UserId.eq(user_id));
+        let roles = if self.transaction_manager.is_transaction_started().await {
+            role_query
+                .all(
+                    self.transaction_manager
+                        .get_transaction()
+                        .await?
+                        .as_ref()
+                        .unwrap(),
+                )
                 .await
-                .map_err(|e| {
-                    log::error!("Failed to get transaction: {}", e);
-                    DomainError::SystemError
-                })?
-                .as_ref()
-                .unwrap()
-                .execute_unprepared(sql)
-                .await
-                .map_err(|e| {
-                    log::error!("Failed to execute SQL: {}", e);
-                    DomainError::SystemError
-                })?;
         } else {
-            let conn = self
-                .transaction_manager
-                .get_connection()
+            role_query
+                .all(self.transaction_manager.get_connection().await?.as_ref())
                 .await
-                .map_err(|e| {
-                    log::error!("Failed to get connection: {}", e);
-                    DomainError::SystemError
-                })?;
+        }
+        .map_err(|e| {
+            log::error!(
+                "Failed to get user roles. user_id: {}, error: {:?}",
+                user_id,
+                e
+            );
+            InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
+        })?;
 
-            conn.execute_unprepared(sql).await.map_err(|e| {
-                log::error!("Failed to execute SQL: {}", e);
-                DomainError::SystemError
-            })?;
+        if roles.is_empty() {
+            log::error!("User has no role. user_id: {}", user_id);
+            return Err(DomainError::SystemError);
+        }
+        let role_ids: Vec<i32> = roles.iter().map(|role| role.role_id).collect();
+
+        let permission_query = RoleResoucePermission::find()
+            .find_also_related(Permission)
+            .filter(role_resouce_permission::Column::RoleId.is_in(role_ids));
+        let role_resource_permission = if self.transaction_manager.is_transaction_started().await {
+            permission_query
+                .all(
+                    self.transaction_manager
+                        .get_transaction()
+                        .await?
+                        .as_ref()
+                        .unwrap(),
+                )
+                .await
+        } else {
+            permission_query
+                .all(self.transaction_manager.get_connection().await?.as_ref())
+                .await
+        }
+        .map_err(|e| {
+            log::error!(
+                "Failed to get role resource permissions. user_id: {}, error: {:?}",
+                user_id,
+                e
+            );
+            InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
+        })?;
+
+        if !role_resource_permission.iter().any(|permission| {
+            let allow_resource = match Resource::try_from(permission.0.resource_id) {
+                Ok(permission_resource) => permission_resource == *resource,
+                Err(_) => false,
+            };
+
+            let allow_action = match permission.1.clone().unwrap().action.parse::<Action>() {
+                Ok(permission_action) => {
+                    permission_action == *action || permission_action == Action::All
+                }
+                Err(_) => false,
+            };
+
+            return allow_resource && allow_action;
+        }) {
+            log::error!(
+                "User is not authorized. user_id: {}, resource: {:?}, action: {:?}",
+                user_id,
+                resource,
+                action
+            );
+            return Err(DomainError::SystemError);
         }
 
         Ok(())
