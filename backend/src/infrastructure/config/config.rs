@@ -40,7 +40,7 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    fn new() -> Result<Self, DomainError> {
+    pub fn new() -> Result<Self, DomainError> {
         let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "debug".to_string());
         if !matches!(
             log_level.as_str(),
@@ -73,7 +73,7 @@ pub struct ShopifyConfig {
 }
 
 impl ShopifyConfig {
-    fn new() -> Result<Self, DomainError> {
+    pub fn new() -> Result<Self, DomainError> {
         let store_url = env::var("STORE_URL").map_err(|_| {
             eprintln!("STORE_URL is not set as an environment variable");
             DomainError::InitConfigError
@@ -99,7 +99,7 @@ pub struct CognitoConfig {
 }
 
 impl CognitoConfig {
-    fn new() -> Result<Self, DomainError> {
+    pub fn new() -> Result<Self, DomainError> {
         let user_pool_id = env::var("COGNITO_USER_POOL_ID").map_err(|_| {
             eprintln!("COGNITO_USER_POOL_ID is not set as an environment variable");
             DomainError::InitConfigError
@@ -146,7 +146,7 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
-    fn new() -> Result<Self, DomainError> {
+    pub fn new() -> Result<Self, DomainError> {
         let url = env::var("DATABASE_URL").map_err(|_| {
             eprintln!("DATABASE_URL is not set as an environment variable");
             DomainError::InitConfigError
