@@ -117,7 +117,7 @@ impl Authorizer for RbacAuthorizer {
             return allow_resource && allow_action;
         }) {
             log::error!(
-                "User is not authorized. user_id: {}, resource: {:?}, action: {:?}",
+                "User is not authorized. user_id: {}, resource: {}, action: {}",
                 user_id,
                 resource,
                 action
