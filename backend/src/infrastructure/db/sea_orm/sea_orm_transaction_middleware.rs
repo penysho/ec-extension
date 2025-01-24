@@ -17,6 +17,7 @@ use super::sea_orm_manager::{SeaOrmConnectionProvider, SeaOrmTransactionManager}
 // Fixed message is responded and no internal information is returned.
 const TRANSACTION_ERROR_MESSAGE: &str = "System error";
 
+/// Middleware for managing transactions with SeaORM.
 pub async fn sea_orm_transaction_middleware(
     req: ServiceRequest,
     next: Next<impl MessageBody>,

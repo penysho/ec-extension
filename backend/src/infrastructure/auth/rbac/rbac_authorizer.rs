@@ -24,6 +24,7 @@ pub struct RbacAuthorizer {
 }
 
 impl RbacAuthorizer {
+    /// Create a new instance.
     pub fn new(
         transaction_manager: Arc<
             dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,

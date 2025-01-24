@@ -15,11 +15,14 @@ use crate::{
     },
 };
 
+/// Connection provider for SeaORM.
 pub struct SeaOrmConnectionProvider {
     conn: Arc<DatabaseConnection>,
 }
 
+/// Transaction manager for SeaORM.
 impl SeaOrmConnectionProvider {
+    /// Create a new connection provider.
     pub async fn new(config: DatabaseConfig) -> Result<Self, DomainError> {
         let mut opt = ConnectOptions::new(config.url());
         opt.max_connections(*config.max_connections())
@@ -44,11 +47,13 @@ impl SeaOrmConnectionProvider {
         })
     }
 
+    /// Get a connection.
     pub fn get_connection(&self) -> Arc<DatabaseConnection> {
         self.conn.clone()
     }
 }
 
+/// Transaction manager for SeaORM.
 #[derive(Clone)]
 pub struct SeaOrmTransactionManager {
     conn: Arc<DatabaseConnection>,
@@ -56,6 +61,7 @@ pub struct SeaOrmTransactionManager {
 }
 
 impl SeaOrmTransactionManager {
+    /// Create a new transaction manager.
     pub async fn new(conn: Arc<DatabaseConnection>) -> Result<Self, DomainError> {
         Ok(Self {
             conn,

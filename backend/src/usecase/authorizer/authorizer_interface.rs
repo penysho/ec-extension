@@ -19,6 +19,12 @@ pub trait Authorizer: Send + Sync {
 }
 
 /// Resources subject to authorization.
+///
+/// # Variants
+/// - `Product` - Product resource.
+/// - `Order` - Order resource.
+/// - `Customer` - Customer resource.
+/// - `Inventory` - Inventory resource.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Resource {
     Product = 1,
@@ -54,6 +60,12 @@ impl TryFrom<i32> for Resource {
 }
 
 /// Actions subject to authorization.
+///
+/// # Variants
+/// - `Read` - Read action.
+/// - `Write` - Write action.
+/// - `Delete` - Delete action.
+/// - `All` - All actions.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     Read,
