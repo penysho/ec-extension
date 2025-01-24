@@ -18,12 +18,25 @@ pub trait Authorizer: Send + Sync {
     ) -> Result<(), DomainError>;
 }
 
+/// Resources subject to authorization.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Resource {
     Product = 1,
     Order,
     Customer,
     Inventory,
+}
+
+impl fmt::Display for Resource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Resource::Product => "Product",
+            Resource::Order => "Order",
+            Resource::Customer => "Customer",
+            Resource::Inventory => "Inventory",
+        };
+        write!(f, "{}", value)
+    }
 }
 
 impl TryFrom<i32> for Resource {
@@ -40,6 +53,7 @@ impl TryFrom<i32> for Resource {
     }
 }
 
+/// Actions subject to authorization.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     Read,
