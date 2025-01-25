@@ -2,6 +2,12 @@ use crate::domain::error::error::DomainError;
 use async_trait::async_trait;
 use tokio::sync::MutexGuard;
 
+/// Transaction manager interface.
+/// Manage transactions used by the application and provide for each use case.
+///
+/// # Parameters
+/// - `T`: Transaction type.
+/// - `C`: Connection type.
 #[async_trait]
 pub trait TransactionManager<T, C>: Send + Sync {
     /// Start a transaction.
