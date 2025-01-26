@@ -16,7 +16,7 @@ use crate::usecase::interactor::product_interactor_interface::ProductInteractor;
 #[allow(dead_code)]
 #[automock]
 #[async_trait]
-pub trait InteractProvider<T, C>: Send + Sync
+pub trait InteractorProvider<T, C>: Send + Sync
 where
     T: Send + Sync + 'static,
     C: Send + Sync + 'static,

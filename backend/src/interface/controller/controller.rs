@@ -7,29 +7,29 @@ use crate::{
     infrastructure::db::transaction_manager_interface::TransactionManager,
 };
 
-use super::interact_provider_interface::InteractProvider;
+use super::interactor_provider_interface::InteractorProvider;
 
 /// Controller receives data from outside and calls usecase.
 pub struct Controller<I, T, C>
 where
-    I: InteractProvider<T, C>,
+    I: InteractorProvider<T, C>,
     T: Send + Sync + 'static,
     C: Send + Sync + 'static,
 {
-    pub interact_provider: I,
+    pub interactor_provider: I,
     _t_marker: PhantomData<T>,
     _c_marker: PhantomData<C>,
 }
 
 impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T, C>,
+    I: InteractorProvider<T, C>,
     T: Send + Sync + 'static,
     C: Send + Sync + 'static,
 {
-    pub fn new(interact_provider: I) -> Self {
+    pub fn new(interactor_provider: I) -> Self {
         Controller {
-            interact_provider,
+            interactor_provider,
             _t_marker: PhantomData,
             _c_marker: PhantomData,
         }
@@ -74,16 +74,16 @@ mod test {
     use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
     use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
     use crate::interface::controller::controller::Controller;
-    use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
     use actix_web::test::TestRequest;
     use actix_web::HttpMessage;
     use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
     #[test]
     fn test_get_user_id_success() {
-        let interact_provider = MockInteractProvider::<(), ()>::new();
+        let interactor_provider = MockInteractorProvider::<(), ()>::new();
 
-        let controller = Controller::new(interact_provider);
+        let controller = Controller::new(interactor_provider);
 
         let request = TestRequest::default().to_http_request();
         request.extensions_mut().insert("user_id".to_string());
@@ -93,9 +93,9 @@ mod test {
 
     #[test]
     fn test_get_user_id_error() {
-        let interact_provider = MockInteractProvider::<(), ()>::new();
+        let interactor_provider = MockInteractorProvider::<(), ()>::new();
 
-        let controller = Controller::new(interact_provider);
+        let controller = Controller::new(interactor_provider);
 
         let request = TestRequest::default().to_http_request();
         let user_id = controller.get_user_id(&request);
@@ -104,10 +104,10 @@ mod test {
 
     #[test]
     fn test_get_transaction_manager_success() {
-        let interact_provider =
-            MockInteractProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
+        let interactor_provider =
+            MockInteractorProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
 
-        let controller = Controller::new(interact_provider);
+        let controller = Controller::new(interactor_provider);
 
         let request = TestRequest::default().to_http_request();
         let mock = Arc::new(SeaOrmTransactionManager::default())
@@ -121,10 +121,10 @@ mod test {
 
     #[test]
     fn test_get_transaction_manager_error() {
-        let interact_provider =
-            MockInteractProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
+        let interactor_provider =
+            MockInteractorProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
 
-        let controller = Controller::new(interact_provider);
+        let controller = Controller::new(interactor_provider);
 
         let request = TestRequest::default().to_http_request();
 

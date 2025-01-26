@@ -26,7 +26,7 @@ use crate::{
             },
         },
     },
-    interface::controller::interact_provider_interface::InteractProvider,
+    interface::controller::interactor_provider_interface::InteractorProvider,
     usecase::interactor::{
         auth::auth_impl::AuthInteractorImpl, auth_interactor_interface::AuthInteractor,
         customer::customer_impl::CustomerInteractorImpl,
@@ -43,13 +43,13 @@ use crate::{
 };
 
 /// Factory providing Interactor.
-pub struct InteractProviderImpl {
+pub struct InteractorProviderImpl {
     shopify_config: ShopifyConfig,
     cognito_config: CognitoConfig,
     aws_sdk_config: SdkConfig,
 }
 
-impl InteractProviderImpl {
+impl InteractorProviderImpl {
     pub fn new(
         shopify_config: ShopifyConfig,
         cognito_config: CognitoConfig,
@@ -64,7 +64,7 @@ impl InteractProviderImpl {
 }
 
 #[async_trait]
-impl InteractProvider<DatabaseTransaction, Arc<DatabaseConnection>> for InteractProviderImpl {
+impl InteractorProvider<DatabaseTransaction, Arc<DatabaseConnection>> for InteractorProviderImpl {
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor> {
         Box::new(ProductInteractorImpl::new(
             Box::new(ProductRepositoryImpl::new(ShopifyGQLClient::new(

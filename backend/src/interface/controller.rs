@@ -8,7 +8,7 @@ pub mod get_locations;
 pub mod get_product;
 pub mod get_products;
 pub mod get_related_products;
-pub mod interact_provider_interface;
+pub mod interactor_provider_interface;
 pub mod post_draft_order;
 pub mod post_sign_in;
 pub mod post_sign_out;

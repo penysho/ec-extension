@@ -1,1 +1,1 @@
-pub mod interact_provider_impl;
+pub mod interactor_provider_impl;

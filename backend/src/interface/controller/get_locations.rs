@@ -5,7 +5,7 @@ use crate::interface::presenter::{
     location::location_impl::LocationPresenterImpl, location_presenter_interface::LocationPresenter,
 };
 
-use super::{controller::Controller, interact_provider_interface::InteractProvider};
+use super::{controller::Controller, interactor_provider_interface::InteractorProvider};
 
 #[derive(Deserialize)]
 pub struct GetLocationsQueryParams {
@@ -15,7 +15,7 @@ pub struct GetLocationsQueryParams {
 
 impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T, C>,
+    I: InteractorProvider<T, C>,
     T: Send + Sync + 'static,
     C: Send + Sync + 'static,
 {
@@ -26,7 +26,7 @@ where
     ) -> impl Responder {
         let presenter = LocationPresenterImpl::new();
 
-        let interactor = self.interact_provider.provide_location_interactor().await;
+        let interactor = self.interactor_provider.provide_location_interactor().await;
         let results = interactor
             .get_locations(&params.limit, &params.offset)
             .await;
@@ -39,7 +39,7 @@ where
 mod tests {
     use crate::domain::error::error::DomainError;
     use crate::infrastructure::router::actix_router;
-    use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
     use crate::interface::mock::domain_mock::mock_locations;
     use crate::usecase::interactor::location_interactor_interface::{
         LocationInteractor, MockLocationInteractor,
@@ -57,18 +57,18 @@ mod tests {
         interactor: MockLocationInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::<(), ()>::new();
-        interact_provider
+        let mut interactor_provider = MockInteractorProvider::<(), ()>::new();
+        interactor_provider
             .expect_provide_location_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn LocationInteractor>);
 
-        let controller = web::Data::new(Controller::new(interact_provider));
+        let controller = web::Data::new(Controller::new(interactor_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractProvider<(), ()>, (), ()>),
+                .configure(actix_router::configure_routes::<MockInteractorProvider<(), ()>, (), ()>),
         )
         .await
     }

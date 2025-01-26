@@ -12,7 +12,7 @@ use crate::{
 
 use super::{
     controller::Controller,
-    interact_provider_interface::InteractProvider,
+    interactor_provider_interface::InteractorProvider,
     schema::component::component::{
         AddressSchema, CurrencyCodeSchema, DiscountSchema, LineItemSchema,
     },
@@ -33,7 +33,7 @@ pub struct PostDraftOrderRequest {
 
 impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T, C>,
+    I: InteractorProvider<T, C>,
     T: Send + Sync + 'static,
     C: Send + Sync + 'static,
 {
@@ -87,7 +87,7 @@ where
             .transpose()?;
 
         let interactor = self
-            .interact_provider
+            .interactor_provider
             .provide_draft_order_interactor()
             .await;
 
@@ -112,7 +112,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::infrastructure::router::actix_router;
-    use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
     use crate::interface::controller::schema::component::component::{
         CurrencyCodeSchema, DiscountSchema, DiscountValueTypeSchema, MoneySchema,
     };
@@ -133,18 +133,18 @@ mod tests {
         interactor: MockDraftOrderInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::<(), ()>::new();
-        interact_provider
+        let mut interactor_provider = MockInteractorProvider::<(), ()>::new();
+        interactor_provider
             .expect_provide_draft_order_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn DraftOrderInteractor>);
 
-        let controller = web::Data::new(Controller::new(interact_provider));
+        let controller = web::Data::new(Controller::new(interactor_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractProvider<(), ()>, (), ()>),
+                .configure(actix_router::configure_routes::<MockInteractorProvider<(), ()>, (), ()>),
         )
         .await
     }

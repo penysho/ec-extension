@@ -7,7 +7,7 @@ use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
 use infrastructure::config::config::ConfigProvider;
 use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmConnectionProvider;
 use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
-use infrastructure::module::interact_provider_impl::InteractProviderImpl;
+use infrastructure::module::interactor_provider_impl::InteractorProviderImpl;
 use interface::controller::controller::Controller;
 use sea_orm::{DatabaseConnection, DatabaseTransaction};
 use std::io;
@@ -35,7 +35,7 @@ async fn main() -> std::io::Result<()> {
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
     );
 
-    let controller = web::Data::new(Controller::new(InteractProviderImpl::new(
+    let controller = web::Data::new(Controller::new(InteractorProviderImpl::new(
         config_provider.shopify_config().clone(),
         config_provider.cognito_config().clone(),
         config_provider.aws_sdk_config().clone(),
@@ -67,7 +67,7 @@ async fn main() -> std::io::Result<()> {
             // Definition of routes
             .configure(
                 actix_router::configure_routes::<
-                    InteractProviderImpl,
+                    InteractorProviderImpl,
                     DatabaseTransaction,
                     Arc<DatabaseConnection>,
                 >,

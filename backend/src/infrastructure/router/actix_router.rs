@@ -2,7 +2,7 @@ use crate::interface::controller::{
     controller::Controller, get_customers::GetCustomersQueryParams,
     get_draft_orders::GetDraftOrdersQueryParams, get_inventories::GetInventoriesQueryParams,
     get_locations::GetLocationsQueryParams, get_products::GetProductsQueryParams,
-    interact_provider_interface::InteractProvider, post_draft_order::PostDraftOrderRequest,
+    interactor_provider_interface::InteractorProvider, post_draft_order::PostDraftOrderRequest,
     post_sign_in::PostSignInRequest,
     put_inventory_quantity_by_sku::PutInventoryQuantityBySkuRequest,
 };
@@ -11,7 +11,7 @@ use actix_web::{web, HttpResponse};
 /// Define actix routers.
 pub fn configure_routes<I, T, C>(cfg: &mut web::ServiceConfig)
 where
-    I: InteractProvider<T, C> + 'static,
+    I: InteractorProvider<T, C> + 'static,
     T: Send + Sync + 'static,
     C: Send + Sync + 'static,
 {
