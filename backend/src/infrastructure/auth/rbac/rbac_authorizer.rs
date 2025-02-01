@@ -8,14 +8,17 @@ use crate::{
     infrastructure::{
         db::{
             model::{
-                prelude::Permission, prelude::RoleResoucePermission, prelude::UserRole,
+                prelude::{Permission, RoleResoucePermission, UserRole},
                 role_resouce_permission, user_role,
             },
             transaction_manager_interface::TransactionManager,
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
-    usecase::authorizer::authorizer_interface::{Action, Authorizer, Resource},
+    usecase::{
+        authorizer::authorizer_interface::{Action, Authorizer, Resource},
+        user::UserInterface,
+    },
 };
 
 /// Authorization by RBAC.
@@ -40,11 +43,11 @@ impl RbacAuthorizer {
 impl Authorizer for RbacAuthorizer {
     async fn authorize(
         &self,
-        user_id: &str,
+        user: Arc<dyn UserInterface>,
         resource: &Resource,
         action: &Action,
     ) -> Result<(), DomainError> {
-        let role_query = UserRole::find().filter(user_role::Column::UserId.eq(user_id));
+        let role_query = UserRole::find().filter(user_role::Column::UserId.eq(user.id()));
         let roles = if self.transaction_manager.is_transaction_started().await {
             role_query
                 .all(
@@ -63,14 +66,14 @@ impl Authorizer for RbacAuthorizer {
         .map_err(|e| {
             log::error!(
                 "Failed to get user roles. user_id: {}, error: {:?}",
-                user_id,
+                user.id(),
                 e
             );
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
 
         if roles.is_empty() {
-            log::error!("User has no role. user_id: {}", user_id);
+            log::error!("User has no role. user_id: {}", user.id(),);
             return Err(DomainError::SystemError);
         }
         let role_ids: Vec<i32> = roles.iter().map(|role| role.role_id).collect();
@@ -96,7 +99,7 @@ impl Authorizer for RbacAuthorizer {
         .map_err(|e| {
             log::error!(
                 "Failed to get role resource permissions. user_id: {}, error: {:?}",
-                user_id,
+                user.id(),
                 e
             );
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
@@ -119,7 +122,7 @@ impl Authorizer for RbacAuthorizer {
         }) {
             log::error!(
                 "User is not authorized. user_id: {}, resource: {}, action: {}",
-                user_id,
+                user.id(),
                 resource,
                 action
             );
@@ -143,6 +146,7 @@ mod tests {
     use crate::{
         domain::error::error::DomainError,
         infrastructure::{
+            auth::idp_user::IdpUser,
             config::config::DatabaseConfig,
             db::{
                 model::{user, user_role},
@@ -150,7 +154,10 @@ mod tests {
                 transaction_manager_interface::TransactionManager,
             },
         },
-        usecase::authorizer::authorizer_interface::{Action, Authorizer, Resource},
+        usecase::{
+            authorizer::authorizer_interface::{Action, Authorizer, Resource},
+            user::UserInterface,
+        },
     };
 
     use super::RbacAuthorizer;
@@ -185,10 +192,11 @@ mod tests {
     // Assume that non-user data such as roles and permissions are registered in the DB as master.
     async fn insert_authorization_data(
         transaction: &DatabaseTransaction,
-        user_id: &str,
+        user: Arc<dyn UserInterface>,
         role_id: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut rng = rand::thread_rng();
+        let user_id = user.id();
 
         let user = user::ActiveModel {
             id: Set(user_id.to_string()),
@@ -213,7 +221,10 @@ mod tests {
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
         let mut rng = rand::thread_rng();
-        let user_id = Alphanumeric.sample_string(&mut rng, 10);
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
         let resource = Resource::Product;
         let action = Action::Read;
 
@@ -225,13 +236,13 @@ mod tests {
                 .unwrap()
                 .as_ref()
                 .unwrap(),
-            &user_id,
+            user.clone(),
             ADMIN_ROLE_ID,
         )
         .await
         .expect("Failed to insert authorization data");
 
-        let result = authorizer.authorize(&user_id, &resource, &action).await;
+        let result = authorizer.authorize(user, &resource, &action).await;
 
         assert!(result.is_ok());
     }
@@ -242,11 +253,14 @@ mod tests {
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
         let mut rng = rand::thread_rng();
-        let user_id = Alphanumeric.sample_string(&mut rng, 10);
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
         let resource = Resource::Product;
         let action = Action::Read;
 
-        let result = authorizer.authorize(&user_id, &resource, &action).await;
+        let result = authorizer.authorize(user, &resource, &action).await;
 
         assert!(result.is_err());
         if let Err(DomainError::SystemError) = result {
@@ -262,7 +276,10 @@ mod tests {
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
         let mut rng = rand::thread_rng();
-        let user_id = Alphanumeric.sample_string(&mut rng, 10);
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
         let resource = Resource::Product;
         let action = Action::All;
 
@@ -274,13 +291,13 @@ mod tests {
                 .unwrap()
                 .as_ref()
                 .unwrap(),
-            &user_id,
+            user.clone(),
             OPERATOR_ROLE_ID,
         )
         .await
         .expect("Failed to insert authorization data");
 
-        let result = authorizer.authorize(&user_id, &resource, &action).await;
+        let result = authorizer.authorize(user, &resource, &action).await;
 
         assert!(result.is_err());
         if let Err(DomainError::AuthorizationError) = result {

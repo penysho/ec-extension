@@ -3,8 +3,9 @@ use std::{marker::PhantomData, sync::Arc};
 use actix_web::HttpMessage;
 
 use crate::{
-    domain::{error::error::DomainError, user::user::Id as UserId},
+    domain::error::error::DomainError,
     infrastructure::db::transaction_manager_interface::TransactionManager,
+    usecase::user::UserInterface,
 };
 
 use super::interactor_provider_interface::InteractorProvider;
@@ -35,11 +36,18 @@ where
         }
     }
 
-    /// Obtain the user ID used for authorization from the actix request.
-    /// User ID is assumed to be always set if authenticated by middleware, and if it cannot be obtained, it is assumed to be a system error.
-    pub fn get_user_id(&self, request: &actix_web::HttpRequest) -> Result<UserId, DomainError> {
-        match request.extensions().get::<String>() {
-            Some(user_id) => Ok(user_id.to_string()),
+    /// Obtain the user used for authorization from the actix request.
+    /// User is assumed to be always set if authenticated by middleware, and if it cannot be obtained, it is assumed to be a system error.
+    pub fn get_user(
+        &self,
+        request: &actix_web::HttpRequest,
+    ) -> Result<Arc<dyn UserInterface>, DomainError> {
+        match request
+            .extensions()
+            .get::<Arc<dyn UserInterface>>()
+            .cloned()
+        {
+            Some(user) => Ok(user),
             None => {
                 log::error!(target: "Controller::get_user_id", "user_id not found");
                 Err(DomainError::SystemError)
@@ -71,10 +79,13 @@ where
 mod test {
     use std::sync::Arc;
 
-    use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
     use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
+    use crate::infrastructure::{
+        auth::idp_user::IdpUser, db::sea_orm::sea_orm_manager::SeaOrmTransactionManager,
+    };
     use crate::interface::controller::controller::Controller;
     use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
+    use crate::usecase::user::UserInterface;
     use actix_web::test::TestRequest;
     use actix_web::HttpMessage;
     use sea_orm::{DatabaseConnection, DatabaseTransaction};
@@ -84,10 +95,11 @@ mod test {
         let interactor_provider = MockInteractorProvider::<(), ()>::new();
 
         let controller = Controller::new(interactor_provider);
-
         let request = TestRequest::default().to_http_request();
-        request.extensions_mut().insert("user_id".to_string());
-        let user_id = controller.get_user_id(&request);
+        let mock = Arc::new(IdpUser::default()) as Arc<dyn UserInterface>;
+        request.extensions_mut().insert(mock);
+
+        let user_id = controller.get_user(&request);
         assert!(user_id.is_ok());
     }
 
@@ -96,9 +108,9 @@ mod test {
         let interactor_provider = MockInteractorProvider::<(), ()>::new();
 
         let controller = Controller::new(interactor_provider);
-
         let request = TestRequest::default().to_http_request();
-        let user_id = controller.get_user_id(&request);
+
+        let user_id = controller.get_user(&request);
         assert!(user_id.is_err());
     }
 
@@ -108,7 +120,6 @@ mod test {
             MockInteractorProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
 
         let controller = Controller::new(interactor_provider);
-
         let request = TestRequest::default().to_http_request();
         let mock = Arc::new(SeaOrmTransactionManager::default())
             as Arc<dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>>;
@@ -125,7 +136,6 @@ mod test {
             MockInteractorProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
 
         let controller = Controller::new(interactor_provider);
-
         let request = TestRequest::default().to_http_request();
 
         let transaction_manager = controller.get_transaction_manager(&request);

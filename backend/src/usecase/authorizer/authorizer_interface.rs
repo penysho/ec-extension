@@ -2,8 +2,10 @@ use async_trait::async_trait;
 use mockall::automock;
 use std::fmt;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use crate::domain::error::error::DomainError;
+use crate::usecase::user::UserInterface;
 
 /// Authorization interface.
 #[automock]
@@ -12,7 +14,7 @@ pub trait Authorizer: Send + Sync {
     /// Authorize the given request.
     async fn authorize(
         &self,
-        user_id: &str,
+        user: Arc<dyn UserInterface>,
         resource: &Resource,
         action: &Action,
     ) -> Result<(), DomainError>;

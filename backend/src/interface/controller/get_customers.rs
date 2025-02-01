@@ -32,14 +32,14 @@ where
         let presenter = CustomerPresenterImpl::new();
 
         let query = validate_query_params(&params)?;
-        let user_id = self.get_user_id(&request)?;
+        let user = self.get_user(&request)?;
         let transaction_manager = self.get_transaction_manager(&request)?;
 
         let interactor = self
             .interactor_provider
             .provide_customer_interactor(transaction_manager)
             .await;
-        let results = interactor.get_customers(&user_id, &query).await;
+        let results = interactor.get_customers(user, &query).await;
 
         presenter.present_get_customers(results).await
     }
@@ -61,6 +61,7 @@ fn validate_query_params(
 mod tests {
     use std::sync::Arc;
 
+    use crate::infrastructure::auth::idp_user::IdpUser;
     use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
     use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
     use crate::infrastructure::router::actix_router;
@@ -69,13 +70,14 @@ mod tests {
     use crate::usecase::interactor::customer_interactor_interface::{
         CustomerInteractor, MockCustomerInteractor,
     };
+    use crate::usecase::user::UserInterface;
 
     use super::*;
     use actix_http::Request;
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::{http::StatusCode, test, App, Error};
     use actix_web::{web, HttpMessage};
-    use mockall::predicate::eq;
+    use mockall::predicate::{always, eq};
     use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
     const BASE_URL: &'static str = "/ec-extension/customers";
@@ -104,7 +106,8 @@ mod tests {
     }
 
     fn add_extensions(req: &Request) {
-        req.extensions_mut().insert("user_id".to_string());
+        req.extensions_mut()
+            .insert(Arc::new(IdpUser::default()) as Arc<dyn UserInterface>);
         req.extensions_mut()
             .insert(Arc::new(SeaOrmTransactionManager::default())
                 as Arc<
@@ -118,7 +121,7 @@ mod tests {
         interactor
             .expect_get_customers()
             .with(
-                eq("user_id".to_string()),
+                always(),
                 eq(GetCustomersQuery::Email(
                     Email::new("john@example.com").expect("Failed to create email"),
                 )),
