@@ -18,13 +18,13 @@ where
     cfg.service(
         web::resource("/health").route(web::get().to(|| async { HttpResponse::Ok().body("ok") })),
     );
+
     cfg.service(
         web::scope("/ec-extension")
             .route(
                 "/products",
                 web::get().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     params: web::Query<GetProductsQueryParams>| async move {
+                    |controller: web::Data<Controller<I, T, C>>, params: web::Query<GetProductsQueryParams>| async move {
                         controller.get_products(params).await
                     },
                 ),
@@ -32,8 +32,7 @@ where
             .route(
                 "/products/{id}",
                 web::get().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     path: web::Path<(String,)>| async move {
+                    |controller: web::Data<Controller<I, T, C>>, path: web::Path<(String,)>| async move {
                         controller.get_product(path).await
                     },
                 ),
@@ -41,8 +40,7 @@ where
             .route(
                 "/products/related/{id}",
                 web::get().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     path: web::Path<(String,)>| async move {
+                    |controller: web::Data<Controller<I, T, C>>, path: web::Path<(String,)>| async move {
                         controller.get_related_products(path).await
                     },
                 ),
@@ -50,8 +48,7 @@ where
             .route(
                 "/inventories",
                 web::get().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     params: web::Query<GetInventoriesQueryParams>| async move {
+                    |controller: web::Data<Controller<I, T, C>>, params: web::Query<GetInventoriesQueryParams>| async move {
                         controller.get_inventories(params).await
                     },
                 ),
@@ -59,9 +56,7 @@ where
             .route(
                 "/inventories/quantities/sku/{sku}",
                 web::put().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     path: web::Path<(String,)>,
-                     body: web::Json<PutInventoryQuantityBySkuRequest>| async move {
+                    |controller: web::Data<Controller<I, T, C>>, path: web::Path<(String,)>, body: web::Json<PutInventoryQuantityBySkuRequest>| async move {
                         controller.put_inventory_quantity_by_sku(path, body).await
                     },
                 ),
@@ -69,44 +64,39 @@ where
             .route(
                 "/orders/draft",
                 web::get().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     params: web::Query<GetDraftOrdersQueryParams>| async move {
-                        controller.get_draft_orders(params).await
+                    |controller: web::Data<Controller<I, T, C>>, request: actix_web::HttpRequest, params: web::Query<GetDraftOrdersQueryParams>| async move {
+                        controller.get_draft_orders(request,params).await
                     },
                 ),
             )
             .route(
                 "/orders/draft",
                 web::post().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     body: web::Json<PostDraftOrderRequest>| async move {
-                        controller.post_draft_order(body).await
+                    |controller: web::Data<Controller<I, T, C>>, request: actix_web::HttpRequest, body: web::Json<PostDraftOrderRequest>| async move {
+                        controller.post_draft_order(request,body).await
                     },
                 ),
             )
             .route(
                 "/orders/draft/{id}",
                 web::delete().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     path: web::Path<(String,)>| async move {
-                        controller.delete_draft_order(path).await
+                    |controller: web::Data<Controller<I, T, C>>, request: actix_web::HttpRequest, path: web::Path<(String,)>| async move {
+                        controller.delete_draft_order(request,path).await
                     },
                 ),
             )
             .route(
                 "/orders/draft/complete/{id}",
                 web::put().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     path: web::Path<(String,)>| async move {
-                        controller.complete_draft_order(path).await
+                    |controller: web::Data<Controller<I, T, C>>, request: actix_web::HttpRequest, path: web::Path<(String,)>| async move {
+                        controller.complete_draft_order(request,path).await
                     },
                 ),
             )
             .route(
                 "/locations",
                 web::get().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     params: web::Query<GetLocationsQueryParams>| async move {
+                    |controller: web::Data<Controller<I, T, C>>, params: web::Query<GetLocationsQueryParams>| async move {
                         controller.get_locations(params).await
                     },
                 ),
@@ -114,18 +104,15 @@ where
             .route(
                 "/customers",
                 web::get().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     params: web::Query<GetCustomersQueryParams>,
-                     request: actix_web::HttpRequest| async move {
-                        controller.get_customers(params, request).await
+                    |controller: web::Data<Controller<I, T, C>>, request: actix_web::HttpRequest, params: web::Query<GetCustomersQueryParams>| async move {
+                        controller.get_customers( request, params).await
                     },
                 ),
             )
             .route(
                 "/auth/sign-in",
                 web::post().to(
-                    |controller: web::Data<Controller<I, T, C>>,
-                     body: web::Json<PostSignInRequest>| async move {
+                    |controller: web::Data<Controller<I, T, C>>, body: web::Json<PostSignInRequest>| async move {
                         controller.post_sign_in(body).await
                     },
                 ),

@@ -96,7 +96,12 @@ impl InteractorProvider<DatabaseTransaction, Arc<DatabaseConnection>> for Intera
         ))
     }
 
-    async fn provide_draft_order_interactor(&self) -> Box<dyn DraftOrderInteractor> {
+    async fn provide_draft_order_interactor(
+        &self,
+        transaction_manager: Arc<
+            dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+        >,
+    ) -> Box<dyn DraftOrderInteractor> {
         Box::new(DraftOrderInteractorImpl::new(
             Box::new(DraftOrderRepositoryImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
@@ -104,6 +109,7 @@ impl InteractorProvider<DatabaseTransaction, Arc<DatabaseConnection>> for Intera
             Box::new(CustomerRepositoryImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
             ))),
+            Arc::new(RbacAuthorizer::new(Arc::clone(&transaction_manager))),
         ))
     }
 

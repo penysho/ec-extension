@@ -8,6 +8,7 @@ use infrastructure::config::config::ConfigProvider;
 use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmConnectionProvider;
 use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interactor_provider_impl::InteractorProviderImpl;
+use infrastructure::router::actix_router;
 use interface::controller::controller::Controller;
 use sea_orm::{DatabaseConnection, DatabaseTransaction};
 use std::io;
@@ -17,8 +18,6 @@ mod domain;
 mod infrastructure;
 mod interface;
 mod usecase;
-
-use crate::infrastructure::router::actix_router;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

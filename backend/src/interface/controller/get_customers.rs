@@ -26,8 +26,8 @@ where
     /// Get a list of customers.
     pub async fn get_customers(
         &self,
-        params: web::Query<GetCustomersQueryParams>,
         request: actix_web::HttpRequest,
+        params: web::Query<GetCustomersQueryParams>,
     ) -> impl Responder {
         let presenter = CustomerPresenterImpl::new();
 

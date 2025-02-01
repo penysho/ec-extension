@@ -91,7 +91,7 @@ mod test {
     use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
     #[test]
-    fn test_get_user_id_success() {
+    fn test_get_user_success() {
         let interactor_provider = MockInteractorProvider::<(), ()>::new();
 
         let controller = Controller::new(interactor_provider);
@@ -104,7 +104,7 @@ mod test {
     }
 
     #[test]
-    fn test_get_user_id_error() {
+    fn test_get_user_error() {
         let interactor_provider = MockInteractorProvider::<(), ()>::new();
 
         let controller = Controller::new(interactor_provider);

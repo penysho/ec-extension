@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use mockall::automock;
+use std::sync::Arc;
 
 use crate::domain::{
     address::address::Address,
@@ -11,6 +12,7 @@ use crate::domain::{
     line_item::{discount::discount::Discount, line_item::LineItem},
     money::money::CurrencyCode,
 };
+use crate::usecase::user::UserInterface;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GetDraftOrdersQuery {
@@ -38,6 +40,7 @@ pub trait DraftOrderInteractor {
     /// * Returns a domain error if the draft order repository fails.
     async fn get_draft_orders(
         &self,
+        user: Arc<dyn UserInterface>,
         query: &GetDraftOrdersQuery,
     ) -> Result<Vec<DraftOrder>, DomainError>;
 
@@ -66,6 +69,7 @@ pub trait DraftOrderInteractor {
     /// * Returns a domain error if the draft order repository fails.
     async fn create_draft_order(
         &self,
+        user: Arc<dyn UserInterface>,
         customer_id: Option<CustomerId>,
         billing_address: Option<Address>,
         shipping_address: Option<Address>,
@@ -93,7 +97,11 @@ pub trait DraftOrderInteractor {
     ///
     /// * Returns a domain error if the draft order repository fails.
     /// * If a draft order has already been completed.
-    async fn complete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrder, DomainError>;
+    async fn complete_draft_order(
+        &self,
+        user: Arc<dyn UserInterface>,
+        id: &DraftOrderId,
+    ) -> Result<DraftOrder, DomainError>;
 
     /// Delete a draft order.
     ///
@@ -110,5 +118,9 @@ pub trait DraftOrderInteractor {
     /// # Errors
     ///
     /// * Returns a domain error if the draft order repository fails.
-    async fn delete_draft_order(&self, id: &DraftOrderId) -> Result<DraftOrderId, DomainError>;
+    async fn delete_draft_order(
+        &self,
+        user: Arc<dyn UserInterface>,
+        id: &DraftOrderId,
+    ) -> Result<DraftOrderId, DomainError>;
 }

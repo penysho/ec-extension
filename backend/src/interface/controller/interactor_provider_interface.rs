@@ -28,7 +28,10 @@ where
     /// Provide Interactor for inventory.
     async fn provide_inventory_interactor(&self) -> Box<dyn InventoryInteractor>;
     /// Provide Interactor for draft order.
-    async fn provide_draft_order_interactor(&self) -> Box<dyn DraftOrderInteractor>;
+    async fn provide_draft_order_interactor(
+        &self,
+        transaction_manager: Arc<dyn TransactionManager<T, C>>,
+    ) -> Box<dyn DraftOrderInteractor>;
     /// Provide Interactor for location.
     async fn provide_location_interactor(&self) -> Box<dyn LocationInteractor>;
     /// Provide Interactor for customer.
