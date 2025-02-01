@@ -82,10 +82,11 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         discount: Option<Discount>,
     ) -> Result<DraftOrder, DomainError> {
         self.authorizer
-            .authorize(user, &Resource::Order, &Action::Write)
+            .authorize(user.clone(), &Resource::Order, &Action::Write)
             .await?;
 
         let draft_order = DraftOrder::create(
+            user.id(),
             customer_id,
             billing_address,
             shipping_address,

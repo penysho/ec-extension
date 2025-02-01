@@ -8,6 +8,7 @@ use crate::domain::{
     line_item::{discount::discount::Discount, line_item::LineItem},
     money::money::{CurrencyCode, Money},
     order::order::Id as OrderId,
+    user::user::Id as UserId,
 };
 
 pub type Id = String;
@@ -91,6 +92,8 @@ pub struct DraftOrder {
 
     order_id: Option<OrderId>,
 
+    owner_user_id: UserId,
+
     completed_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -118,6 +121,7 @@ impl DraftOrder {
         total_price_set: Money,
         presentment_currency_code: CurrencyCode,
         order_id: Option<OrderId>,
+        owner_user_id: impl Into<UserId>,
         completed_at: Option<DateTime<Utc>>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -142,6 +146,7 @@ impl DraftOrder {
             total_price_set,
             presentment_currency_code,
             order_id,
+            owner_user_id: owner_user_id.into(),
             completed_at,
             created_at,
             updated_at,
@@ -165,6 +170,7 @@ impl DraftOrder {
 
     /// Create an entity in its initial state.
     pub fn create(
+        owner_user_id: impl Into<UserId>,
         customer_id: Option<CustomerId>,
         billing_address: Option<Address>,
         shipping_address: Option<Address>,
@@ -202,6 +208,7 @@ impl DraftOrder {
             total_price_set: Money::zero(),
             presentment_currency_code,
             order_id: None,
+            owner_user_id: owner_user_id.into(),
             completed_at: None,
             created_at: now,
             updated_at: now,
@@ -305,6 +312,7 @@ mod tests {
             mock_money(),
             CurrencyCode::default(),
             None,
+            "Owner".to_string(),
             None,
             Utc::now(),
             Utc::now(),
@@ -341,6 +349,7 @@ mod tests {
             mock_money(),
             CurrencyCode::default(),
             None,
+            "Owner".to_string(),
             None,
             Utc::now(),
             Utc::now(),
@@ -371,6 +380,7 @@ mod tests {
             mock_money(),
             CurrencyCode::default(),
             None,
+            "Owner".to_string(),
             None,
             Utc::now(),
             Utc::now(),
@@ -382,6 +392,7 @@ mod tests {
     #[test]
     fn test_create() {
         let draft_order = DraftOrder::create(
+            "Owner".to_string(),
             None,
             mock_address(),
             mock_address(),

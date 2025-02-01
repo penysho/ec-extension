@@ -47,6 +47,7 @@ impl DraftOrderNode {
             self.presentment_currency_code.to_domain()?,
             self.order
                 .map(|o| ShopifyGQLHelper::remove_gid_prefix(&o.id)),
+            self.owner_user_id,
             self.completed_at,
             self.created_at,
             self.updated_at,
@@ -100,6 +101,8 @@ pub struct DraftOrderNode {
     pub presentment_currency_code: CurrencyCodeNode,
 
     pub order: Option<OrderIdNode>,
+
+    pub owner_user_id: String,
 
     pub completed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
