@@ -27,6 +27,7 @@ pub trait DraftOrderInteractor {
     ///
     /// # Arguments
     ///
+    /// * `user` - The user interface.
     /// * `query` - The query to get draft orders.
     ///
     /// # Returns
@@ -48,6 +49,7 @@ pub trait DraftOrderInteractor {
     ///
     /// # Arguments
     ///
+    /// * `user` - The user interface.
     /// * `customer_id` - The customer id.
     /// * `billing_address` - The billing address.
     /// * `shipping_address` - The shipping address.
@@ -85,6 +87,7 @@ pub trait DraftOrderInteractor {
     ///
     /// # Arguments
     ///
+    /// * `user` - The user interface.
     /// * `id` - The draft order id.
     ///
     /// # Returns
@@ -107,6 +110,7 @@ pub trait DraftOrderInteractor {
     ///
     /// # Arguments
     ///
+    /// * `user` - The user interface.
     /// * `id` - The draft order id.
     ///
     /// # Returns

@@ -13,7 +13,7 @@ use crate::{
         money::money::CurrencyCode,
     },
     usecase::{
-        authorizer::authorizer_interface::Authorizer,
+        authorizer::authorizer_interface::{Action, Authorizer, Resource},
         interactor::draft_order_interactor_interface::{DraftOrderInteractor, GetDraftOrdersQuery},
         repository::{
             customer_repository_interface::CustomerRepository,
@@ -53,6 +53,10 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
     ) -> Result<Vec<DraftOrder>, DomainError> {
         match query {
             GetDraftOrdersQuery::Email(email) => {
+                self.authorizer
+                    .authorize(user, &Resource::Order, &Action::Read)
+                    .await?;
+
                 let customer = self
                     .customer_repository
                     .find_customer_by_email(&email)
@@ -77,6 +81,10 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         presentment_currency_code: Option<CurrencyCode>,
         discount: Option<Discount>,
     ) -> Result<DraftOrder, DomainError> {
+        self.authorizer
+            .authorize(user, &Resource::Order, &Action::Write)
+            .await?;
+
         let draft_order = DraftOrder::create(
             customer_id,
             billing_address,
@@ -97,6 +105,10 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         user: Arc<dyn UserInterface>,
         id: &DraftOrderId,
     ) -> Result<DraftOrder, DomainError> {
+        self.authorizer
+            .authorize(user, &Resource::Order, &Action::Write)
+            .await?;
+
         let mut draft_order = self
             .draft_order_repository
             .find_draft_order_by_id(id)
@@ -112,6 +124,10 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         user: Arc<dyn UserInterface>,
         id: &DraftOrderId,
     ) -> Result<DraftOrderId, DomainError> {
+        self.authorizer
+            .authorize(user, &Resource::Order, &Action::Delete)
+            .await?;
+
         let draft_order = self
             .draft_order_repository
             .find_draft_order_by_id(id)

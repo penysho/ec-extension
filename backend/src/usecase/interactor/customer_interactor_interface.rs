@@ -20,6 +20,7 @@ pub trait CustomerInteractor {
     ///
     /// # Arguments
     ///
+    /// * `user` - The user interface.
     /// * `query` - The query to get customers.
     ///
     /// # Returns
