@@ -30,7 +30,7 @@ pub struct InventoryItem {
 impl InventoryItem {
     /// Constructor to be used from the repository.
     pub fn new(
-        id: impl Into<String>,
+        id: impl Into<Id>,
         variant_id: impl Into<VariantId>,
         requires_shipping: bool,
         tracked: bool,

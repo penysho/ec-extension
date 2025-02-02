@@ -104,7 +104,7 @@ pub struct DraftOrder {
 impl DraftOrder {
     /// Constructor to be used from the repository.
     pub fn new(
-        id: impl Into<String>,
+        id: impl Into<Id>,
         name: impl Into<String>,
         status: DraftOrderStatus,
         customer_id: Option<CustomerId>,

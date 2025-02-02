@@ -36,7 +36,7 @@ pub struct Media {
 
 impl Media {
     pub fn new(
-        id: impl Into<String>,
+        id: impl Into<Id>,
         name: Option<impl Into<String>>,
         status: MediaStatus,
         content: Option<MediaContent>,

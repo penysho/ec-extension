@@ -68,7 +68,7 @@ pub struct Customer {
 impl Customer {
     /// Constructor to be used from the repository.
     pub fn new(
-        id: impl Into<String>,
+        id: impl Into<Id>,
         user_id: impl Into<String>,
         addresses: Vec<Address>,
         default_address: Option<Address>,
