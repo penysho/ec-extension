@@ -51,6 +51,7 @@ pub enum DraftOrderStatus {
 /// - `total_price_set` - The final total price of the order, including shipping, discounts, and taxes.
 /// - `presentment_currency_code` - Currency code used for the order. May differ from the store's default currency code.
 /// - `order_id` - An optional identifier for the associated order, if the draft was converted to a finalized order.
+/// - `owner_user_id` - Data owner user ID.
 /// - `completed_at` - An optional timestamp indicating when the order was completed.
 /// - `created_at` - The timestamp when the draft order was initially created.
 /// - `update_at` - The timestamp when the draft order was last updated.

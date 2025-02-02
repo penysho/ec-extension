@@ -12,6 +12,22 @@ use crate::usecase::user::UserInterface;
 #[async_trait]
 pub trait Authorizer: Send + Sync {
     /// Authorize the given request.
+    ///
+    /// # Arguments
+    ///
+    /// * `user` - Users who manipulate resources.
+    /// * `resources` - Vector of the resource to be manipulated.
+    /// * `action` - Action on Resources.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), DomainError>` - The result of the operation.
+    ///   - `Ok()` - That the resource operation was authorized.
+    ///   - `Err(DomainError)` - The error.
+    ///
+    /// # Errors
+    ///
+    /// * If do not hold authorization to the subject.
     async fn authorize<'a>(
         &self,
         user: Arc<dyn UserInterface>,
