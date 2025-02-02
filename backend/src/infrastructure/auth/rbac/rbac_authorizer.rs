@@ -21,6 +21,8 @@ use crate::{
     },
 };
 
+use super::schema::DetailAction;
+
 /// Authorization by RBAC.
 pub struct RbacAuthorizer {
     transaction_manager: Arc<dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>>,
@@ -106,19 +108,18 @@ impl Authorizer for RbacAuthorizer {
         })?;
 
         if !role_resource_permission.iter().any(|permission| {
-            let allow_resource = match Resource::try_from(permission.0.resource_id) {
+            let ok = match Resource::try_from(permission.0.resource_id) {
                 Ok(permission_resource) => permission_resource == *resource,
                 Err(_) => false,
-            };
-
-            let allow_action = match permission.1.clone().unwrap().action.parse::<Action>() {
-                Ok(permission_action) => {
-                    permission_action == *action || permission_action == Action::All
+            } && match permission.1.clone().unwrap().action.parse::<DetailAction>() {
+                Ok(allowed_detail_action) => {
+                    let allowed_actions = allowed_detail_action.to_actions();
+                    allowed_actions.contains(&action.clone())
                 }
                 Err(_) => false,
             };
 
-            return allow_resource && allow_action;
+            ok
         }) {
             log::error!(
                 "User is not authorized. user_id: {}, resource: {}, action: {}",
@@ -163,7 +164,7 @@ mod tests {
     use super::RbacAuthorizer;
 
     const ADMIN_ROLE_ID: i32 = 1;
-    const OPERATOR_ROLE_ID: i32 = 2;
+    const CUSTOMER_ROLE_ID: i32 = 3;
 
     async fn transaction_manager() -> SeaOrmTransactionManager {
         env::set_var(
@@ -281,7 +282,8 @@ mod tests {
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
         let resource = Resource::Product;
-        let action = Action::All;
+        // Customers do not have the authority to delete products.
+        let action = Action::Delete;
 
         insert_authorization_data(
             transaction_manager
@@ -292,7 +294,7 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            OPERATOR_ROLE_ID,
+            CUSTOMER_ROLE_ID,
         )
         .await
         .expect("Failed to insert authorization data");
