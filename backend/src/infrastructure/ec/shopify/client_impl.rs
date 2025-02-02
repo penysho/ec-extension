@@ -5,7 +5,7 @@ use reqwest::{
 };
 use serde::Serialize;
 use serde_json::json;
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 use tokio::sync::Mutex;
 
 use crate::{
@@ -50,6 +50,8 @@ impl ECClient for ShopifyGQLClient {
     where
         T: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
     {
+        log::debug!("Query: {}", query);
+
         // Lock the mutex to get the client
         let client = self.client.lock().await;
 
@@ -76,9 +78,12 @@ impl ECClient for ShopifyGQLClient {
 
     async fn mutation<T, U>(&self, query: &str, input: &T) -> Result<U, DomainError>
     where
-        T: Serialize + ?Sized + Send + Sync + 'static,
+        T: Serialize + ?Sized + Send + Sync + fmt::Display + 'static,
         U: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
     {
+        log::debug!("Query: {}", query);
+        log::debug!("Input: {}", input);
+
         // Lock the mutex to get the client
         let client = self.client.lock().await;
 
