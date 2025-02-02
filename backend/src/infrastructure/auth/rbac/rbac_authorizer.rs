@@ -13,7 +13,7 @@ use crate::{
             model::{
                 permission::Model as PermissionModel,
                 prelude::{Permission, RoleResoucePermission, UserRole},
-                role_resouce_permission::{self, Model as RoleResoucePermissionModel},
+                role_resouce_permission::{self, Model as RoleResourcePermissionModel},
                 user_role::{self, Model as UserRoleModel},
             },
             transaction_manager_interface::TransactionManager,
@@ -81,7 +81,7 @@ impl RbacAuthorizer {
         &self,
         transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
         role_ids: Vec<i32>,
-    ) -> Result<Vec<(RoleResoucePermissionModel, Option<PermissionModel>)>, DomainError> {
+    ) -> Result<Vec<(RoleResourcePermissionModel, Option<PermissionModel>)>, DomainError> {
         let permission_query = RoleResoucePermission::find()
             .find_also_related(Permission)
             .filter(role_resouce_permission::Column::RoleId.is_in(role_ids));
@@ -106,65 +106,52 @@ impl RbacAuthorizer {
         })?;
         Ok(role_resource_permission)
     }
+
+    async fn determine_authorization(
+        &self,
+        user_id: &str,
+        resources: Vec<&dyn AuthorizedResource>,
+        action: &Action,
+        role_resource_permission: Vec<(RoleResourcePermissionModel, Option<PermissionModel>)>,
+    ) -> Result<(), DomainError> {
+        Ok(for resource in resources {
+            if !role_resource_permission.iter().any(|permission| {
+                let ok = match ResourceType::try_from(permission.0.resource_id) {
+                    Ok(permission_resource) => permission_resource == resource.resource_type(),
+                    Err(_) => false,
+                } && match permission.1.clone().unwrap().action.parse::<DetailAction>() {
+                    Ok(allowed_detail_action) => {
+                        if allowed_detail_action.is_own_action()
+                            && resource.owner_user_id().is_some()
+                            && resource.owner_user_id().as_ref().unwrap() != user_id
+                        {
+                            // If the action is an own action and the owner is different, it is not allowed.
+                            return false;
+                        }
+
+                        allowed_detail_action.to_actions().contains(action)
+                    }
+                    Err(_) => false,
+                };
+
+                ok
+            }) {
+                log::error!(
+                    "User is not authorized. user_id: {}, resource: {}, owner_user_id: {}, action: {}",
+                    user_id,
+                    resource.resource_type(),
+                    resource.owner_user_id().unwrap_or_else(|| "".to_string()),
+                    action
+                );
+                return Err(DomainError::AuthorizationError);
+            }
+        })
+    }
 }
 
 #[async_trait]
 impl Authorizer for RbacAuthorizer {
     async fn authorize<'a>(
-        &self,
-        user: Arc<dyn UserInterface>,
-        resource: Box<&'a dyn AuthorizedResource>,
-        action: &Action,
-    ) -> Result<(), DomainError> {
-        let roles = self
-            .get_user_roles(self.transaction_manager.as_ref(), user.id())
-            .await?;
-
-        if roles.is_empty() {
-            log::error!("User has no role. user_id: {}", user.id());
-            return Err(DomainError::SystemError);
-        }
-
-        let role_ids: Vec<i32> = roles.iter().map(|role| role.role_id).collect();
-        let role_resource_permission = self
-            .get_role_resource_permissions(self.transaction_manager.as_ref(), role_ids)
-            .await?;
-
-        if !role_resource_permission.iter().any(|permission| {
-            let ok = match ResourceType::try_from(permission.0.resource_id) {
-                Ok(permission_resource) => permission_resource == resource.resource_type(),
-                Err(_) => false,
-            } && match permission.1.clone().unwrap().action.parse::<DetailAction>() {
-                Ok(allowed_detail_action) => {
-                    if allowed_detail_action.is_own_action()
-                        && resource.owner_user_id().is_some()
-                        && resource.owner_user_id().as_ref().unwrap() != user.id()
-                    {
-                        // If the action is an own action and the owner is different, it is not allowed.
-                        return false;
-                    }
-
-                    allowed_detail_action.to_actions().contains(action)
-                }
-                Err(_) => false,
-            };
-
-            ok
-        }) {
-            log::error!(
-                "User is not authorized. user_id: {}, resource: {}, owner_user_id: {}, action: {}",
-                user.id(),
-                resource.resource_type(),
-                resource.owner_user_id().unwrap_or_else(|| "".to_string()),
-                action
-            );
-            return Err(DomainError::AuthorizationError);
-        }
-
-        Ok(())
-    }
-
-    async fn bulk_authorize<'a>(
         &self,
         user: Arc<dyn UserInterface>,
         resources: Vec<&'a dyn AuthorizedResource>,
@@ -184,38 +171,8 @@ impl Authorizer for RbacAuthorizer {
             .get_role_resource_permissions(self.transaction_manager.as_ref(), role_ids)
             .await?;
 
-        Ok(for resource in resources {
-            if !role_resource_permission.iter().any(|permission| {
-                let ok = match ResourceType::try_from(permission.0.resource_id) {
-                    Ok(permission_resource) => permission_resource == resource.resource_type(),
-                    Err(_) => false,
-                } && match permission.1.clone().unwrap().action.parse::<DetailAction>() {
-                    Ok(allowed_detail_action) => {
-                        if allowed_detail_action.is_own_action()
-                            && resource.owner_user_id().is_some()
-                            && resource.owner_user_id().as_ref().unwrap() != user.id()
-                        {
-                            // If the action is an own action and the owner is different, it is not allowed.
-                            return false;
-                        }
-
-                        allowed_detail_action.to_actions().contains(action)
-                    }
-                    Err(_) => false,
-                };
-
-                ok
-            }) {
-                log::error!(
-                    "User is not authorized. user_id: {}, resource: {}, owner_user_id: {}, action: {}",
-                    user.id(),
-                    resource.resource_type(),
-                    resource.owner_user_id().unwrap_or_else(|| "".to_string()),
-                    action
-                );
-                return Err(DomainError::AuthorizationError);
-            }
-        })
+        self.determine_authorization(user.id(), resources, action, role_resource_permission)
+            .await
     }
 }
 
@@ -307,7 +264,7 @@ mod tests {
     async fn insert_custom_user<'a>(
         transaction: &DatabaseTransaction,
         user: Arc<dyn UserInterface>,
-        resource: Box<&'a dyn AuthorizedResource>,
+        resource: &'a dyn AuthorizedResource,
         detail_action: &DetailAction,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut rng = rand::thread_rng();
@@ -374,9 +331,9 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Box::new(&MockProduct {
+        let resource = vec![&MockProduct {
             owner_user_id: None,
-        } as &dyn AuthorizedResource);
+        } as &dyn AuthorizedResource];
         let action = Action::Read;
 
         insert_admin_user(
@@ -407,9 +364,9 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Box::new(&MockProduct {
+        let resource = vec![&MockProduct {
             owner_user_id: None,
-        } as &dyn AuthorizedResource);
+        } as &dyn AuthorizedResource];
         let action = Action::Read;
 
         insert_custom_user(
@@ -421,7 +378,7 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            resource.clone(),
+            resource[0],
             &DetailAction::AllRead,
         )
         .await
@@ -445,7 +402,7 @@ mod tests {
         let binding = MockProduct {
             owner_user_id: Some(user.id().to_string()),
         };
-        let resource = Box::new(&binding as &dyn AuthorizedResource);
+        let resource = vec![&binding as &dyn AuthorizedResource];
         let action = Action::Delete;
 
         insert_custom_user(
@@ -457,7 +414,7 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            resource.clone(),
+            resource[0],
             &DetailAction::OwnDelete,
         )
         .await
@@ -478,9 +435,9 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Box::new(&MockProduct {
+        let resource = vec![&MockProduct {
             owner_user_id: None,
-        } as &dyn AuthorizedResource);
+        } as &dyn AuthorizedResource];
         let action = Action::Read;
 
         let result = authorizer.authorize(user, resource, &action).await;
@@ -503,9 +460,9 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Box::new(&MockProduct {
+        let resource = vec![&MockProduct {
             owner_user_id: None,
-        } as &dyn AuthorizedResource);
+        } as &dyn AuthorizedResource];
         let action = Action::Delete;
 
         insert_custom_user(
@@ -517,7 +474,7 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            resource.clone(),
+            resource[0],
             &DetailAction::OwnRead, // This action is not allowed.
         )
         .await
@@ -546,7 +503,7 @@ mod tests {
         let binding = MockProduct {
             owner_user_id: Some("another_user_id".to_string()), // Different owner user ID
         };
-        let resource = Box::new(&binding as &dyn AuthorizedResource);
+        let resource = vec![&binding as &dyn AuthorizedResource];
         let action = Action::Delete;
 
         insert_custom_user(
@@ -558,7 +515,7 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            resource.clone(),
+            resource[0],
             &DetailAction::OwnDelete,
         )
         .await

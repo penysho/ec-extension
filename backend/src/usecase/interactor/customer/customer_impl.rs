@@ -45,7 +45,7 @@ impl CustomerInteractor for CustomerInteractorImpl {
                     .await?;
 
                 self.authorizer
-                    .authorize(user, Box::new(&customer), &Action::Read)
+                    .authorize(user, vec![&customer], &Action::Read)
                     .await?;
                 Ok(vec![customer])
             }

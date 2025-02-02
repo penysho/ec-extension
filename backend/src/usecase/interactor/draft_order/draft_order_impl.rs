@@ -65,7 +65,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         }?;
 
         self.authorizer
-            .bulk_authorize(
+            .authorize(
                 user,
                 draft_orders
                     .iter()
@@ -94,7 +94,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         self.authorizer
             .authorize(
                 user.clone(),
-                Box::new(&Resource::new(ResourceType::DraftOrder, None)),
+                vec![&Resource::new(ResourceType::DraftOrder, None)],
                 &Action::Write,
             )
             .await?;
@@ -126,7 +126,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
             .await?;
 
         self.authorizer
-            .authorize(user.clone(), Box::new(&draft_order), &Action::Write)
+            .authorize(user.clone(), vec![&draft_order], &Action::Write)
             .await?;
 
         draft_order.complete()?;
@@ -145,7 +145,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
             .await?;
 
         self.authorizer
-            .authorize(user.clone(), Box::new(&draft_order), &Action::Delete)
+            .authorize(user.clone(), vec![&draft_order], &Action::Delete)
             .await?;
 
         self.draft_order_repository.delete(draft_order).await

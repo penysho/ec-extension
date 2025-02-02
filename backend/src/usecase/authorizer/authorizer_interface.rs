@@ -15,13 +15,6 @@ pub trait Authorizer: Send + Sync {
     async fn authorize<'a>(
         &self,
         user: Arc<dyn UserInterface>,
-        resource: Box<&'a dyn AuthorizedResource>,
-        action: &Action,
-    ) -> Result<(), DomainError>;
-
-    async fn bulk_authorize<'a>(
-        &self,
-        user: Arc<dyn UserInterface>,
         resources: Vec<&'a dyn AuthorizedResource>,
         action: &Action,
     ) -> Result<(), DomainError>;
