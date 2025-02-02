@@ -113,8 +113,16 @@ impl Authorizer for RbacAuthorizer {
                 Err(_) => false,
             } && match permission.1.clone().unwrap().action.parse::<DetailAction>() {
                 Ok(allowed_detail_action) => {
+                    if allowed_detail_action.is_own_action()
+                        && resource.owner_user_id().is_some()
+                        && resource.owner_user_id().as_ref().unwrap() != user.id()
+                    {
+                        // If the action is an own action and the owner is different, it is not allowed.
+                        return false;
+                    }
                     let allowed_actions = allowed_detail_action.to_actions();
-                    allowed_actions.contains(&action.clone())
+
+                    allowed_actions.contains(action)
                 }
                 Err(_) => false,
             };
@@ -147,10 +155,10 @@ mod tests {
     use crate::{
         domain::error::error::DomainError,
         infrastructure::{
-            auth::idp_user::IdpUser,
+            auth::{idp_user::IdpUser, rbac::schema::DetailAction},
             config::config::DatabaseConfig,
             db::{
-                model::{user, user_role},
+                model::{permission, role, role_resouce_permission, user, user_role},
                 sea_orm::sea_orm_manager::{SeaOrmConnectionProvider, SeaOrmTransactionManager},
                 transaction_manager_interface::TransactionManager,
             },
@@ -164,7 +172,6 @@ mod tests {
     use super::RbacAuthorizer;
 
     const ADMIN_ROLE_ID: i32 = 1;
-    const CUSTOMER_ROLE_ID: i32 = 3;
 
     async fn transaction_manager() -> SeaOrmTransactionManager {
         env::set_var(
@@ -190,34 +197,81 @@ mod tests {
         transaction_manager
     }
 
-    // Assume that non-user data such as roles and permissions are registered in the DB as master.
-    async fn insert_authorization_data(
+    /// Insert an admin user into the database.
+    async fn insert_admin_user(
         transaction: &DatabaseTransaction,
         user: Arc<dyn UserInterface>,
-        role_id: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut rng = rand::thread_rng();
         let user_id = user.id();
 
-        let user = user::ActiveModel {
+        let admin_user = user::ActiveModel {
             id: Set(user_id.to_string()),
             name: Set("name".to_string()),
         };
-        user.insert(transaction).await?;
+        admin_user.insert(transaction).await?;
 
-        let user_role_id: i32 = rng.gen_range(1000..10000);
-        let user_role = user_role::ActiveModel {
-            id: Set(user_role_id),
+        let admin_user_role = user_role::ActiveModel {
+            id: Set(rng.gen_range(1000..10000)),
             user_id: Set(user_id.to_string()),
-            role_id: Set(role_id),
+            role_id: Set(ADMIN_ROLE_ID),
         };
-        user_role.insert(transaction).await?;
+        admin_user_role.insert(transaction).await?;
+
+        Ok(())
+    }
+
+    /// Insert a custom user into the database.
+    /// The user has a custom role and permission.
+    async fn insert_custom_user(
+        transaction: &DatabaseTransaction,
+        user: Arc<dyn UserInterface>,
+        resource: &Resource,
+        detail_action: &DetailAction,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut rng = rand::thread_rng();
+        let user_id = user.id();
+
+        let custom_user = user::ActiveModel {
+            id: Set(user_id.to_string()),
+            name: Set("name".to_string()),
+        };
+        custom_user.insert(transaction).await?;
+
+        let custom_role_id = rng.gen_range(1000..10000);
+        let custom_role = role::ActiveModel {
+            id: Set(custom_role_id),
+            name: Set("custom".to_string()),
+        };
+        custom_role.insert(transaction).await?;
+
+        let custom_user_role = user_role::ActiveModel {
+            id: Set(rng.gen_range(1000..10000)),
+            user_id: Set(user_id.to_string()),
+            role_id: Set(custom_role_id),
+        };
+        custom_user_role.insert(transaction).await?;
+
+        let permission_id = rng.gen_range(1000..10000);
+        let custom_permission = permission::ActiveModel {
+            id: Set(permission_id),
+            action: Set(detail_action.to_string()),
+        };
+        custom_permission.insert(transaction).await?;
+
+        let custom_role_resource_permission = role_resouce_permission::ActiveModel {
+            id: Set(rng.gen_range(1000..10000)),
+            role_id: Set(custom_role_id),
+            resource_id: Set(resource.resource_type().clone() as i32),
+            permission_id: Set(permission_id),
+        };
+        custom_role_resource_permission.insert(transaction).await?;
 
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_authorize_success() {
+    async fn test_authorize_with_admin_user_success() {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
@@ -229,7 +283,7 @@ mod tests {
         let resource = Resource::new(ResourceType::Product, None);
         let action = Action::Read;
 
-        insert_authorization_data(
+        insert_admin_user(
             transaction_manager
                 .clone()
                 .get_transaction()
@@ -238,10 +292,75 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            ADMIN_ROLE_ID,
         )
         .await
-        .expect("Failed to insert authorization data");
+        .expect("Failed to insert test data");
+
+        let result = authorizer.authorize(user, &resource, &action).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_non_admin_user_success() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let mut rng = rand::thread_rng();
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
+        let resource = Resource::new(ResourceType::Product, None);
+        let action = Action::Read;
+
+        insert_custom_user(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            user.clone(),
+            &resource,
+            &DetailAction::AllRead,
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let result = authorizer.authorize(user, &resource, &action).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_owner_user_id_success() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let mut rng = rand::thread_rng();
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
+        let resource = Resource::new(ResourceType::Product, Some(user.id().to_string()));
+        let action = Action::Delete;
+
+        insert_custom_user(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            user.clone(),
+            &resource,
+            &DetailAction::OwnDelete,
+        )
+        .await
+        .expect("Failed to insert test data");
 
         let result = authorizer.authorize(user, &resource, &action).await;
 
@@ -272,7 +391,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_authorize_with_no_role() {
+    async fn test_authorize_with_no_permission() {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
@@ -282,10 +401,9 @@ mod tests {
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
         let resource = Resource::new(ResourceType::Product, None);
-        // Customers do not have the authority to delete products.
         let action = Action::Delete;
 
-        insert_authorization_data(
+        insert_custom_user(
             transaction_manager
                 .clone()
                 .get_transaction()
@@ -294,10 +412,49 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            CUSTOMER_ROLE_ID,
+            &resource,
+            &DetailAction::OwnRead, // This action is not allowed.
         )
         .await
-        .expect("Failed to insert authorization data");
+        .expect("Failed to insert test data");
+
+        let result = authorizer.authorize(user, &resource, &action).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::AuthorizationError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::AuthorizationError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_different_owner_user_id() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let mut rng = rand::thread_rng();
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
+        let resource = Resource::new(ResourceType::Product, Some("another_user_id".to_string())); // Different owner user ID
+        let action = Action::Delete;
+
+        insert_custom_user(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            user.clone(),
+            &resource,
+            &DetailAction::OwnDelete,
+        )
+        .await
+        .expect("Failed to insert test data");
 
         let result = authorizer.authorize(user, &resource, &action).await;
 
