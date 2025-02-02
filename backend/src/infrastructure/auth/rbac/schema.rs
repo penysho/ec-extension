@@ -1,8 +1,8 @@
 use std::{fmt, str::FromStr};
 
 use crate::{
-    domain::error::error::DomainError,
-    usecase::authorizer::authorizer_interface::{Action, ResourceType},
+    domain::{authorized_resource::authorized_resource::ResourceType, error::error::DomainError},
+    usecase::authorizer::authorizer_interface::Action,
 };
 
 /// Convert resource IDs managed in Database to ENUM definitions in Resource.

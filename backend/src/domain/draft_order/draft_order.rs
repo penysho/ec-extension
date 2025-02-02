@@ -3,6 +3,7 @@ use derive_getters::Getters;
 
 use crate::domain::{
     address::address::Address,
+    authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
     customer::customer::Id as CustomerId,
     error::error::DomainError,
     line_item::{discount::discount::Discount, line_item::LineItem},
@@ -225,6 +226,16 @@ impl DraftOrder {
         let default_date = DateTime::<Utc>::default();
         self.completed_at = Some(default_date);
         Ok(())
+    }
+}
+
+impl AuthorizedResource for DraftOrder {
+    fn resource_type(&self) -> ResourceType {
+        ResourceType::DraftOrder
+    }
+
+    fn owner_user_id(&self) -> Option<UserId> {
+        Some(self.owner_user_id.clone())
     }
 }
 

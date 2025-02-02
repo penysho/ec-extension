@@ -2,8 +2,13 @@ use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use crate::domain::{
-    address::address::Address, email::email::Email, error::error::DomainError,
-    media::media_content::image::image::Image, phone::phone::Phone, user::user::Id as UserId,
+    address::address::Address,
+    authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+    email::email::Email,
+    error::error::DomainError,
+    media::media_content::image::image::Image,
+    phone::phone::Phone,
+    user::user::Id as UserId,
 };
 
 pub type Id = String;
@@ -116,6 +121,16 @@ impl Customer {
             created_at,
             updated_at,
         })
+    }
+}
+
+impl AuthorizedResource for Customer {
+    fn resource_type(&self) -> ResourceType {
+        ResourceType::Customer
+    }
+
+    fn owner_user_id(&self) -> Option<UserId> {
+        Some(self.user_id().clone())
     }
 }
 

@@ -4,23 +4,24 @@ use async_trait::async_trait;
 use sea_orm::{ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter};
 
 use crate::{
-    domain::error::error::DomainError,
+    domain::{
+        authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+        error::error::DomainError,
+    },
     infrastructure::{
         db::{
             model::{
                 permission::Model as PermissionModel,
                 prelude::{Permission, RoleResoucePermission, UserRole},
-                role_resouce_permission,
-                role_resouce_permission::Model as RoleResoucePermissionModel,
-                user_role,
-                user_role::Model as UserRoleModel,
+                role_resouce_permission::{self, Model as RoleResoucePermissionModel},
+                user_role::{self, Model as UserRoleModel},
             },
             transaction_manager_interface::TransactionManager,
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
     usecase::{
-        authorizer::authorizer_interface::{Action, Authorizer, Resource, ResourceType},
+        authorizer::authorizer_interface::{Action, Authorizer},
         user::UserInterface,
     },
 };
@@ -109,10 +110,10 @@ impl RbacAuthorizer {
 
 #[async_trait]
 impl Authorizer for RbacAuthorizer {
-    async fn authorize(
+    async fn authorize<'a>(
         &self,
         user: Arc<dyn UserInterface>,
-        resource: &Resource,
+        resource: Box<&'a dyn AuthorizedResource>,
         action: &Action,
     ) -> Result<(), DomainError> {
         let roles = self
@@ -131,7 +132,7 @@ impl Authorizer for RbacAuthorizer {
 
         if !role_resource_permission.iter().any(|permission| {
             let ok = match ResourceType::try_from(permission.0.resource_id) {
-                Ok(permission_resource) => permission_resource == *resource.resource_type(),
+                Ok(permission_resource) => permission_resource == resource.resource_type(),
                 Err(_) => false,
             } && match permission.1.clone().unwrap().action.parse::<DetailAction>() {
                 Ok(allowed_detail_action) => {
@@ -151,9 +152,10 @@ impl Authorizer for RbacAuthorizer {
             ok
         }) {
             log::error!(
-                "User is not authorized. user_id: {}, resource: {}, action: {}",
+                "User is not authorized. user_id: {}, resource: {}, owner_user_id: {}, action: {}",
                 user.id(),
-                resource,
+                resource.resource_type(),
+                resource.owner_user_id().unwrap_or_else(|| "".to_string()),
                 action
             );
             return Err(DomainError::AuthorizationError);
@@ -174,7 +176,11 @@ mod tests {
     use sea_orm::{ActiveModelTrait, DatabaseTransaction, Set};
 
     use crate::{
-        domain::error::error::DomainError,
+        domain::{
+            authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+            error::error::DomainError,
+            user::user::Id as UserId,
+        },
         infrastructure::{
             auth::{idp_user::IdpUser, rbac::schema::DetailAction},
             config::config::DatabaseConfig,
@@ -185,7 +191,7 @@ mod tests {
             },
         },
         usecase::{
-            authorizer::authorizer_interface::{Action, Authorizer, Resource, ResourceType},
+            authorizer::authorizer_interface::{Action, Authorizer},
             user::UserInterface,
         },
     };
@@ -244,10 +250,10 @@ mod tests {
 
     /// Insert a custom user into the database.
     /// The user has a custom role and permission.
-    async fn insert_custom_user(
+    async fn insert_custom_user<'a>(
         transaction: &DatabaseTransaction,
         user: Arc<dyn UserInterface>,
-        resource: &Resource,
+        resource: Box<&'a dyn AuthorizedResource>,
         detail_action: &DetailAction,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut rng = rand::thread_rng();
@@ -291,6 +297,19 @@ mod tests {
         Ok(())
     }
 
+    struct MockProduct {
+        owner_user_id: Option<UserId>,
+    }
+    impl AuthorizedResource for MockProduct {
+        fn resource_type(&self) -> ResourceType {
+            ResourceType::Product
+        }
+
+        fn owner_user_id(&self) -> Option<UserId> {
+            self.owner_user_id.clone()
+        }
+    }
+
     #[tokio::test]
     async fn test_authorize_with_admin_user_success() {
         let transaction_manager = transaction_manager().await;
@@ -301,7 +320,9 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Resource::new(ResourceType::Product, None);
+        let resource = Box::new(&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource);
         let action = Action::Read;
 
         insert_admin_user(
@@ -317,7 +338,7 @@ mod tests {
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, &resource, &action).await;
+        let result = authorizer.authorize(user, resource, &action).await;
 
         assert!(result.is_ok());
     }
@@ -332,7 +353,9 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Resource::new(ResourceType::Product, None);
+        let resource = Box::new(&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource);
         let action = Action::Read;
 
         insert_custom_user(
@@ -344,13 +367,13 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            &resource,
+            resource.clone(),
             &DetailAction::AllRead,
         )
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, &resource, &action).await;
+        let result = authorizer.authorize(user, resource, &action).await;
 
         assert!(result.is_ok());
     }
@@ -365,7 +388,10 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Resource::new(ResourceType::Product, Some(user.id().to_string()));
+        let binding = MockProduct {
+            owner_user_id: Some(user.id().to_string()),
+        };
+        let resource = Box::new(&binding as &dyn AuthorizedResource);
         let action = Action::Delete;
 
         insert_custom_user(
@@ -377,13 +403,13 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            &resource,
+            resource.clone(),
             &DetailAction::OwnDelete,
         )
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, &resource, &action).await;
+        let result = authorizer.authorize(user, resource, &action).await;
 
         assert!(result.is_ok());
     }
@@ -398,10 +424,12 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Resource::new(ResourceType::Product, None);
+        let resource = Box::new(&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource);
         let action = Action::Read;
 
-        let result = authorizer.authorize(user, &resource, &action).await;
+        let result = authorizer.authorize(user, resource, &action).await;
 
         assert!(result.is_err());
         if let Err(DomainError::SystemError) = result {
@@ -421,7 +449,9 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Resource::new(ResourceType::Product, None);
+        let resource = Box::new(&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource);
         let action = Action::Delete;
 
         insert_custom_user(
@@ -433,13 +463,13 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            &resource,
+            resource.clone(),
             &DetailAction::OwnRead, // This action is not allowed.
         )
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, &resource, &action).await;
+        let result = authorizer.authorize(user, resource, &action).await;
 
         assert!(result.is_err());
         if let Err(DomainError::AuthorizationError) = result {
@@ -459,7 +489,10 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Resource::new(ResourceType::Product, Some("another_user_id".to_string())); // Different owner user ID
+        let binding = MockProduct {
+            owner_user_id: Some("another_user_id".to_string()), // Different owner user ID
+        };
+        let resource = Box::new(&binding as &dyn AuthorizedResource);
         let action = Action::Delete;
 
         insert_custom_user(
@@ -471,13 +504,13 @@ mod tests {
                 .as_ref()
                 .unwrap(),
             user.clone(),
-            &resource,
+            resource.clone(),
             &DetailAction::OwnDelete,
         )
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, &resource, &action).await;
+        let result = authorizer.authorize(user, resource, &action).await;
 
         assert!(result.is_err());
         if let Err(DomainError::AuthorizationError) = result {

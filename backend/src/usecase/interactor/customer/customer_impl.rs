@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::{
     domain::{customer::customer::Customer, error::error::DomainError},
     usecase::{
-        authorizer::authorizer_interface::{Action, Authorizer, Resource, ResourceType},
+        authorizer::authorizer_interface::{Action, Authorizer},
         interactor::customer_interactor_interface::{CustomerInteractor, GetCustomersQuery},
         repository::customer_repository_interface::CustomerRepository,
         user::UserInterface,
@@ -45,11 +45,7 @@ impl CustomerInteractor for CustomerInteractorImpl {
                     .await?;
 
                 self.authorizer
-                    .authorize(
-                        user,
-                        &Resource::new(ResourceType::Customer, Some(customer.user_id().clone())),
-                        &Action::Read,
-                    )
+                    .authorize(user, Box::new(&customer), &Action::Read)
                     .await?;
                 Ok(vec![customer])
             }
