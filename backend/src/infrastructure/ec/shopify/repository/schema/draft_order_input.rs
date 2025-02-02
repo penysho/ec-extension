@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     domain::{customer::customer::Id as CustomerId, draft_order::draft_order::DraftOrder},
-    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::UserError},
+    infrastructure::ec::shopify::{
+        gql_helper::ShopifyGQLHelper,
+        schema::{MetafieldInput, UserError},
+    },
 };
 
 use super::{
@@ -23,6 +26,13 @@ impl From<DraftOrder> for DraftOrderInput {
             reserve_inventory_until: draft_order.reserve_inventory_until().to_owned(),
             applied_discount: draft_order.discount().to_owned().map(|d| d.into()),
             tax_exempt: Some(*draft_order.tax_exempt()),
+            metafields: vec![{
+                MetafieldInput {
+                    key: "owner_user_id".to_string(),
+                    namespace: "custom".to_string(),
+                    value: draft_order.owner_user_id().to_owned(),
+                }
+            }],
         }
     }
 }
@@ -41,6 +51,8 @@ pub struct DraftOrderInput {
     pub applied_discount: Option<DiscountInput>,
 
     pub tax_exempt: Option<bool>,
+
+    pub metafields: Vec<MetafieldInput<String>>,
 }
 
 impl From<CustomerId> for PurchasingEntityInput {

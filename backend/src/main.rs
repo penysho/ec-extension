@@ -7,17 +7,17 @@ use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
 use infrastructure::config::config::ConfigProvider;
 use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmConnectionProvider;
 use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
-use infrastructure::module::interact_provider_impl::InteractProviderImpl;
+use infrastructure::module::interactor_provider_impl::InteractorProviderImpl;
+use infrastructure::router::actix_router;
 use interface::controller::controller::Controller;
-use sea_orm::DatabaseTransaction;
+use sea_orm::{DatabaseConnection, DatabaseTransaction};
 use std::io;
+use std::sync::Arc;
 
 mod domain;
 mod infrastructure;
 mod interface;
 mod usecase;
-
-use crate::infrastructure::router::actix_router;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -34,7 +34,7 @@ async fn main() -> std::io::Result<()> {
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
     );
 
-    let controller = web::Data::new(Controller::new(InteractProviderImpl::new(
+    let controller = web::Data::new(Controller::new(InteractorProviderImpl::new(
         config_provider.shopify_config().clone(),
         config_provider.cognito_config().clone(),
         config_provider.aws_sdk_config().clone(),
@@ -64,7 +64,13 @@ async fn main() -> std::io::Result<()> {
             .app_data(connection_provider.clone())
             .app_data(controller.clone())
             // Definition of routes
-            .configure(actix_router::configure_routes::<InteractProviderImpl, DatabaseTransaction>)
+            .configure(
+                actix_router::configure_routes::<
+                    InteractorProviderImpl,
+                    DatabaseTransaction,
+                    Arc<DatabaseConnection>,
+                >,
+            )
     })
     .bind(format!("{}:{}", app_config.address(), app_config.port()))?
     .run()

@@ -6,18 +6,19 @@ use crate::interface::{
 };
 use actix_web::{web::Path, Responder};
 
-use super::interact_provider_interface::InteractProvider;
+use super::interactor_provider_interface::InteractorProvider;
 
-impl<I, T> Controller<I, T>
+impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T>,
+    I: InteractorProvider<T, C>,
     T: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     /// Get detailed product information.
     pub async fn get_product(&self, path: Path<(String,)>) -> impl Responder {
         let id = &path.into_inner().0;
 
-        let product_interactor = self.interact_provider.provide_product_interactor().await;
+        let product_interactor = self.interactor_provider.provide_product_interactor().await;
         let result = product_interactor.get_product_with_media(id).await;
 
         let presenter = ProductPresenterImpl::new();
@@ -29,7 +30,7 @@ where
 mod tests {
     use crate::domain::error::error::DomainError;
     use crate::infrastructure::router::actix_router;
-    use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
     use crate::interface::mock::domain_mock::{mock_media, mock_products};
     use crate::usecase::interactor::product_interactor_interface::{
         MockProductInteractor, ProductInteractor,
@@ -48,18 +49,18 @@ mod tests {
         interactor: MockProductInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::<()>::new();
-        interact_provider
+        let mut interactor_provider = MockInteractorProvider::<(), ()>::new();
+        interactor_provider
             .expect_provide_product_interactor()
             .return_once(move || Box::new(interactor) as Box<dyn ProductInteractor>);
 
-        let controller = web::Data::new(Controller::new(interact_provider));
+        let controller = web::Data::new(Controller::new(interactor_provider));
 
         // Create an application for testing
         test::init_service(
             App::new()
                 .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractProvider<()>, ()>),
+                .configure(actix_router::configure_routes::<MockInteractorProvider<(), ()>, (), ()>),
         )
         .await
     }

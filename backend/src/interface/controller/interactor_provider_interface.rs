@@ -16,9 +16,10 @@ use crate::usecase::interactor::product_interactor_interface::ProductInteractor;
 #[allow(dead_code)]
 #[automock]
 #[async_trait]
-pub trait InteractProvider<T>: Send + Sync
+pub trait InteractorProvider<T, C>: Send + Sync
 where
     T: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     /// Provide Interactor for products.
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor>;
@@ -27,13 +28,16 @@ where
     /// Provide Interactor for inventory.
     async fn provide_inventory_interactor(&self) -> Box<dyn InventoryInteractor>;
     /// Provide Interactor for draft order.
-    async fn provide_draft_order_interactor(&self) -> Box<dyn DraftOrderInteractor>;
+    async fn provide_draft_order_interactor(
+        &self,
+        transaction_manager: Arc<dyn TransactionManager<T, C>>,
+    ) -> Box<dyn DraftOrderInteractor>;
     /// Provide Interactor for location.
     async fn provide_location_interactor(&self) -> Box<dyn LocationInteractor>;
     /// Provide Interactor for customer.
     async fn provide_customer_interactor(
         &self,
-        transaction_manager: Arc<dyn TransactionManager<T>>,
+        transaction_manager: Arc<dyn TransactionManager<T, C>>,
     ) -> Box<dyn CustomerInteractor>;
     /// Provide Interactor for auth.
     async fn provide_auth_interactor(&self) -> Box<dyn AuthInteractor>;

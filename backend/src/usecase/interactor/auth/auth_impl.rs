@@ -5,7 +5,7 @@ use crate::{
     infrastructure::auth::authenticator_interface::Authenticator,
     usecase::{
         interactor::auth_interactor_interface::AuthInteractor,
-        repository::customer_repository_interface::CustomerRepository,
+        repository::customer_repository_interface::CustomerRepository, user::UserInterface,
     },
 };
 
@@ -51,7 +51,7 @@ where
 
         let customer = self
             .customer_repository
-            .find_customer_by_email(&Email::new(idp_user.email)?)
+            .find_customer_by_email(&Email::new(idp_user.email())?)
             .await?;
 
         Ok((customer, new_id_token))

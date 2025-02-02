@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use aws_config::SdkConfig;
-use sea_orm::DatabaseTransaction;
+use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
 use crate::{
     infrastructure::{
@@ -26,7 +26,7 @@ use crate::{
             },
         },
     },
-    interface::controller::interact_provider_interface::InteractProvider,
+    interface::controller::interactor_provider_interface::InteractorProvider,
     usecase::interactor::{
         auth::auth_impl::AuthInteractorImpl, auth_interactor_interface::AuthInteractor,
         customer::customer_impl::CustomerInteractorImpl,
@@ -43,13 +43,13 @@ use crate::{
 };
 
 /// Factory providing Interactor.
-pub struct InteractProviderImpl {
+pub struct InteractorProviderImpl {
     shopify_config: ShopifyConfig,
     cognito_config: CognitoConfig,
     aws_sdk_config: SdkConfig,
 }
 
-impl InteractProviderImpl {
+impl InteractorProviderImpl {
     pub fn new(
         shopify_config: ShopifyConfig,
         cognito_config: CognitoConfig,
@@ -64,9 +64,7 @@ impl InteractProviderImpl {
 }
 
 #[async_trait]
-impl InteractProvider<DatabaseTransaction> for InteractProviderImpl {
-    // type Transaction = DatabaseTransaction;
-
+impl InteractorProvider<DatabaseTransaction, Arc<DatabaseConnection>> for InteractorProviderImpl {
     async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor> {
         Box::new(ProductInteractorImpl::new(
             Box::new(ProductRepositoryImpl::new(ShopifyGQLClient::new(
@@ -98,7 +96,12 @@ impl InteractProvider<DatabaseTransaction> for InteractProviderImpl {
         ))
     }
 
-    async fn provide_draft_order_interactor(&self) -> Box<dyn DraftOrderInteractor> {
+    async fn provide_draft_order_interactor(
+        &self,
+        transaction_manager: Arc<
+            dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+        >,
+    ) -> Box<dyn DraftOrderInteractor> {
         Box::new(DraftOrderInteractorImpl::new(
             Box::new(DraftOrderRepositoryImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
@@ -106,6 +109,7 @@ impl InteractProvider<DatabaseTransaction> for InteractProviderImpl {
             Box::new(CustomerRepositoryImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
             ))),
+            Arc::new(RbacAuthorizer::new(Arc::clone(&transaction_manager))),
         ))
     }
 
@@ -117,7 +121,9 @@ impl InteractProvider<DatabaseTransaction> for InteractProviderImpl {
 
     async fn provide_customer_interactor(
         &self,
-        transaction_manager: Arc<dyn TransactionManager<DatabaseTransaction>>,
+        transaction_manager: Arc<
+            dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+        >,
     ) -> Box<dyn CustomerInteractor> {
         Box::new(CustomerInteractorImpl::new(
             Box::new(CustomerRepositoryImpl::new(ShopifyGQLClient::new(

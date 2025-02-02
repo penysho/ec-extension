@@ -42,6 +42,7 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
         let page_info = ShopifyGQLHelper::page_info();
         let address_fields = ShopifyGQLHelper::address_fields();
         let money_bag_fields = ShopifyGQLHelper::money_bag_fields();
+        let owner_user_id_query = ShopifyGQLHelper::metafield_query("owner_user_id", "custom");
 
         format!(
             "id
@@ -116,6 +117,7 @@ impl<C: ECClient> DraftOrderRepositoryImpl<C> {
             order {{
                 id
             }}
+            {owner_user_id_query}
             completedAt
             createdAt
             updatedAt"
@@ -415,7 +417,9 @@ mod tests {
                         money::{CurrencyCodeNode, MoneyBagNode, MoneyNode},
                     },
                 },
-                schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
+                schema::{
+                    Edges, GraphQLError, GraphQLResponse, Metafield, Node, PageInfo, UserError,
+                },
             },
         },
         usecase::repository::draft_order_repository_interface::DraftOrderRepository,
@@ -456,6 +460,9 @@ mod tests {
             order: Some(OrderIdNode {
                 id: format!("gid://shopify/Order/{id}"),
             }),
+            owner_user_id: Metafield {
+                value: "Owner".to_string(),
+            },
             completed_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -542,6 +549,7 @@ mod tests {
             mock_money_domain(),
             CurrencyCode::JPY,
             None,
+            "Owner".to_string(),
             completed_at,
             Utc::now(),
             Utc::now(),

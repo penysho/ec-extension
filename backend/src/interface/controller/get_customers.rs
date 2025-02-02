@@ -10,35 +10,36 @@ use crate::{
     usecase::interactor::customer_interactor_interface::GetCustomersQuery,
 };
 
-use super::{controller::Controller, interact_provider_interface::InteractProvider};
+use super::{controller::Controller, interactor_provider_interface::InteractorProvider};
 
 #[derive(Deserialize)]
 pub struct GetCustomersQueryParams {
     email: Option<String>,
 }
 
-impl<I, T> Controller<I, T>
+impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T>,
+    I: InteractorProvider<T, C>,
     T: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     /// Get a list of customers.
     pub async fn get_customers(
         &self,
-        params: web::Query<GetCustomersQueryParams>,
         request: actix_web::HttpRequest,
+        params: web::Query<GetCustomersQueryParams>,
     ) -> impl Responder {
         let presenter = CustomerPresenterImpl::new();
 
         let query = validate_query_params(&params)?;
-        let user_id = self.get_user_id(&request)?;
+        let user = self.get_user(&request)?;
         let transaction_manager = self.get_transaction_manager(&request)?;
 
         let interactor = self
-            .interact_provider
+            .interactor_provider
             .provide_customer_interactor(transaction_manager)
             .await;
-        let results = interactor.get_customers(&user_id, &query).await;
+        let results = interactor.get_customers(user, &query).await;
 
         presenter.present_get_customers(results).await
     }
@@ -60,22 +61,24 @@ fn validate_query_params(
 mod tests {
     use std::sync::Arc;
 
+    use crate::infrastructure::auth::idp_user::IdpUser;
     use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
     use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
     use crate::infrastructure::router::actix_router;
-    use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
     use crate::interface::mock::domain_mock::mock_customers;
     use crate::usecase::interactor::customer_interactor_interface::{
         CustomerInteractor, MockCustomerInteractor,
     };
+    use crate::usecase::user::UserInterface;
 
     use super::*;
     use actix_http::Request;
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::{http::StatusCode, test, App, Error};
     use actix_web::{web, HttpMessage};
-    use mockall::predicate::eq;
-    use sea_orm::DatabaseTransaction;
+    use mockall::predicate::{always, eq};
+    use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
     const BASE_URL: &'static str = "/ec-extension/customers";
 
@@ -83,28 +86,33 @@ mod tests {
         interactor: MockCustomerInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::<DatabaseTransaction>::new();
-        interact_provider
+        let mut interactor_provider =
+            MockInteractorProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
+        interactor_provider
             .expect_provide_customer_interactor()
             .return_once(move |_| Box::new(interactor) as Box<dyn CustomerInteractor>);
 
-        let controller = web::Data::new(Controller::new(interact_provider));
+        let controller = web::Data::new(Controller::new(interactor_provider));
 
         // Create an application for testing
         test::init_service(App::new().app_data(controller).configure(
             actix_router::configure_routes::<
-                MockInteractProvider<DatabaseTransaction>,
+                MockInteractorProvider<DatabaseTransaction, Arc<DatabaseConnection>>,
                 DatabaseTransaction,
+                Arc<DatabaseConnection>,
             >,
         ))
         .await
     }
 
     fn add_extensions(req: &Request) {
-        req.extensions_mut().insert("user_id".to_string());
+        req.extensions_mut()
+            .insert(Arc::new(IdpUser::default()) as Arc<dyn UserInterface>);
         req.extensions_mut()
             .insert(Arc::new(SeaOrmTransactionManager::default())
-                as Arc<dyn TransactionManager<DatabaseTransaction>>);
+                as Arc<
+                    dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+                >);
     }
 
     #[actix_web::test]
@@ -113,7 +121,7 @@ mod tests {
         interactor
             .expect_get_customers()
             .with(
-                eq("user_id".to_string()),
+                always(),
                 eq(GetCustomersQuery::Email(
                     Email::new("john@example.com").expect("Failed to create email"),
                 )),

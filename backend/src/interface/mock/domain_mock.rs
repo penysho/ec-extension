@@ -128,6 +128,7 @@ pub fn mock_draft_orders(count: usize) -> Vec<DraftOrder> {
                 mock_money(),
                 CurrencyCode::JPY,
                 None,
+                "Owner".to_string(),
                 None,
                 Utc::now(),
                 Utc::now(),

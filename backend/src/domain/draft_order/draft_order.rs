@@ -3,11 +3,13 @@ use derive_getters::Getters;
 
 use crate::domain::{
     address::address::Address,
+    authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
     customer::customer::Id as CustomerId,
     error::error::DomainError,
     line_item::{discount::discount::Discount, line_item::LineItem},
     money::money::{CurrencyCode, Money},
     order::order::Id as OrderId,
+    user::user::Id as UserId,
 };
 
 pub type Id = String;
@@ -49,6 +51,7 @@ pub enum DraftOrderStatus {
 /// - `total_price_set` - The final total price of the order, including shipping, discounts, and taxes.
 /// - `presentment_currency_code` - Currency code used for the order. May differ from the store's default currency code.
 /// - `order_id` - An optional identifier for the associated order, if the draft was converted to a finalized order.
+/// - `owner_user_id` - Data owner user ID.
 /// - `completed_at` - An optional timestamp indicating when the order was completed.
 /// - `created_at` - The timestamp when the draft order was initially created.
 /// - `update_at` - The timestamp when the draft order was last updated.
@@ -91,6 +94,8 @@ pub struct DraftOrder {
 
     order_id: Option<OrderId>,
 
+    owner_user_id: UserId,
+
     completed_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -99,7 +104,7 @@ pub struct DraftOrder {
 impl DraftOrder {
     /// Constructor to be used from the repository.
     pub fn new(
-        id: impl Into<String>,
+        id: impl Into<Id>,
         name: impl Into<String>,
         status: DraftOrderStatus,
         customer_id: Option<CustomerId>,
@@ -118,6 +123,7 @@ impl DraftOrder {
         total_price_set: Money,
         presentment_currency_code: CurrencyCode,
         order_id: Option<OrderId>,
+        owner_user_id: impl Into<UserId>,
         completed_at: Option<DateTime<Utc>>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
@@ -142,6 +148,7 @@ impl DraftOrder {
             total_price_set,
             presentment_currency_code,
             order_id,
+            owner_user_id: owner_user_id.into(),
             completed_at,
             created_at,
             updated_at,
@@ -165,6 +172,7 @@ impl DraftOrder {
 
     /// Create an entity in its initial state.
     pub fn create(
+        owner_user_id: impl Into<UserId>,
         customer_id: Option<CustomerId>,
         billing_address: Option<Address>,
         shipping_address: Option<Address>,
@@ -202,6 +210,7 @@ impl DraftOrder {
             total_price_set: Money::zero(),
             presentment_currency_code,
             order_id: None,
+            owner_user_id: owner_user_id.into(),
             completed_at: None,
             created_at: now,
             updated_at: now,
@@ -218,6 +227,16 @@ impl DraftOrder {
         let default_date = DateTime::<Utc>::default();
         self.completed_at = Some(default_date);
         Ok(())
+    }
+}
+
+impl AuthorizedResource for DraftOrder {
+    fn resource_type(&self) -> ResourceType {
+        ResourceType::DraftOrder
+    }
+
+    fn owner_user_id(&self) -> Option<UserId> {
+        Some(self.owner_user_id.clone())
     }
 }
 
@@ -305,6 +324,7 @@ mod tests {
             mock_money(),
             CurrencyCode::default(),
             None,
+            "Owner".to_string(),
             None,
             Utc::now(),
             Utc::now(),
@@ -341,6 +361,7 @@ mod tests {
             mock_money(),
             CurrencyCode::default(),
             None,
+            "Owner".to_string(),
             None,
             Utc::now(),
             Utc::now(),
@@ -371,6 +392,7 @@ mod tests {
             mock_money(),
             CurrencyCode::default(),
             None,
+            "Owner".to_string(),
             None,
             Utc::now(),
             Utc::now(),
@@ -382,6 +404,7 @@ mod tests {
     #[test]
     fn test_create() {
         let draft_order = DraftOrder::create(
+            "Owner".to_string(),
             None,
             mock_address(),
             mock_address(),

@@ -58,7 +58,7 @@ pub struct Variant {
 
 impl Variant {
     pub fn new(
-        id: impl Into<String>,
+        id: impl Into<Id>,
         name: Option<impl Into<String>>,
         sku: Option<Sku>,
         barcode: Option<Barcode>,

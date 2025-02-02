@@ -3,39 +3,51 @@ use std::{marker::PhantomData, sync::Arc};
 use actix_web::HttpMessage;
 
 use crate::{
-    domain::{error::error::DomainError, user::user::Id as UserId},
+    domain::error::error::DomainError,
     infrastructure::db::transaction_manager_interface::TransactionManager,
+    usecase::user::UserInterface,
 };
 
-use super::interact_provider_interface::InteractProvider;
+use super::interactor_provider_interface::InteractorProvider;
 
 /// Controller receives data from outside and calls usecase.
-pub struct Controller<I, T>
+pub struct Controller<I, T, C>
 where
-    I: InteractProvider<T>,
+    I: InteractorProvider<T, C>,
     T: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
-    pub interact_provider: I,
-    _marker: PhantomData<T>,
+    pub interactor_provider: I,
+    _t_marker: PhantomData<T>,
+    _c_marker: PhantomData<C>,
 }
 
-impl<I, T> Controller<I, T>
+impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T>,
+    I: InteractorProvider<T, C>,
     T: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
-    pub fn new(interact_provider: I) -> Self {
+    pub fn new(interactor_provider: I) -> Self {
         Controller {
-            interact_provider,
-            _marker: PhantomData,
+            interactor_provider,
+            _t_marker: PhantomData,
+            _c_marker: PhantomData,
         }
     }
 
-    /// Obtain the user ID used for authorization from the actix request.
-    /// User ID is assumed to be always set if authenticated by middleware, and if it cannot be obtained, it is assumed to be a system error.
-    pub fn get_user_id(&self, request: &actix_web::HttpRequest) -> Result<UserId, DomainError> {
-        match request.extensions().get::<String>() {
-            Some(user_id) => Ok(user_id.to_string()),
+    /// Obtain the user used for authorization from the actix request.
+    /// User is assumed to be always set if authenticated by middleware, and if it cannot be obtained, it is assumed to be a system error.
+    pub fn get_user(
+        &self,
+        request: &actix_web::HttpRequest,
+    ) -> Result<Arc<dyn UserInterface>, DomainError> {
+        match request
+            .extensions()
+            .get::<Arc<dyn UserInterface>>()
+            .cloned()
+        {
+            Some(user) => Ok(user),
             None => {
                 log::error!(target: "Controller::get_user_id", "user_id not found");
                 Err(DomainError::SystemError)
@@ -47,10 +59,10 @@ where
     pub fn get_transaction_manager(
         &self,
         request: &actix_web::HttpRequest,
-    ) -> Result<Arc<dyn TransactionManager<T>>, DomainError> {
+    ) -> Result<Arc<dyn TransactionManager<T, C>>, DomainError> {
         let manager = request
             .extensions()
-            .get::<Arc<dyn TransactionManager<T>>>()
+            .get::<Arc<dyn TransactionManager<T, C>>>()
             .cloned();
 
         match manager {
@@ -67,46 +79,50 @@ where
 mod test {
     use std::sync::Arc;
 
-    use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
     use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
+    use crate::infrastructure::{
+        auth::idp_user::IdpUser, db::sea_orm::sea_orm_manager::SeaOrmTransactionManager,
+    };
     use crate::interface::controller::controller::Controller;
-    use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
+    use crate::usecase::user::UserInterface;
     use actix_web::test::TestRequest;
     use actix_web::HttpMessage;
-    use sea_orm::DatabaseTransaction;
+    use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
     #[test]
-    fn test_get_user_id_success() {
-        let interact_provider = MockInteractProvider::<()>::new();
+    fn test_get_user_success() {
+        let interactor_provider = MockInteractorProvider::<(), ()>::new();
 
-        let controller = Controller::new(interact_provider);
-
+        let controller = Controller::new(interactor_provider);
         let request = TestRequest::default().to_http_request();
-        request.extensions_mut().insert("user_id".to_string());
-        let user_id = controller.get_user_id(&request);
+        let mock = Arc::new(IdpUser::default()) as Arc<dyn UserInterface>;
+        request.extensions_mut().insert(mock);
+
+        let user_id = controller.get_user(&request);
         assert!(user_id.is_ok());
     }
 
     #[test]
-    fn test_get_user_id_error() {
-        let interact_provider = MockInteractProvider::<()>::new();
+    fn test_get_user_error() {
+        let interactor_provider = MockInteractorProvider::<(), ()>::new();
 
-        let controller = Controller::new(interact_provider);
-
+        let controller = Controller::new(interactor_provider);
         let request = TestRequest::default().to_http_request();
-        let user_id = controller.get_user_id(&request);
+
+        let user_id = controller.get_user(&request);
         assert!(user_id.is_err());
     }
 
     #[test]
     fn test_get_transaction_manager_success() {
-        let interact_provider = MockInteractProvider::<DatabaseTransaction>::new();
+        let interactor_provider =
+            MockInteractorProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
 
-        let controller = Controller::new(interact_provider);
-
+        let controller = Controller::new(interactor_provider);
         let request = TestRequest::default().to_http_request();
         let mock = Arc::new(SeaOrmTransactionManager::default())
-            as Arc<dyn TransactionManager<DatabaseTransaction>>;
+            as Arc<dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>>;
         request.extensions_mut().insert(mock.clone());
 
         let transaction_manager = controller.get_transaction_manager(&request);
@@ -116,10 +132,10 @@ mod test {
 
     #[test]
     fn test_get_transaction_manager_error() {
-        let interact_provider = MockInteractProvider::<DatabaseTransaction>::new();
+        let interactor_provider =
+            MockInteractorProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
 
-        let controller = Controller::new(interact_provider);
-
+        let controller = Controller::new(interactor_provider);
         let request = TestRequest::default().to_http_request();
 
         let transaction_manager = controller.get_transaction_manager(&request);

@@ -3,7 +3,10 @@ use serde::Deserialize;
 
 use crate::{
     domain::{draft_order::draft_order::DraftOrder, error::error::DomainError},
-    infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::Edges},
+    infrastructure::ec::shopify::{
+        gql_helper::ShopifyGQLHelper,
+        schema::{Edges, Metafield},
+    },
 };
 
 use super::{
@@ -47,6 +50,7 @@ impl DraftOrderNode {
             self.presentment_currency_code.to_domain()?,
             self.order
                 .map(|o| ShopifyGQLHelper::remove_gid_prefix(&o.id)),
+            self.owner_user_id.value,
             self.completed_at,
             self.created_at,
             self.updated_at,
@@ -100,6 +104,9 @@ pub struct DraftOrderNode {
     pub presentment_currency_code: CurrencyCodeNode,
 
     pub order: Option<OrderIdNode>,
+
+    #[serde(rename = "metafield")]
+    pub owner_user_id: Metafield<String>,
 
     pub completed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,

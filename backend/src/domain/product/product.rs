@@ -44,7 +44,7 @@ impl Product {
     pub const MAX_DESCRIPTION_LENGTH: u32 = 10000;
 
     pub fn new(
-        id: impl Into<String>,
+        id: impl Into<Id>,
         name: impl Into<String>,
         description: impl Into<String>,
         status: ProductStatus,

@@ -3,11 +3,12 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::{
-    domain::{customer::customer::Customer, error::error::DomainError, user::user::Id as UserId},
+    domain::{customer::customer::Customer, error::error::DomainError},
     usecase::{
-        authorizer::authorizer_interface::{Action, Authorizer, Resource},
+        authorizer::authorizer_interface::{Action, Authorizer},
         interactor::customer_interactor_interface::{CustomerInteractor, GetCustomersQuery},
         repository::customer_repository_interface::CustomerRepository,
+        user::UserInterface,
     },
 };
 
@@ -33,18 +34,18 @@ impl CustomerInteractorImpl {
 impl CustomerInteractor for CustomerInteractorImpl {
     async fn get_customers(
         &self,
-        user_id: &UserId,
+        user: Arc<dyn UserInterface>,
         query: &GetCustomersQuery,
     ) -> Result<Vec<Customer>, DomainError> {
-        self.authorizer
-            .authorize(user_id, &Resource::Customer, &Action::Read)
-            .await?;
-
         match query {
             GetCustomersQuery::Email(email) => {
                 let customer = self
                     .customer_repository
                     .find_customer_by_email(email)
+                    .await?;
+
+                self.authorizer
+                    .authorize(user, vec![&customer], &Action::Read)
                     .await?;
                 Ok(vec![customer])
             }

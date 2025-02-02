@@ -5,23 +5,33 @@ use crate::interface::presenter::{
     draft_order_presenter_interface::DraftOrderPresenter,
 };
 
-use super::{controller::Controller, interact_provider_interface::InteractProvider};
+use super::{controller::Controller, interactor_provider_interface::InteractorProvider};
 
-impl<I, T> Controller<I, T>
+impl<I, T, C> Controller<I, T, C>
 where
-    I: InteractProvider<T>,
+    I: InteractorProvider<T, C>,
     T: Send + Sync + 'static,
+    C: Send + Sync + 'static,
 {
     /// Delete a draft order.
-    pub async fn delete_draft_order(&self, path: Path<(String,)>) -> impl Responder {
+    pub async fn delete_draft_order(
+        &self,
+        request: actix_web::HttpRequest,
+        path: Path<(String,)>,
+    ) -> impl Responder {
         let presenter = DraftOrderPresenterImpl::new();
 
+        let user = self.get_user(&request)?;
+        let transaction_manager = self.get_transaction_manager(&request)?;
+
         let interactor = self
-            .interact_provider
-            .provide_draft_order_interactor()
+            .interactor_provider
+            .provide_draft_order_interactor(transaction_manager)
             .await;
 
-        let result = interactor.delete_draft_order(&path.into_inner().0).await;
+        let result = interactor
+            .delete_draft_order(user, &path.into_inner().0)
+            .await;
 
         presenter.present_delete_draft_order(result).await
     }
@@ -29,18 +39,28 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::domain::error::error::DomainError;
+    use crate::infrastructure::auth::idp_user::IdpUser;
+    use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
+    use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
     use crate::infrastructure::router::actix_router;
-    use crate::interface::controller::interact_provider_interface::MockInteractProvider;
+    use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
     use crate::usecase::interactor::draft_order_interactor_interface::DraftOrderInteractor;
     use crate::usecase::interactor::draft_order_interactor_interface::MockDraftOrderInteractor;
+    use crate::usecase::user::UserInterface;
 
     use super::*;
     use actix_http::Request;
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::web;
+    use actix_web::HttpMessage;
     use actix_web::{http::StatusCode, test, App, Error};
+    use mockall::predicate::always;
     use mockall::predicate::eq;
+    use sea_orm::DatabaseConnection;
+    use sea_orm::DatabaseTransaction;
 
     const BASE_URL: &'static str = "/ec-extension/orders/draft";
 
@@ -48,20 +68,33 @@ mod tests {
         interactor: MockDraftOrderInteractor,
     ) -> impl Service<Request, Response = ServiceResponse, Error = Error> {
         // Configure the mocks
-        let mut interact_provider = MockInteractProvider::<()>::new();
-        interact_provider
+        let mut interactor_provider =
+            MockInteractorProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
+        interactor_provider
             .expect_provide_draft_order_interactor()
-            .return_once(move || Box::new(interactor) as Box<dyn DraftOrderInteractor>);
+            .return_once(move |_| Box::new(interactor) as Box<dyn DraftOrderInteractor>);
 
-        let controller = web::Data::new(Controller::new(interact_provider));
+        let controller = web::Data::new(Controller::new(interactor_provider));
 
         // Create an application for testing
-        test::init_service(
-            App::new()
-                .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractProvider<()>, ()>),
-        )
+        test::init_service(App::new().app_data(controller).configure(
+            actix_router::configure_routes::<
+                MockInteractorProvider<DatabaseTransaction, Arc<DatabaseConnection>>,
+                DatabaseTransaction,
+                Arc<DatabaseConnection>,
+            >,
+        ))
         .await
+    }
+
+    fn add_extensions(req: &Request) {
+        req.extensions_mut()
+            .insert(Arc::new(IdpUser::default()) as Arc<dyn UserInterface>);
+        req.extensions_mut()
+            .insert(Arc::new(SeaOrmTransactionManager::default())
+                as Arc<
+                    dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+                >);
     }
 
     #[actix_web::test]
@@ -69,12 +102,14 @@ mod tests {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
             .expect_delete_draft_order()
-            .with(eq(format!("1")))
-            .returning(|_| Ok(format!("1")));
+            .with(always(), eq(format!("1")))
+            .returning(|_, _| Ok(format!("1")));
 
         let req = test::TestRequest::delete()
             .uri(&format!("{BASE_URL}/1"))
             .to_request();
+        add_extensions(&req);
+
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::OK);
@@ -85,11 +120,13 @@ mod tests {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
             .expect_delete_draft_order()
-            .returning(|_| Err(DomainError::ValidationError));
+            .returning(|_, _| Err(DomainError::ValidationError));
 
         let req = test::TestRequest::delete()
             .uri(&format!("{BASE_URL}/1"))
             .to_request();
+        add_extensions(&req);
+
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
@@ -100,11 +137,13 @@ mod tests {
         let mut interactor = MockDraftOrderInteractor::new();
         interactor
             .expect_delete_draft_order()
-            .returning(|_| Err(DomainError::SystemError));
+            .returning(|_, _| Err(DomainError::SystemError));
 
         let req = test::TestRequest::delete()
             .uri(&format!("{BASE_URL}/1"))
             .to_request();
+        add_extensions(&req);
+
         let resp: ServiceResponse = test::call_service(&setup(interactor).await, req).await;
 
         assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);

@@ -1,4 +1,5 @@
 pub mod address;
+pub mod authorized_resource;
 pub mod customer;
 pub mod draft_order;
 pub mod email;
