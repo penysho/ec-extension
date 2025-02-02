@@ -16,7 +16,7 @@ use crate::{
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
     usecase::{
-        authorizer::authorizer_interface::{Action, Authorizer, Resource},
+        authorizer::authorizer_interface::{Action, Authorizer, Resource, ResourceType},
         user::UserInterface,
     },
 };
@@ -108,8 +108,8 @@ impl Authorizer for RbacAuthorizer {
         })?;
 
         if !role_resource_permission.iter().any(|permission| {
-            let ok = match Resource::try_from(permission.0.resource_id) {
-                Ok(permission_resource) => permission_resource == *resource,
+            let ok = match ResourceType::try_from(permission.0.resource_id) {
+                Ok(permission_resource) => permission_resource == *resource.resource_type(),
                 Err(_) => false,
             } && match permission.1.clone().unwrap().action.parse::<DetailAction>() {
                 Ok(allowed_detail_action) => {
@@ -156,7 +156,7 @@ mod tests {
             },
         },
         usecase::{
-            authorizer::authorizer_interface::{Action, Authorizer, Resource},
+            authorizer::authorizer_interface::{Action, Authorizer, Resource, ResourceType},
             user::UserInterface,
         },
     };
@@ -226,7 +226,7 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Resource::Product;
+        let resource = Resource::new(ResourceType::Product, None);
         let action = Action::Read;
 
         insert_authorization_data(
@@ -258,7 +258,7 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Resource::Product;
+        let resource = Resource::new(ResourceType::Product, None);
         let action = Action::Read;
 
         let result = authorizer.authorize(user, &resource, &action).await;
@@ -281,7 +281,7 @@ mod tests {
             id: Alphanumeric.sample_string(&mut rng, 10),
             email: "example@example.com".to_string(),
         }) as Arc<dyn UserInterface>;
-        let resource = Resource::Product;
+        let resource = Resource::new(ResourceType::Product, None);
         // Customers do not have the authority to delete products.
         let action = Action::Delete;
 

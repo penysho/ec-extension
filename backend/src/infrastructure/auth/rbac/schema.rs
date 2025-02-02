@@ -2,19 +2,20 @@ use std::{fmt, str::FromStr};
 
 use crate::{
     domain::error::error::DomainError,
-    usecase::authorizer::authorizer_interface::{Action, Resource},
+    usecase::authorizer::authorizer_interface::{Action, ResourceType},
 };
 
 /// Convert resource IDs managed in Database to ENUM definitions in Resource.
-impl TryFrom<i32> for Resource {
+impl TryFrom<i32> for ResourceType {
     type Error = DomainError;
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
         match value {
-            1 => Ok(Resource::Product),
-            2 => Ok(Resource::Order),
-            3 => Ok(Resource::Customer),
-            4 => Ok(Resource::Inventory),
+            1 => Ok(ResourceType::Product),
+            2 => Ok(ResourceType::Order),
+            3 => Ok(ResourceType::Customer),
+            4 => Ok(ResourceType::Inventory),
+            5 => Ok(ResourceType::DraftOrder),
             _ => Err(DomainError::ConversionError),
         }
     }
@@ -75,6 +76,14 @@ impl FromStr for DetailAction {
 }
 
 impl DetailAction {
+    /// Check if the action is own action.
+    pub(super) fn is_own_action(&self) -> bool {
+        match self {
+            DetailAction::OwnRead | DetailAction::OwnWrite | DetailAction::OwnDelete => true,
+            _ => false,
+        }
+    }
+
     /// Convert DetailAction to Action.
     pub(super) fn to_actions(self) -> Vec<Action> {
         match self {

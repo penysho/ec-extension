@@ -13,7 +13,7 @@ use crate::{
         money::money::CurrencyCode,
     },
     usecase::{
-        authorizer::authorizer_interface::{Action, Authorizer, Resource},
+        authorizer::authorizer_interface::{Action, Authorizer, Resource, ResourceType},
         interactor::draft_order_interactor_interface::{DraftOrderInteractor, GetDraftOrdersQuery},
         repository::{
             customer_repository_interface::CustomerRepository,
@@ -54,7 +54,11 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         match query {
             GetDraftOrdersQuery::Email(email) => {
                 self.authorizer
-                    .authorize(user, &Resource::Order, &Action::Read)
+                    .authorize(
+                        user,
+                        &Resource::new(ResourceType::DraftOrder, None),
+                        &Action::Read,
+                    )
                     .await?;
 
                 let customer = self
@@ -82,7 +86,11 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         discount: Option<Discount>,
     ) -> Result<DraftOrder, DomainError> {
         self.authorizer
-            .authorize(user.clone(), &Resource::Order, &Action::Write)
+            .authorize(
+                user.clone(),
+                &Resource::new(ResourceType::DraftOrder, None),
+                &Action::Write,
+            )
             .await?;
 
         let draft_order = DraftOrder::create(
@@ -107,7 +115,11 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         id: &DraftOrderId,
     ) -> Result<DraftOrder, DomainError> {
         self.authorizer
-            .authorize(user, &Resource::Order, &Action::Write)
+            .authorize(
+                user,
+                &Resource::new(ResourceType::DraftOrder, None),
+                &Action::Write,
+            )
             .await?;
 
         let mut draft_order = self
@@ -126,7 +138,11 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         id: &DraftOrderId,
     ) -> Result<DraftOrderId, DomainError> {
         self.authorizer
-            .authorize(user, &Resource::Order, &Action::Delete)
+            .authorize(
+                user,
+                &Resource::new(ResourceType::DraftOrder, None),
+                &Action::Delete,
+            )
             .await?;
 
         let draft_order = self
