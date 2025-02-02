@@ -8,8 +8,12 @@ use crate::{
     infrastructure::{
         db::{
             model::{
+                permission::Model as PermissionModel,
                 prelude::{Permission, RoleResoucePermission, UserRole},
-                role_resouce_permission, user_role,
+                role_resouce_permission,
+                role_resouce_permission::Model as RoleResoucePermissionModel,
+                user_role,
+                user_role::Model as UserRoleModel,
             },
             transaction_manager_interface::TransactionManager,
         },
@@ -39,6 +43,68 @@ impl RbacAuthorizer {
             transaction_manager,
         }
     }
+
+    async fn get_user_roles(
+        &self,
+        transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+        user_id: &str,
+    ) -> Result<Vec<UserRoleModel>, DomainError> {
+        let role_query = UserRole::find().filter(user_role::Column::UserId.eq(user_id));
+        let roles = if transaction_manager.is_transaction_started().await {
+            role_query
+                .all(
+                    transaction_manager
+                        .get_transaction()
+                        .await?
+                        .as_ref()
+                        .ok_or(DomainError::SystemError)?,
+                )
+                .await
+        } else {
+            role_query
+                .all(transaction_manager.get_connection().await?.as_ref())
+                .await
+        }
+        .map_err(|e| {
+            log::error!(
+                "Failed to get user roles. user_id: {}, error: {:?}",
+                user_id,
+                e
+            );
+            InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
+        })?;
+        Ok(roles)
+    }
+
+    async fn get_role_resource_permissions(
+        &self,
+        transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+        role_ids: Vec<i32>,
+    ) -> Result<Vec<(RoleResoucePermissionModel, Option<PermissionModel>)>, DomainError> {
+        let permission_query = RoleResoucePermission::find()
+            .find_also_related(Permission)
+            .filter(role_resouce_permission::Column::RoleId.is_in(role_ids));
+        let role_resource_permission = if transaction_manager.is_transaction_started().await {
+            permission_query
+                .all(
+                    transaction_manager
+                        .get_transaction()
+                        .await?
+                        .as_ref()
+                        .ok_or(DomainError::SystemError)?,
+                )
+                .await
+        } else {
+            permission_query
+                .all(transaction_manager.get_connection().await?.as_ref())
+                .await
+        }
+        .map_err(|e| {
+            log::error!("Failed to get role resource permissions, error: {:?}", e);
+            InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
+        })?;
+        Ok(role_resource_permission)
+    }
 }
 
 #[async_trait]
@@ -49,63 +115,19 @@ impl Authorizer for RbacAuthorizer {
         resource: &Resource,
         action: &Action,
     ) -> Result<(), DomainError> {
-        let role_query = UserRole::find().filter(user_role::Column::UserId.eq(user.id()));
-        let roles = if self.transaction_manager.is_transaction_started().await {
-            role_query
-                .all(
-                    self.transaction_manager
-                        .get_transaction()
-                        .await?
-                        .as_ref()
-                        .unwrap(),
-                )
-                .await
-        } else {
-            role_query
-                .all(self.transaction_manager.get_connection().await?.as_ref())
-                .await
-        }
-        .map_err(|e| {
-            log::error!(
-                "Failed to get user roles. user_id: {}, error: {:?}",
-                user.id(),
-                e
-            );
-            InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
-        })?;
+        let roles = self
+            .get_user_roles(self.transaction_manager.as_ref(), user.id())
+            .await?;
 
         if roles.is_empty() {
-            log::error!("User has no role. user_id: {}", user.id(),);
+            log::error!("User has no role. user_id: {}", user.id());
             return Err(DomainError::SystemError);
         }
-        let role_ids: Vec<i32> = roles.iter().map(|role| role.role_id).collect();
 
-        let permission_query = RoleResoucePermission::find()
-            .find_also_related(Permission)
-            .filter(role_resouce_permission::Column::RoleId.is_in(role_ids));
-        let role_resource_permission = if self.transaction_manager.is_transaction_started().await {
-            permission_query
-                .all(
-                    self.transaction_manager
-                        .get_transaction()
-                        .await?
-                        .as_ref()
-                        .unwrap(),
-                )
-                .await
-        } else {
-            permission_query
-                .all(self.transaction_manager.get_connection().await?.as_ref())
-                .await
-        }
-        .map_err(|e| {
-            log::error!(
-                "Failed to get role resource permissions. user_id: {}, error: {:?}",
-                user.id(),
-                e
-            );
-            InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
-        })?;
+        let role_ids: Vec<i32> = roles.iter().map(|role| role.role_id).collect();
+        let role_resource_permission = self
+            .get_role_resource_permissions(self.transaction_manager.as_ref(), role_ids)
+            .await?;
 
         if !role_resource_permission.iter().any(|permission| {
             let ok = match ResourceType::try_from(permission.0.resource_id) {
@@ -120,9 +142,8 @@ impl Authorizer for RbacAuthorizer {
                         // If the action is an own action and the owner is different, it is not allowed.
                         return false;
                     }
-                    let allowed_actions = allowed_detail_action.to_actions();
 
-                    allowed_actions.contains(action)
+                    allowed_detail_action.to_actions().contains(action)
                 }
                 Err(_) => false,
             };
