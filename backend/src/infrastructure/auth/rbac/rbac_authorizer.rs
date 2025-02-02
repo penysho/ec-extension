@@ -163,6 +163,60 @@ impl Authorizer for RbacAuthorizer {
 
         Ok(())
     }
+
+    async fn bulk_authorize<'a>(
+        &self,
+        user: Arc<dyn UserInterface>,
+        resources: Vec<&'a dyn AuthorizedResource>,
+        action: &Action,
+    ) -> Result<(), DomainError> {
+        let roles = self
+            .get_user_roles(self.transaction_manager.as_ref(), user.id())
+            .await?;
+
+        if roles.is_empty() {
+            log::error!("User has no role. user_id: {}", user.id());
+            return Err(DomainError::SystemError);
+        }
+
+        let role_ids: Vec<i32> = roles.iter().map(|role| role.role_id).collect();
+        let role_resource_permission = self
+            .get_role_resource_permissions(self.transaction_manager.as_ref(), role_ids)
+            .await?;
+
+        Ok(for resource in resources {
+            if !role_resource_permission.iter().any(|permission| {
+                let ok = match ResourceType::try_from(permission.0.resource_id) {
+                    Ok(permission_resource) => permission_resource == resource.resource_type(),
+                    Err(_) => false,
+                } && match permission.1.clone().unwrap().action.parse::<DetailAction>() {
+                    Ok(allowed_detail_action) => {
+                        if allowed_detail_action.is_own_action()
+                            && resource.owner_user_id().is_some()
+                            && resource.owner_user_id().as_ref().unwrap() != user.id()
+                        {
+                            // If the action is an own action and the owner is different, it is not allowed.
+                            return false;
+                        }
+
+                        allowed_detail_action.to_actions().contains(action)
+                    }
+                    Err(_) => false,
+                };
+
+                ok
+            }) {
+                log::error!(
+                    "User is not authorized. user_id: {}, resource: {}, owner_user_id: {}, action: {}",
+                    user.id(),
+                    resource.resource_type(),
+                    resource.owner_user_id().unwrap_or_else(|| "".to_string()),
+                    action
+                );
+                return Err(DomainError::AuthorizationError);
+            }
+        })
+    }
 }
 
 #[cfg(test)]

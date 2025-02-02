@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use crate::{
     domain::{
         address::address::Address,
+        authorized_resource::authorized_resource::{AuthorizedResource, Resource, ResourceType},
         customer::customer::Id as CustomerId,
         draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
         error::error::DomainError,
@@ -51,7 +52,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         user: Arc<dyn UserInterface>,
         query: &GetDraftOrdersQuery,
     ) -> Result<Vec<DraftOrder>, DomainError> {
-        match query {
+        let draft_orders = match query {
             GetDraftOrdersQuery::Email(email) => {
                 let customer = self
                     .customer_repository
@@ -61,15 +62,20 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
                     .find_draft_orders_by_customer_id(customer.id())
                     .await
             }
-        }
+        }?;
 
-        // self.authorizer
-        //     .authorize(
-        //         user,
-        //         Box::new()
-        //         &Action::Read,
-        //     )
-        //     .await?;
+        self.authorizer
+            .bulk_authorize(
+                user,
+                draft_orders
+                    .iter()
+                    .map(|d| d as &dyn AuthorizedResource)
+                    .collect(),
+                &Action::Read,
+            )
+            .await?;
+
+        Ok(draft_orders)
     }
 
     async fn create_draft_order(
@@ -85,13 +91,13 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         presentment_currency_code: Option<CurrencyCode>,
         discount: Option<Discount>,
     ) -> Result<DraftOrder, DomainError> {
-        // self.authorizer
-        //     .authorize(
-        //         user.clone(),
-        //         &Resource::new(ResourceType::DraftOrder, None),
-        //         &Action::Write,
-        //     )
-        //     .await?;
+        self.authorizer
+            .authorize(
+                user.clone(),
+                Box::new(&Resource::new(ResourceType::DraftOrder, None)),
+                &Action::Write,
+            )
+            .await?;
 
         let draft_order = DraftOrder::create(
             user.id(),
@@ -114,17 +120,13 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         user: Arc<dyn UserInterface>,
         id: &DraftOrderId,
     ) -> Result<DraftOrder, DomainError> {
-        // self.authorizer
-        //     .authorize(
-        //         user,
-        //         &Resource::new(ResourceType::DraftOrder, None),
-        //         &Action::Write,
-        //     )
-        //     .await?;
-
         let mut draft_order = self
             .draft_order_repository
             .find_draft_order_by_id(id)
+            .await?;
+
+        self.authorizer
+            .authorize(user.clone(), Box::new(&draft_order), &Action::Write)
             .await?;
 
         draft_order.complete()?;
@@ -137,17 +139,13 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
         user: Arc<dyn UserInterface>,
         id: &DraftOrderId,
     ) -> Result<DraftOrderId, DomainError> {
-        // self.authorizer
-        //     .authorize(
-        //         user,
-        //         &Resource::new(ResourceType::DraftOrder, None),
-        //         &Action::Delete,
-        //     )
-        //     .await?;
-
         let draft_order = self
             .draft_order_repository
             .find_draft_order_by_id(id)
+            .await?;
+
+        self.authorizer
+            .authorize(user.clone(), Box::new(&draft_order), &Action::Delete)
             .await?;
 
         self.draft_order_repository.delete(draft_order).await

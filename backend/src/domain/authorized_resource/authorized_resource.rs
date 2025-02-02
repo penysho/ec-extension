@@ -2,6 +2,8 @@ use std::fmt;
 
 use crate::domain::user::user::Id as UserId;
 
+/// AuthorizedResource is a trait of a resource that requires authorization.
+/// It is assumed that each entity implements.
 pub trait AuthorizedResource: Send + Sync {
     /// Get the resource type.
     fn resource_type(&self) -> ResourceType;
@@ -17,6 +19,34 @@ impl fmt::Display for dyn AuthorizedResource {
             None => "".to_string(),
         };
         write!(f, "{}{}", self.resource_type(), owner_user_id)
+    }
+}
+
+/// Resource is a resource that requires authorization.
+/// Used when the target performs authorization when the entity does not yet exist.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Resource {
+    resource_type: ResourceType,
+    owner_user_id: Option<UserId>,
+}
+
+impl Resource {
+    /// Create a new Resource instance.
+    pub fn new(resource_type: ResourceType, owner_user_id: Option<UserId>) -> Self {
+        Self {
+            resource_type,
+            owner_user_id,
+        }
+    }
+}
+
+impl AuthorizedResource for Resource {
+    fn resource_type(&self) -> ResourceType {
+        self.resource_type.clone()
+    }
+
+    fn owner_user_id(&self) -> Option<UserId> {
+        self.owner_user_id.clone()
     }
 }
 
