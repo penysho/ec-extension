@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::infrastructure::ec::ec_client_interface::ECClientResponse;
 
@@ -68,5 +68,12 @@ pub struct UserError {
 
 #[derive(Debug, Deserialize)]
 pub struct Metafield<T> {
+    pub value: T,
+}
+
+#[derive(Debug, Serialize)]
+pub struct MetafieldInput<T> {
+    pub key: String,
+    pub namespace: String,
     pub value: T,
 }

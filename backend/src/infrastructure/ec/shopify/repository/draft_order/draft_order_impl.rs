@@ -417,7 +417,9 @@ mod tests {
                         money::{CurrencyCodeNode, MoneyBagNode, MoneyNode},
                     },
                 },
-                schema::{Edges, GraphQLError, GraphQLResponse, Node, PageInfo, UserError},
+                schema::{
+                    Edges, GraphQLError, GraphQLResponse, Metafield, Node, PageInfo, UserError,
+                },
             },
         },
         usecase::repository::draft_order_repository_interface::DraftOrderRepository,
@@ -458,7 +460,9 @@ mod tests {
             order: Some(OrderIdNode {
                 id: format!("gid://shopify/Order/{id}"),
             }),
-            owner_user_id: "Owner".to_string(),
+            owner_user_id: Metafield {
+                value: "Owner".to_string(),
+            },
             completed_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
