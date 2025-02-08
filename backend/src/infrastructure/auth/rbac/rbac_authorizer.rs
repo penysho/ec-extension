@@ -45,6 +45,7 @@ impl RbacAuthorizer {
         }
     }
 
+    /// Get the roles of the user.
     async fn get_user_roles(
         &self,
         transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
@@ -77,6 +78,7 @@ impl RbacAuthorizer {
         Ok(roles)
     }
 
+    /// Get the role resource permissions.
     async fn get_role_resource_permissions(
         &self,
         transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
@@ -107,6 +109,7 @@ impl RbacAuthorizer {
         Ok(role_resource_permission)
     }
 
+    /// Determine the authorization.
     async fn determine_authorization(
         &self,
         user_id: &str,
