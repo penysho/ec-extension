@@ -37,6 +37,7 @@ pub struct AppConfig {
     address: String,
     port: String,
     log_level: String,
+    cors_allowed_origins: Vec<String>,
 }
 
 impl AppConfig {
@@ -56,11 +57,13 @@ impl AppConfig {
 
         let port = env::var("APP_PORT").unwrap_or_else(|_| "8011".to_string());
         let address = env::var("APP_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string());
+        let cors_allowed_origins = vec!["http://localhost:3000".to_string()];
 
         Ok(AppConfig {
             address,
             port,
             log_level,
+            cors_allowed_origins,
         })
     }
 }

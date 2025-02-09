@@ -12,8 +12,8 @@ use crate::{
         db::{
             model::{
                 permission::Model as PermissionModel,
-                prelude::{Permission, RoleResoucePermission, UserRole},
-                role_resouce_permission::{self, Model as RoleResourcePermissionModel},
+                prelude::{Permission, RoleResourcePermission, UserRole},
+                role_resource_permission::{self, Model as RoleResourcePermissionModel},
                 user_role::{self, Model as UserRoleModel},
             },
             transaction_manager_interface::TransactionManager,
@@ -45,6 +45,7 @@ impl RbacAuthorizer {
         }
     }
 
+    /// Get the roles of the user.
     async fn get_user_roles(
         &self,
         transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
@@ -77,14 +78,15 @@ impl RbacAuthorizer {
         Ok(roles)
     }
 
+    /// Get the role resource permissions.
     async fn get_role_resource_permissions(
         &self,
         transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
         role_ids: Vec<i32>,
     ) -> Result<Vec<(RoleResourcePermissionModel, Option<PermissionModel>)>, DomainError> {
-        let permission_query = RoleResoucePermission::find()
+        let permission_query = RoleResourcePermission::find()
             .find_also_related(Permission)
-            .filter(role_resouce_permission::Column::RoleId.is_in(role_ids));
+            .filter(role_resource_permission::Column::RoleId.is_in(role_ids));
         let role_resource_permission = if transaction_manager.is_transaction_started().await {
             permission_query
                 .all(
@@ -107,6 +109,7 @@ impl RbacAuthorizer {
         Ok(role_resource_permission)
     }
 
+    /// Determine the authorization.
     async fn determine_authorization(
         &self,
         user_id: &str,
@@ -196,7 +199,7 @@ mod tests {
             auth::{idp_user::IdpUser, rbac::schema::DetailAction},
             config::config::DatabaseConfig,
             db::{
-                model::{permission, role, role_resouce_permission, user, user_role},
+                model::{permission, role, role_resource_permission, user, user_role},
                 sea_orm::sea_orm_manager::{SeaOrmConnectionProvider, SeaOrmTransactionManager},
                 transaction_manager_interface::TransactionManager,
             },
@@ -297,7 +300,7 @@ mod tests {
         };
         custom_permission.insert(transaction).await?;
 
-        let custom_role_resource_permission = role_resouce_permission::ActiveModel {
+        let custom_role_resource_permission = role_resource_permission::ActiveModel {
             id: Set(rng.gen_range(1000..10000)),
             role_id: Set(custom_role_id),
             resource_id: Set(resource.resource_type().clone() as i32),
@@ -334,6 +337,45 @@ mod tests {
         let resource = vec![&MockProduct {
             owner_user_id: None,
         } as &dyn AuthorizedResource];
+        let action = Action::Read;
+
+        insert_admin_user(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            user.clone(),
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let result = authorizer.authorize(user, resource, &action).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_admin_user_with_multiple_resources_success() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let mut rng = rand::thread_rng();
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
+        let binding = MockProduct {
+            owner_user_id: Some(user.id().to_string()),
+        };
+        let resource = vec![
+            &MockProduct {
+                owner_user_id: None,
+            } as &dyn AuthorizedResource,
+            &binding as &dyn AuthorizedResource,
+        ];
         let action = Action::Read;
 
         insert_admin_user(
@@ -504,6 +546,53 @@ mod tests {
             owner_user_id: Some("another_user_id".to_string()), // Different owner user ID
         };
         let resource = vec![&binding as &dyn AuthorizedResource];
+        let action = Action::Delete;
+
+        insert_custom_user(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            user.clone(),
+            resource[0],
+            &DetailAction::OwnDelete,
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let result = authorizer.authorize(user, resource, &action).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::AuthorizationError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::AuthorizationError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_multiple_resources_failed() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let mut rng = rand::thread_rng();
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
+        let binding1 = MockProduct {
+            owner_user_id: Some(user.id().to_string()),
+        };
+        let binding2 = MockProduct {
+            owner_user_id: Some("another_user_id".to_string()),
+        };
+        let resource = vec![
+            &binding1 as &dyn AuthorizedResource,
+            &binding2 as &dyn AuthorizedResource,
+        ];
         let action = Action::Delete;
 
         insert_custom_user(

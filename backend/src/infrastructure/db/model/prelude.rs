@@ -3,6 +3,7 @@
 pub use super::permission::Entity as Permission;
 pub use super::resource::Entity as Resource;
 pub use super::role::Entity as Role;
-pub use super::role_resouce_permission::Entity as RoleResoucePermission;
+pub use super::role_resource_permission::Entity as RoleResourcePermission;
+pub use super::test::Entity as Test;
 pub use super::user::Entity as User;
 pub use super::user_role::Entity as UserRole;

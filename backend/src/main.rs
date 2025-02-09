@@ -41,9 +41,14 @@ async fn main() -> std::io::Result<()> {
     )));
 
     HttpServer::new(move || {
-        let cors = Cors::default()
-            .allowed_origin("http://localhost:3000")
-            .allowed_methods(vec!["GET"])
+        let app_config = config_provider.app_config().clone();
+
+        let mut cors = Cors::default();
+        for origin in app_config.cors_allowed_origins() {
+            cors = cors.allowed_origin(origin.as_str());
+        }
+        let cors = cors
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
             .allowed_headers(vec![http::header::CONTENT_TYPE, http::header::ACCEPT])
             .supports_credentials()
             .max_age(0);
