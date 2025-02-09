@@ -12,15 +12,15 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::role_resouce_permission::Entity")]
-    RoleResoucePermission,
+    #[sea_orm(has_many = "super::role_resource_permission::Entity")]
+    RoleResourcePermission,
     #[sea_orm(has_many = "super::user_role::Entity")]
     UserRole,
 }
 
-impl Related<super::role_resouce_permission::Entity> for Entity {
+impl Related<super::role_resource_permission::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::RoleResoucePermission.def()
+        Relation::RoleResourcePermission.def()
     }
 }
 

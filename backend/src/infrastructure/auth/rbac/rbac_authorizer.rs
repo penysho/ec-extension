@@ -12,8 +12,8 @@ use crate::{
         db::{
             model::{
                 permission::Model as PermissionModel,
-                prelude::{Permission, RoleResoucePermission, UserRole},
-                role_resouce_permission::{self, Model as RoleResourcePermissionModel},
+                prelude::{Permission, RoleResourcePermission, UserRole},
+                role_resource_permission::{self, Model as RoleResourcePermissionModel},
                 user_role::{self, Model as UserRoleModel},
             },
             transaction_manager_interface::TransactionManager,
@@ -84,9 +84,9 @@ impl RbacAuthorizer {
         transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
         role_ids: Vec<i32>,
     ) -> Result<Vec<(RoleResourcePermissionModel, Option<PermissionModel>)>, DomainError> {
-        let permission_query = RoleResoucePermission::find()
+        let permission_query = RoleResourcePermission::find()
             .find_also_related(Permission)
-            .filter(role_resouce_permission::Column::RoleId.is_in(role_ids));
+            .filter(role_resource_permission::Column::RoleId.is_in(role_ids));
         let role_resource_permission = if transaction_manager.is_transaction_started().await {
             permission_query
                 .all(
@@ -199,7 +199,7 @@ mod tests {
             auth::{idp_user::IdpUser, rbac::schema::DetailAction},
             config::config::DatabaseConfig,
             db::{
-                model::{permission, role, role_resouce_permission, user, user_role},
+                model::{permission, role, role_resource_permission, user, user_role},
                 sea_orm::sea_orm_manager::{SeaOrmConnectionProvider, SeaOrmTransactionManager},
                 transaction_manager_interface::TransactionManager,
             },
@@ -300,7 +300,7 @@ mod tests {
         };
         custom_permission.insert(transaction).await?;
 
-        let custom_role_resource_permission = role_resouce_permission::ActiveModel {
+        let custom_role_resource_permission = role_resource_permission::ActiveModel {
             id: Set(rng.gen_range(1000..10000)),
             role_id: Set(custom_role_id),
             resource_id: Set(resource.resource_type().clone() as i32),
