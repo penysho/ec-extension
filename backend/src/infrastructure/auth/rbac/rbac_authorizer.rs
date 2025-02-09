@@ -358,6 +358,45 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_authorize_with_admin_user_with_multiple_resources_success() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let mut rng = rand::thread_rng();
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
+        let binding = MockProduct {
+            owner_user_id: Some(user.id().to_string()),
+        };
+        let resource = vec![
+            &MockProduct {
+                owner_user_id: None,
+            } as &dyn AuthorizedResource,
+            &binding as &dyn AuthorizedResource,
+        ];
+        let action = Action::Read;
+
+        insert_admin_user(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            user.clone(),
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let result = authorizer.authorize(user, resource, &action).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
     async fn test_authorize_with_non_admin_user_success() {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
@@ -507,6 +546,53 @@ mod tests {
             owner_user_id: Some("another_user_id".to_string()), // Different owner user ID
         };
         let resource = vec![&binding as &dyn AuthorizedResource];
+        let action = Action::Delete;
+
+        insert_custom_user(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            user.clone(),
+            resource[0],
+            &DetailAction::OwnDelete,
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let result = authorizer.authorize(user, resource, &action).await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::AuthorizationError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::AuthorizationError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_multiple_resources_failed() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let mut rng = rand::thread_rng();
+        let user = Arc::new(IdpUser {
+            id: Alphanumeric.sample_string(&mut rng, 10),
+            email: "example@example.com".to_string(),
+        }) as Arc<dyn UserInterface>;
+        let binding1 = MockProduct {
+            owner_user_id: Some(user.id().to_string()),
+        };
+        let binding2 = MockProduct {
+            owner_user_id: Some("another_user_id".to_string()),
+        };
+        let resource = vec![
+            &binding1 as &dyn AuthorizedResource,
+            &binding2 as &dyn AuthorizedResource,
+        ];
         let action = Action::Delete;
 
         insert_custom_user(
