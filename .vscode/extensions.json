@@ -24,6 +24,7 @@
     "stylelint.vscode-stylelint",
     "bradlc.vscode-tailwindcss",
     "vitest.explorer",
+    "biomejs.biome",
     // TOML
     "tamasfe.even-better-toml",
     // YAML
@@ -48,6 +49,8 @@
     // Git
     "mhutchie.git-graph",
     "eamodio.gitlens",
+    "github.vscode-github-actions",
+    "github.vscode-pull-request-github",
     // Common
     "ms-ceintl.vscode-language-pack-ja",
     "visualstudioexptteam.vscodeintellicode",

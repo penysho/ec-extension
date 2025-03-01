@@ -1,15 +1,11 @@
-version: '3'
-
 services:
   backend:
     build:
       context: .
-      dockerfile: ./docker/backend/Dockerfile.local
+      dockerfile: ./docker/backend/Dockerfile.remote
     container_name: ec-extension_backend
-    volumes:
-      - .:/app
     ports:
-      - "8011:8011"
+      - "8011:8080"
     tty: true
     env_file:
       - "./backend/.env"

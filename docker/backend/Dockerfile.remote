@@ -1,36 +1,51 @@
 #################
-## build stage ##
+## base stage ##
 #################
-FROM rust:1-slim-bullseye AS builder
+FROM rust:1-alpine3.20 AS base
 WORKDIR /code
+
+RUN apk add --no-cache musl-dev && apk add libressl-dev
 
 # Download crates-io index and fetch dependency code.
 # This step avoids needing to spend time on every build downloading the index
 # which can take a long time within the docker context. Docker will cache it.
 RUN USER=root cargo init
 COPY backend/Cargo.toml Cargo.toml
+COPY backend/migration/Cargo.toml migration/Cargo.toml
 RUN cargo fetch
+
+################
+## build stage ##
+################
+FROM base AS builder
 
 # copy app files
 COPY backend/src src
 
 # compile app
-RUN cargo build --release
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+	--mount=type=cache,target=/code/target \
+	cargo build --release && \
+    cp /code/target/release/backend /code/backend
+
 
 ###############
 ## run stage ##
 ###############
-FROM debian:bullseye-slim
+FROM alpine:latest as prod
 WORKDIR /app
 
 # copy server binary from build stage
-COPY --from=builder /code/target/release/backend backend
+COPY --from=builder /code/backend .
 
 # set user to non-root unless root is required for your app
-USER 1001
+RUN addgroup -S -g 1000 backend && \
+    adduser -S -u 1000 -G backend backend
+
+USER backend
 
 # indicate what port the server is running on
-EXPOSE 8001
+EXPOSE 8080
 
 # run server
-CMD [ "/app/backend" ]
+CMD ["/app/backend"]
