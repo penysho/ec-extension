@@ -20,7 +20,7 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/backend/.env"
-    },
+    }
     // {
     //   "name": "watch 'backend'",
     //   "type": "lldb",

@@ -4,7 +4,7 @@
 FROM rust:1-alpine3.20 AS base
 WORKDIR /code
 
-RUN apk add --no-cache musl-dev && apk add libressl-dev
+RUN apk add --no-cache musl-dev libressl-dev
 
 # Download crates-io index and fetch dependency code.
 # This step avoids needing to spend time on every build downloading the index

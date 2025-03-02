@@ -2,10 +2,12 @@ services:
   backend:
     build:
       context: .
-      dockerfile: ./docker/backend/Dockerfile.remote
+      dockerfile: ./docker/backend/Dockerfile.local
     container_name: ec-extension_backend
     ports:
       - "8011:8080"
+    volumes:
+      - .:/app
     tty: true
     env_file:
       - "./backend/.env"
