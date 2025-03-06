@@ -1,12 +1,14 @@
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+
 import { fixupConfigRules, fixupPluginRules } from "@eslint/compat"
 import { FlatCompat } from "@eslint/eslintrc"
 import js from "@eslint/js"
 import typescriptEslint from "@typescript-eslint/eslint-plugin"
 import tsParser from "@typescript-eslint/parser"
+import eslintConfigPrettier from "eslint-config-prettier"
 import unusedImports from "eslint-plugin-unused-imports"
 import globals from "globals"
-import path from "node:path"
-import { fileURLToPath } from "node:url"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -16,6 +18,7 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 })
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default [
   ...fixupConfigRules(
     compat.extends(
@@ -24,7 +27,6 @@ export default [
       "next/typescript",
       "plugin:import/recommended",
       "plugin:import/typescript",
-      "prettier",
     ),
   ),
   {
@@ -89,4 +91,5 @@ export default [
       ],
     },
   },
+  eslintConfigPrettier,
 ]
