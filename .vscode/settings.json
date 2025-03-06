@@ -16,7 +16,7 @@
   // https://code.visualstudio.com/docs/languages/identifiers
   "[markdown]": {
     "editor.formatOnSave": true,
-    "editor.formatOnPaste": true,
+    "editor.formatOnPaste": false,
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint",
     "editor.codeActionsOnSave": {
       "source.fixAll.markdownlint": "explicit"
