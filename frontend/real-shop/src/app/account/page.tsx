@@ -1,10 +1,6 @@
 "use client"
 
-import {
-  FavoriteItems,
-  OrderHistory,
-  UserProfile,
-} from "@/components/layouts/account"
+import { FavoriteItems, OrderHistory, UserProfile } from "@/components/layouts/account"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useGetCustomers } from "@/generated/backend"
 import { useAuth } from "@/hooks/useAuth"
