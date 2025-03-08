@@ -2,17 +2,11 @@
 import { Heart, RotateCcw, Share2, Shield, Truck } from "lucide-react"
 import { notFound, useParams } from "next/navigation"
 
-import { ProductGallery } from "@/components/layouts/product"
+import { ProductGallery } from "@/components/layout/product"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useGetProduct } from "@/generated/backend"
 
@@ -38,7 +32,7 @@ export default function Page() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
         {/* 商品画像ギャラリー */}
         <ProductGallery
           images={product.media.map((m) => ({
@@ -51,9 +45,7 @@ export default function Page() {
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-            <p className="mt-2 text-lg font-semibold text-gray-900">
-              ¥{product.variants[0]?.price.toLocaleString()}
-            </p>
+            <p className="mt-2 text-lg font-semibold text-gray-900">¥{product.variants[0]?.price.toLocaleString()}</p>
           </div>
 
           {/* サイズ選択 */}
@@ -63,7 +55,7 @@ export default function Page() {
               {["XS", "S", "M", "L", "XL"].map((size) => (
                 <Label
                   key={size}
-                  className="flex items-center justify-center p-2 border rounded-md cursor-pointer hover:bg-gray-50 [&:has(:checked)]:border-blue-600 [&:has(:checked)]:bg-blue-50"
+                  className="flex cursor-pointer items-center justify-center rounded-md border p-2 hover:bg-gray-50 [&:has(:checked)]:border-blue-600 [&:has(:checked)]:bg-blue-50"
                 >
                   <RadioGroupItem value={size} className="sr-only" />
                   {size}
@@ -116,7 +108,7 @@ export default function Page() {
           </div>
 
           {/* 配送・保証情報 */}
-          <div className="grid grid-cols-2 gap-4 pt-6 border-t">
+          <div className="grid grid-cols-2 gap-4 border-t pt-6">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Truck className="h-5 w-5" />
               <span>最短翌日お届け</span>

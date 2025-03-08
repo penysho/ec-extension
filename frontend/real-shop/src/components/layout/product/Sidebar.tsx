@@ -10,20 +10,14 @@ interface SidebarProps {
   onSortChange: (option: string) => void
 }
 
-export function Sidebar({
-  categories,
-  selectedCategories,
-  onCategoryChange,
-  sortOption,
-  onSortChange,
-}: SidebarProps) {
+export function Sidebar({ categories, selectedCategories, onCategoryChange, sortOption, onSortChange }: SidebarProps) {
   return (
-    <div className="w-64 p-4 border-r">
-      <h2 className="font-bold text-lg mb-4">フィルター</h2>
+    <div className="w-64 border-r p-4">
+      <h2 className="mb-4 text-lg font-bold">フィルター</h2>
       <div className="mb-6">
-        <h3 className="font-semibold mb-2">カテゴリー</h3>
+        <h3 className="mb-2 font-semibold">カテゴリー</h3>
         {categories.map((category) => (
-          <div key={category} className="flex items-center space-x-2 mb-2">
+          <div key={category} className="mb-2 flex items-center space-x-2">
             <Checkbox
               id={category}
               checked={selectedCategories.includes(category)}
@@ -33,17 +27,17 @@ export function Sidebar({
           </div>
         ))}
       </div>
-      <h2 className="font-bold text-lg mb-4">並び替え</h2>
+      <h2 className="mb-4 text-lg font-bold">並び替え</h2>
       <RadioGroup value={sortOption} onValueChange={onSortChange}>
-        <div className="flex items-center space-x-2 mb-2">
+        <div className="mb-2 flex items-center space-x-2">
           <RadioGroupItem value="price_asc" id="price_asc" />
           <Label htmlFor="price_asc">価格: 安い順</Label>
         </div>
-        <div className="flex items-center space-x-2 mb-2">
+        <div className="mb-2 flex items-center space-x-2">
           <RadioGroupItem value="price_desc" id="price_desc" />
           <Label htmlFor="price_desc">価格: 高い順</Label>
         </div>
-        <div className="flex items-center space-x-2 mb-2">
+        <div className="mb-2 flex items-center space-x-2">
           <RadioGroupItem value="newest" id="newest" />
           <Label htmlFor="newest">新着順</Label>
         </div>

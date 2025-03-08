@@ -3,8 +3,8 @@ import { Provider as StateProvider } from "jotai"
 import { Metadata } from "next"
 import { Inter } from "next/font/google"
 
-import { Footer } from "@/components/layouts/footer"
-import { Header } from "@/components/layouts/header"
+import { Footer } from "@/components/layout/footer"
+import { Header } from "@/components/layout/header"
 import ReactQueryProvider from "@/lib/ReactQueryProvider"
 
 import "@aws-amplify/ui-react/styles.css"
@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`${inter.className} flex flex-col min-h-screen`}>
+      <body className={`${inter.className} flex min-h-screen flex-col`}>
         <ReactQueryProvider>
           <StateProvider>
             <Header />

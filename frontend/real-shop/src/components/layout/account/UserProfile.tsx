@@ -2,13 +2,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -30,9 +24,7 @@ export function UserProfile({ user, handleSignOut }: UserProfileProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState<User>(user)
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
@@ -65,50 +57,25 @@ export function UserProfile({ user, handleSignOut }: UserProfileProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName">名</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName ?? ""}
-                  onChange={handleInputChange}
-                />
+                <Input id="firstName" name="firstName" value={formData.firstName ?? ""} onChange={handleInputChange} />
               </div>
               <div>
                 <Label htmlFor="lastName">姓</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName ?? ""}
-                  onChange={handleInputChange}
-                />
+                <Input id="lastName" name="lastName" value={formData.lastName ?? ""} onChange={handleInputChange} />
               </div>
             </div>
             <div>
               <Label htmlFor="email">メールアドレス</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email ?? ""}
-                onChange={handleInputChange}
-              />
+              <Input id="email" name="email" type="email" value={formData.email ?? ""} onChange={handleInputChange} />
             </div>
 
             <div>
               <Label htmlFor="phoneNumber">電話番号</Label>
-              <Input
-                id="phoneNumber"
-                name="phoneNumber"
-                value={formData.phone ?? ""}
-                onChange={handleInputChange}
-              />
+              <Input id="phoneNumber" name="phoneNumber" value={formData.phone ?? ""} onChange={handleInputChange} />
             </div>
             <div className="flex space-x-2">
               <Button type="submit">保存</Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditing(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
                 キャンセル
               </Button>
             </div>
@@ -116,7 +83,7 @@ export function UserProfile({ user, handleSignOut }: UserProfileProps) {
         ) : (
           <Button onClick={() => setIsEditing(true)}>編集</Button>
         )}
-        <div className="mt-6 pt-6 border-t">
+        <div className="mt-6 border-t pt-6">
           <Button variant="destructive" onClick={handleLogout}>
             ログアウト
           </Button>
