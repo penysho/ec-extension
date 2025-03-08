@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-named-as-default
 import Axios, { AxiosError, AxiosRequestConfig } from "axios"
 
 export const AXIOS_INSTANCE = Axios.create({
@@ -6,11 +5,7 @@ export const AXIOS_INSTANCE = Axios.create({
   withCredentials: true,
 })
 
-export const customInstance = <T>(
-  config: AxiosRequestConfig,
-  options?: AxiosRequestConfig,
-): Promise<T> => {
-  // eslint-disable-next-line import/no-named-as-default-member
+export const customInstance = <T>(config: AxiosRequestConfig, options?: AxiosRequestConfig): Promise<T> => {
   const source = Axios.CancelToken.source()
   const promise = AXIOS_INSTANCE({
     ...config,
