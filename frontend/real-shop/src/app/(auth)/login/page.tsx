@@ -3,7 +3,7 @@
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -12,11 +12,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/hooks/useAuth"
 
-export default function Page() {
+export default function LoginPage() {
+  const [mounted, setMounted] = useState(false)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const { handleSignIn, loading, error } = useAuth()
   const router = useRouter()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,6 +31,10 @@ export default function Page() {
     } catch (e) {
       console.error(e)
     }
+  }
+
+  if (!mounted) {
+    return null // または適切なローディング表示
   }
 
   return (
