@@ -1,6 +1,6 @@
 "use client"
 
-import { FavoriteItems, OrderHistory, UserProfile } from "@/components/layouts/account"
+import { FavoriteItems, OrderHistory, UserProfile } from "@/components/layout/account"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useGetCustomers } from "@/generated/backend"
 import { useAuth } from "@/hooks/useAuth"
@@ -30,7 +30,7 @@ export default function Page() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">マイページ</h1>
+      <h1 className="mb-6 text-3xl font-bold">マイページ</h1>
       <Tabs defaultValue="profile" className="space-y-4">
         <TabsList>
           <TabsTrigger value="profile">プロフィール</TabsTrigger>

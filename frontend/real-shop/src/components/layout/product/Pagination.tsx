@@ -8,27 +8,14 @@ interface PaginationProps {
   onPageChange: (page: number) => void
 }
 
-export function Pagination({
-  currentPage,
-  totalPages,
-  onPageChange,
-}: PaginationProps) {
+export function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
   return (
-    <div className="flex items-center justify-center space-x-2 mt-8">
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-      >
+    <div className="mt-8 flex items-center justify-center space-x-2">
+      <Button variant="outline" size="icon" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
       {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-        <Button
-          key={page}
-          variant={currentPage === page ? "default" : "outline"}
-          onClick={() => onPageChange(page)}
-        >
+        <Button key={page} variant={currentPage === page ? "default" : "outline"} onClick={() => onPageChange(page)}>
           {page}
         </Button>
       ))}

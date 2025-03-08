@@ -15,27 +15,15 @@ export const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   return (
-    <header className="bg-white relative">
-      <div className="absolute top-5 left-1/2 -translate-x-1/2">
+    <header className="relative bg-white">
+      <div className="absolute left-1/2 top-5 -translate-x-1/2">
         <Link href="/">
-          <Image
-            className="dark:invert"
-            src="/logo.svg"
-            alt="logo"
-            width={140}
-            height={140}
-            priority
-          />
+          <Image className="dark:invert" src="/logo.svg" alt="logo" width={140} height={140} priority />
         </Link>
       </div>
-      <div className="container mx-auto flex items-center justify-end py-4 px-6 h-20">
+      <div className="container mx-auto flex h-20 items-center justify-end px-6 py-4">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSearchOpen(true)}
-            aria-label="商品を検索"
-          >
+          <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)} aria-label="商品を検索">
             <Search className="h-5 w-5" />
           </Button>
           {user ? (
@@ -55,10 +43,7 @@ export const Header = () => {
           </Link>
         </div>
       </div>
-      <SearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   )
 }

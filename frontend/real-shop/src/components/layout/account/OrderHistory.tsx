@@ -1,10 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Order {
   id: string
@@ -35,16 +29,14 @@ export function OrderHistory({ userId }: OrderHistoryProps) {
       </CardHeader>
       <CardContent>
         {mockOrders.map((order) => (
-          <div key={order.id} className="mb-4 p-4 border rounded">
-            <div className="flex justify-between items-center mb-2">
+          <div key={order.id} className="mb-4 rounded border p-4">
+            <div className="mb-2 flex items-center justify-between">
               <span className="font-semibold">注文番号: {order.id}</span>
               <span className="text-sm text-gray-500">{order.date}</span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <span>合計: ¥{order.total.toLocaleString()}</span>
-              <span className="text-sm font-medium text-blue-600">
-                {order.status}
-              </span>
+              <span className="text-sm font-medium text-blue-600">{order.status}</span>
             </div>
           </div>
         ))}

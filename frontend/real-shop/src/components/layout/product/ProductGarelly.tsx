@@ -31,23 +31,13 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           src={images[currentImage].src}
           alt={images[currentImage].alt || "商品画像"}
           fill
-          className="object-cover rounded-lg"
+          className="rounded-lg object-cover"
         />
         <div className="absolute inset-0 flex items-center justify-between p-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={previousImage}
-            className="bg-white/80 hover:bg-white"
-          >
+          <Button variant="outline" size="icon" onClick={previousImage} className="bg-white/80 hover:bg-white">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={nextImage}
-            className="bg-white/80 hover:bg-white"
-          >
+          <Button variant="outline" size="icon" onClick={nextImage} className="bg-white/80 hover:bg-white">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -57,16 +47,11 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           <button
             key={index}
             onClick={() => setCurrentImage(index)}
-            className={`relative aspect-square rounded-md overflow-hidden border-2 ${
+            className={`relative aspect-square overflow-hidden rounded-md border-2 ${
               currentImage === index ? "border-blue-500" : "border-transparent"
             }`}
           >
-            <Image
-              src={image.src}
-              alt={image.alt || `商品画像 ${index + 1}`}
-              fill
-              className="object-cover"
-            />
+            <Image src={image.src} alt={image.alt || `商品画像 ${index + 1}`} fill className="object-cover" />
           </button>
         ))}
       </div>

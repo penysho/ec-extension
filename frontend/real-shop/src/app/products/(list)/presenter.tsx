@@ -4,17 +4,11 @@ import { useState } from "react"
 
 import ErrorPage from "@/app/error"
 import Loading from "@/app/loading"
-import { Pagination, ProductCard, Sidebar } from "@/components/layouts/product"
+import { Pagination, ProductCard, Sidebar } from "@/components/layout/product"
 import { Input } from "@/components/ui/input"
 import { Product, useGetProducts } from "@/generated/backend"
 
-const categories = [
-  "トップス",
-  "ボトムス",
-  "アウター",
-  "シューズ",
-  "アクセサリー",
-]
+const categories = ["トップス", "ボトムス", "アウター", "シューズ", "アクセサリー"]
 
 export default function ProductListPresenter() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -35,17 +29,12 @@ export default function ProductListPresenter() {
   let displayedProducts = [] as Product[]
   if (products) {
     totalPages = Math.ceil(products.length / itemsPerPage)
-    displayedProducts = products.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage,
-    )
+    displayedProducts = products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   }
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category],
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category],
     )
     setCurrentPage(1)
   }
@@ -66,8 +55,8 @@ export default function ProductListPresenter() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">商品一覧</h1>
-      <div className="flex mb-6">
+      <h1 className="mb-8 text-3xl font-bold">商品一覧</h1>
+      <div className="mb-6 flex">
         <div className="relative flex-grow">
           <Input
             type="text"
@@ -76,7 +65,7 @@ export default function ProductListPresenter() {
             onChange={handleSearchChange}
             className="pl-10"
           />
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 transform text-gray-400" />
         </div>
       </div>
       <div className="flex">
@@ -87,17 +76,13 @@ export default function ProductListPresenter() {
           sortOption={sortOption}
           onSortChange={handleSortChange}
         />
-        <div className="flex-grow ml-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="ml-8 flex-grow">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {displayedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
         </div>
       </div>
     </div>

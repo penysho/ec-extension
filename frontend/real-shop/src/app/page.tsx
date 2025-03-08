@@ -2,7 +2,7 @@
 import Image from "next/image"
 import Link from "next/link"
 
-import { ProductCard } from "@/components/layouts/top"
+import { ProductCard } from "@/components/layout/top"
 import { Button } from "@/components/ui/button"
 
 // 仮のデータ
@@ -50,18 +50,11 @@ export default function Home() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* ヒーローセクション */}
-      <section className="relative h-[70vh] mb-12">
-        <Image
-          src="https://placehold.jp/1000x1000.png"
-          alt="新作コレクション"
-          fill
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-black bg-opacity-40 flex flex-col justify-center items-center text-white">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">
-            新作コレクション
-          </h1>
-          <p className="text-xl mb-8">最新のトレンドをチェック</p>
+      <section className="relative mb-12 h-[70vh]">
+        <Image src="https://placehold.jp/1000x1000.png" alt="新作コレクション" fill className="object-cover" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-40 text-white">
+          <h1 className="mb-4 text-4xl font-bold md:text-6xl">新作コレクション</h1>
+          <p className="mb-8 text-xl">最新のトレンドをチェック</p>
           <Button size="lg" asChild>
             <Link href="/products">今すぐ購入</Link>
           </Button>
@@ -70,13 +63,13 @@ export default function Home() {
 
       {/* 人気カテゴリー */}
       <section className="mb-12">
-        <h2 className="text-3xl font-bold mb-6">人気カテゴリー</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <h2 className="mb-6 text-3xl font-bold">人気カテゴリー</h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {categories.map((category) => (
             <Link
               key={category.name}
               href={`/category/${category.name}`}
-              className="relative aspect-square group overflow-hidden"
+              className="group relative aspect-square overflow-hidden"
             >
               <Image
                 src={category.image}
@@ -84,10 +77,8 @@ export default function Home() {
                 fill
                 className="object-cover transition-transform duration-300 group-hover:scale-110"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                <span className="text-white text-xl font-semibold">
-                  {category.name}
-                </span>
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                <span className="text-xl font-semibold text-white">{category.name}</span>
               </div>
             </Link>
           ))}
@@ -96,8 +87,8 @@ export default function Home() {
 
       {/* 新着商品 */}
       <section className="mb-12">
-        <h2 className="text-3xl font-bold mb-6">新着商品</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <h2 className="mb-6 text-3xl font-bold">新着商品</h2>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
           {newProducts.map((product) => (
             <ProductCard key={product.id} {...product} />
           ))}
@@ -105,10 +96,10 @@ export default function Home() {
       </section>
 
       {/* セール情報 */}
-      <section className="mb-12 bg-red-600 text-white py-12 px-6 rounded-lg">
+      <section className="mb-12 rounded-lg bg-red-600 px-6 py-12 text-white">
         <div className="text-center">
-          <h2 className="text-3xl font-bold mb-4">サマーセール開催中！</h2>
-          <p className="text-xl mb-6">全商品最大50%OFF</p>
+          <h2 className="mb-4 text-3xl font-bold">サマーセール開催中！</h2>
+          <p className="mb-6 text-xl">全商品最大50%OFF</p>
           <Button size="lg" variant="secondary" asChild>
             <Link href="/sale">セール商品をチェック</Link>
           </Button>
@@ -116,9 +107,9 @@ export default function Home() {
       </section>
 
       {/* ブランドストーリー */}
-      <section className="mb-12 flex flex-col md:flex-row items-center gap-8">
+      <section className="mb-12 flex flex-col items-center gap-8 md:flex-row">
         <div className="md:w-1/2">
-          <h2 className="text-3xl font-bold mb-4">ブランドストーリー</h2>
+          <h2 className="mb-4 text-3xl font-bold">ブランドストーリー</h2>
           <p className="mb-4">
             私たちは、高品質な素材と職人技にこだわり、環境に配慮した持続可能なファッションを提供しています。
             一つ一つの商品に込められた想いと技術を、あなたの日常に。
