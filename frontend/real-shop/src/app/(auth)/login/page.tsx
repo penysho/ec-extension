@@ -34,7 +34,7 @@ export default function LoginPage() {
   }
 
   if (!mounted) {
-    return null // または適切なローディング表示
+    return null
   }
 
   return (

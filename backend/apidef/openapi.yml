@@ -7,6 +7,8 @@ tags:
     description: product endpoint
   - name: customers
     description: customer endpoint
+  - name: auth
+    description: auth endpoint
 paths:
   /ec-extension/products/{id}:
     get:
@@ -97,6 +99,27 @@ paths:
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
 
+  /ec-extension/auth/sign-in:
+    post:
+      summary: Sign in
+      description: Set the token passed to the httpOnly cookie and start a backend cookie session.
+      operationId: postSignIn
+      tags:
+        - auth
+      requestBody:
+        $ref: "#/components/requestBodies/PostSignInRequest"
+      responses:
+        "200":
+          description: Sign in resoponse
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
 components:
   schemas:
     Product:
@@ -122,7 +145,7 @@ components:
           description: A detailed description of the product.
           example: "High-quality wireless earbuds with noise cancellation."
         status:
-          $ref: '#/components/schemas/ProductStatus'
+          $ref: "#/components/schemas/ProductStatus"
         category_id:
           type: string
           nullable: true
@@ -132,12 +155,12 @@ components:
           type: array
           description: A list of media associated with the product.
           items:
-            $ref: '#/components/schemas/Media'
+            $ref: "#/components/schemas/Media"
         variants:
           type: array
           description: A list of variants of the product.
           items:
-            $ref: '#/components/schemas/Variant'
+            $ref: "#/components/schemas/Variant"
 
     ProductStatus:
       type: string
@@ -193,7 +216,7 @@ components:
           description: The unique identifier for the inventory item.
           example: "inv_98765"
         inventory_policy:
-          $ref: '#/components/schemas/InventoryPolicy'
+          $ref: "#/components/schemas/InventoryPolicy"
         inventory_quantity:
           type: integer
           nullable: true
@@ -250,9 +273,9 @@ components:
           description: The name of the media file.
           example: "product_image_1"
         status:
-          $ref: '#/components/schemas/MediaStatus'
+          $ref: "#/components/schemas/MediaStatus"
         content:
-          $ref: '#/components/schemas/MediaContent'
+          $ref: "#/components/schemas/MediaContent"
         created_at:
           type: string
           format: date-time
@@ -277,7 +300,7 @@ components:
       type: object
       properties:
         image:
-          $ref: '#/components/schemas/Image'
+          $ref: "#/components/schemas/Image"
           description: The image content associated with the media.
 
     Image:
@@ -319,9 +342,9 @@ components:
           type: array
           description: A list of addresses associated with the customer.
           items:
-            $ref: '#/components/schemas/Address'
+            $ref: "#/components/schemas/Address"
         default_address:
-          $ref: '#/components/schemas/Address'
+          $ref: "#/components/schemas/Address"
           description: The default address of the customer.
         display_name:
           type: string
@@ -343,7 +366,7 @@ components:
           description: The last name of the customer.
           example: "Doe"
         image:
-          $ref: '#/components/schemas/Image'
+          $ref: "#/components/schemas/Image"
           description: An image associated with the customer.
         phone:
           type: string
@@ -356,7 +379,7 @@ components:
           description: A note associated with the customer.
           example: "VIP customer"
         status:
-          $ref: '#/components/schemas/CustomerStatus'
+          $ref: "#/components/schemas/CustomerStatus"
         verified_email:
           type: boolean
           description: Indicates if the customer's email is verified.
@@ -445,9 +468,27 @@ components:
           type: string
           example: Error Messages
 
+  requestBodies:
+    PostSignInRequest:
+      required: true
+      description: Sign in request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id_token:
+                type: string
+                description: The ID token.
+                example: id_token
+              refresh_token:
+                type: string
+                description: The refresh token.
+                example: refresh_token
+
   responses:
     GetProductResponse:
-      description:  Get detailed product information resoponse
+      description: Get detailed product information resoponse
       content:
         application/json:
           schema:
@@ -460,7 +501,7 @@ components:
                 $ref: "#/components/schemas/Product"
 
     GetProductsResponse:
-      description:  Get a list of products resoponse
+      description: Get a list of products resoponse
       content:
         application/json:
           schema:
@@ -487,7 +528,7 @@ components:
               customers:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Customer'
+                  $ref: "#/components/schemas/Customer"
 
     BadRequest:
       description: Bad request
@@ -509,7 +550,6 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/DomainError"
-
 
     ServiceUnavailable:
       description: Service unavailable

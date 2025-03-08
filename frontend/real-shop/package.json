@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "eslint . --fix",
-    "generate": "npx orval",
+    "generate:api": "npx orval",
     "prepare": "cd ../../ && husky frontend/real-shop/.husky",
     "lint-staged": "lint-staged"
   },

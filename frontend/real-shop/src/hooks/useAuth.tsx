@@ -2,15 +2,33 @@
 
 import { Amplify } from "aws-amplify"
 import { getCurrentUser, signIn, signOut, signUp } from "aws-amplify/auth"
+import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito"
+import { KeyValueStorageInterface } from "aws-amplify/utils"
 import { useAtom } from "jotai"
-import Cookies from "js-cookie"
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useRef } from "react"
 
 import config from "@/amplifyconfiguration.json"
+import { usePostSignIn } from "@/generated/backend"
 import { errorAtom, loadingAtom, userAtom } from "@/lib/stores"
 
+const temporaryStorage = new (class TemporaryStorage implements KeyValueStorageInterface {
+  storageObject: Record<string, string> = {}
+  async setItem(key: string, value: string): Promise<void> {
+    this.storageObject[key] = value
+  }
+  async getItem(key: string): Promise<string | null> {
+    return this.storageObject[key] || null
+  }
+  async removeItem(key: string): Promise<void> {
+    delete this.storageObject[key]
+  }
+  async clear(): Promise<void> {
+    this.storageObject = {}
+  }
+})()
+
 Amplify.configure(config)
-// cognitoUserPoolsTokenProvider.setKeyValueStorage(new CookieStorage())
+cognitoUserPoolsTokenProvider.setKeyValueStorage(temporaryStorage)
 
 type SignUpParameters = {
   username: string
@@ -35,6 +53,9 @@ export const useAuth = () => {
   const [loading, setLoading] = useAtom(loadingAtom)
   const [error, setError] = useAtom(errorAtom)
 
+  const { mutate: postSignIn } = usePostSignIn()
+  const storageRef = useRef(temporaryStorage)
+
   // Fetch current authenticated user on initial load
   useEffect(() => {
     const fetchUser = async () => {
@@ -46,8 +67,6 @@ export const useAuth = () => {
           email: authenticatedUser.signInDetails?.loginId || "",
           userId: authenticatedUser.userId,
         })
-
-        Cookies.set("userId", authenticatedUser.userId)
       } catch {
         setUser(null) // User is not authenticated
       } finally {
@@ -99,8 +118,27 @@ export const useAuth = () => {
             email: authenticatedUser.signInDetails?.loginId || "",
             userId: authenticatedUser.userId,
           })
-          Cookies.set("userId", authenticatedUser.userId)
+
+          const keys = Object.keys(storageRef.current.storageObject)
+
+          let idToken = ""
+          let refreshToken = ""
+          for (const key of keys) {
+            if (key.endsWith("idToken")) {
+              idToken = storageRef.current.storageObject[key]
+            } else if (key.endsWith("refreshToken")) {
+              refreshToken = storageRef.current.storageObject[key]
+            }
+          }
+
+          postSignIn({
+            data: {
+              id_token: idToken,
+              refresh_token: refreshToken,
+            },
+          })
         }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         setError(err.message || "Error signing in")
@@ -109,7 +147,7 @@ export const useAuth = () => {
         setLoading(false)
       }
     },
-    [setError, setLoading, setUser],
+    [setError, setLoading, setUser, postSignIn],
   )
 
   // Sign out the current user
@@ -119,7 +157,6 @@ export const useAuth = () => {
     try {
       await signOut({ global: true })
       setUser(null)
-      Cookies.remove("userId")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message || "Error signing out")
