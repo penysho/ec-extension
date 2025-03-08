@@ -17,7 +17,7 @@ pub trait TransactionManager<T, C>: Send + Sync {
     async fn is_transaction_started(&self) -> bool;
 
     /// Get current transaction.
-    async fn get_transaction(&self) -> Result<MutexGuard<'_, Option<T>>, DomainError>;
+    async fn get_transaction<'a>(&'a self) -> Result<MutexGuard<'a, Option<T>>, DomainError>;
 
     /// Get connection.
     async fn get_connection(&self) -> Result<C, DomainError>;

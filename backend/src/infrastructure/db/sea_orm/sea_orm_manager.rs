@@ -100,9 +100,9 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
         self.tran.lock().await.is_some()
     }
 
-    async fn get_transaction(
-        &self,
-    ) -> Result<MutexGuard<'_, Option<DatabaseTransaction>>, DomainError> {
+    async fn get_transaction<'a>(
+        &'a self,
+    ) -> Result<MutexGuard<'a, Option<DatabaseTransaction>>, DomainError> {
         let lock = self.tran.lock().await;
         if lock.is_some() {
             Ok(lock)
