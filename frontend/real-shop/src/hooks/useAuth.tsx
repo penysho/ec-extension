@@ -104,17 +104,12 @@ export const useAuth = () => {
       setError(null)
       setLoading(true)
       try {
-        const { userId } = await signUp({
-          username: params.username,
+        await signUp({
+          username: params.email,
           password: params.password,
-          options: {
-            userAttributes: {
-              email: params.email,
-              phone_number: params.phone_number,
-            },
-          },
         })
-        return userId
+
+        return true
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : "Error signing up"
         setError(errorMessage)
@@ -134,7 +129,10 @@ export const useAuth = () => {
       setError(null)
       setLoading(true)
       try {
-        const { isSignedIn } = await signIn(params)
+        const { isSignedIn } = await signIn({
+          username: params.email,
+          password: params.password,
+        })
         if (isSignedIn) {
           // Fetch user info and update state
           const userData = await fetchCurrentUser()

@@ -3,14 +3,12 @@ export const USER_ID_COOKIE_NAME = "USER_ID"
 // 認証関連の型定義
 
 export type SignUpParameters = {
-  username: string
-  password: string
   email: string
-  phone_number: string
+  password: string
 }
 
 export type SignInInput = {
-  username: string
+  email: string
   password: string
 }
 
