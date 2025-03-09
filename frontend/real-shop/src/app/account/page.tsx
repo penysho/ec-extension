@@ -38,7 +38,7 @@ export default function Page() {
           <TabsTrigger value="favorites">お気に入り</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
-          <UserProfile user={customer} handleSignOut={handleSignOut} />
+          <UserProfile user={customer} handleSignOut={() => handleSignOut()} />
         </TabsContent>
         <TabsContent value="orders">
           <OrderHistory userId={user.userId} />

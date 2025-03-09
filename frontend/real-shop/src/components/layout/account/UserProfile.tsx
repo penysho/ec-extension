@@ -16,7 +16,7 @@ interface User {
 
 interface UserProfileProps {
   user: User
-  handleSignOut: () => Promise<void>
+  handleSignOut: () => Promise<boolean>
 }
 
 export function UserProfile({ user, handleSignOut }: UserProfileProps) {
