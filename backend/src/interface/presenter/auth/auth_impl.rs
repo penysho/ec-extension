@@ -55,7 +55,7 @@ impl AuthPresenter for AuthPresenterImpl {
 
                 let cookie_user_id = Cookie::build(USER_ID_COOKIE_NAME, customer.user_id())
                     .secure(true)
-                    .http_only(false)
+                    .http_only(true)
                     .path("/")
                     .finish();
 

@@ -2,81 +2,117 @@
 
 import { Amplify } from "aws-amplify"
 import { getCurrentUser, signIn, signOut, signUp } from "aws-amplify/auth"
+import { cognitoUserPoolsTokenProvider } from "aws-amplify/auth/cognito"
+import { KeyValueStorageInterface } from "aws-amplify/utils"
 import { useAtom } from "jotai"
-import Cookies from "js-cookie"
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useRef } from "react"
 
 import config from "@/amplifyconfiguration.json"
+import { usePostSignIn } from "@/generated/backend"
 import { errorAtom, loadingAtom, userAtom } from "@/lib/stores"
+import { AuthTokens, SignInInput, SignUpParameters, User } from "@/types/auth"
 
+// In-memory storage implementation
+class MemoryStorage implements KeyValueStorageInterface {
+  storageObject: Record<string, string> = {}
+
+  async setItem(key: string, value: string): Promise<void> {
+    this.storageObject[key] = value
+  }
+
+  async getItem(key: string): Promise<string | null> {
+    return this.storageObject[key] || null
+  }
+
+  async removeItem(key: string): Promise<void> {
+    delete this.storageObject[key]
+  }
+
+  async clear(): Promise<void> {
+    this.storageObject = {}
+  }
+
+  // Helper method to retrieve tokens
+  getTokens(): AuthTokens {
+    const keys = Object.keys(this.storageObject)
+    let idToken = ""
+    let refreshToken = ""
+
+    for (const key of keys) {
+      if (key.endsWith("idToken")) {
+        idToken = this.storageObject[key]
+      } else if (key.endsWith("refreshToken")) {
+        refreshToken = this.storageObject[key]
+      }
+    }
+
+    return { idToken, refreshToken }
+  }
+}
+
+// Create singleton instance
+const memoryStorage = new MemoryStorage()
+
+// Amplify configuration
 Amplify.configure(config)
-// cognitoUserPoolsTokenProvider.setKeyValueStorage(new CookieStorage())
+cognitoUserPoolsTokenProvider.setKeyValueStorage(memoryStorage)
 
-type SignUpParameters = {
-  username: string
-  password: string
-  email: string
-  phone_number: string
-}
-
-type SignInInput = {
-  username: string
-  password: string
-}
-
-export type User = {
-  username: string
-  email: string
-  userId: string
-} | null
-
+/**
+ * Provides authentication hook
+ * @returns Authentication state and operation methods
+ */
 export const useAuth = () => {
   const [user, setUser] = useAtom(userAtom)
   const [loading, setLoading] = useAtom(loadingAtom)
   const [error, setError] = useAtom(errorAtom)
 
-  // Fetch current authenticated user on initial load
-  useEffect(() => {
-    const fetchUser = async () => {
-      setLoading(true)
-      try {
-        const authenticatedUser = await getCurrentUser()
-        setUser({
-          username: authenticatedUser.username,
-          email: authenticatedUser.signInDetails?.loginId || "",
-          userId: authenticatedUser.userId,
-        })
+  const { mutate: postSignIn } = usePostSignIn()
+  const storageRef = useRef(memoryStorage)
 
-        Cookies.set("userId", authenticatedUser.userId)
-      } catch {
-        setUser(null) // User is not authenticated
-      } finally {
-        setLoading(false)
+  /**
+   * Fetch current authenticated user
+   */
+  const fetchCurrentUser = useCallback(async () => {
+    setLoading(true)
+    try {
+      const authenticatedUser = await getCurrentUser()
+      const userData: User = {
+        username: authenticatedUser.username,
+        email: authenticatedUser.signInDetails?.loginId || "",
+        userId: authenticatedUser.userId,
       }
+      setUser(userData)
+      return userData
+    } catch {
+      setUser(null)
+      return null
+    } finally {
+      setLoading(false)
     }
-    fetchUser()
-  }, [setUser, setLoading])
+  }, [setLoading, setUser])
 
-  // Sign up a new user
+  // Fetch authenticated user on initial load
+  useEffect(() => {
+    fetchCurrentUser()
+  }, [fetchCurrentUser])
+
+  /**
+   * Register a new user
+   */
   const handleSignUp = useCallback(
-    async ({ username, password, email, phone_number }: SignUpParameters) => {
+    async (params: SignUpParameters) => {
       setError(null)
       setLoading(true)
       try {
-        const { userId } = await signUp({
-          username,
-          password,
-          options: {
-            userAttributes: {
-              email,
-              phone_number,
-            },
-          },
+        await signUp({
+          username: params.email,
+          password: params.password,
         })
-        return userId
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        setError(err.message || "Error signing up")
+
+        return true
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : "Error signing up"
+        setError(errorMessage)
         throw err
       } finally {
         setLoading(false)
@@ -85,44 +121,61 @@ export const useAuth = () => {
     [setError, setLoading],
   )
 
-  // Sign in an existing user
+  /**
+   * Sign in an existing user
+   */
   const handleSignIn = useCallback(
-    async ({ username, password }: SignInInput) => {
+    async (params: SignInInput) => {
       setError(null)
       setLoading(true)
       try {
-        const { isSignedIn } = await signIn({ username, password })
+        const { isSignedIn } = await signIn({
+          username: params.email,
+          password: params.password,
+        })
         if (isSignedIn) {
-          const authenticatedUser = await getCurrentUser()
-          setUser({
-            username: authenticatedUser.username,
-            email: authenticatedUser.signInDetails?.loginId || "",
-            userId: authenticatedUser.userId,
+          // Fetch user info and update state
+          const userData = await fetchCurrentUser()
+          if (!userData) return false
+
+          // Get tokens and send to backend
+          const { idToken, refreshToken } = storageRef.current.getTokens()
+
+          // Send tokens to backend
+          postSignIn({
+            data: {
+              id_token: idToken,
+              refresh_token: refreshToken,
+            },
           })
-          Cookies.set("userId", authenticatedUser.userId)
+
+          return true
         }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        setError(err.message || "Error signing in")
+        return false
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : "Error signing in"
+        setError(errorMessage)
         throw err
       } finally {
         setLoading(false)
       }
     },
-    [setError, setLoading, setUser],
+    [fetchCurrentUser, postSignIn, setError, setLoading],
   )
 
-  // Sign out the current user
+  /**
+   * Sign out the current user
+   */
   const handleSignOut = useCallback(async () => {
     setError(null)
     setLoading(true)
     try {
       await signOut({ global: true })
       setUser(null)
-      Cookies.remove("userId")
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      setError(err.message || "Error signing out")
+      return true
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error signing out"
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -136,5 +189,6 @@ export const useAuth = () => {
     handleSignUp,
     handleSignIn,
     handleSignOut,
+    fetchCurrentUser,
   }
 }
