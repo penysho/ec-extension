@@ -7,7 +7,7 @@ use super::idp_user::IdpUser;
 /// Authentication interface.
 #[async_trait]
 pub trait Authenticator: Send + Sync + Clone {
-    /// Validate tokens issued by Idp.
+    /// Verify tokens issued by Idp.
     ///
     /// # Arguments
     ///
@@ -24,7 +24,7 @@ pub trait Authenticator: Send + Sync + Clone {
     /// # Errors
     ///
     /// * Returns a error encountered in token validation
-    async fn validate_token(
+    async fn verify_token(
         &mut self,
         id_token: Option<&str>,
         refresh_token: Option<&str>,

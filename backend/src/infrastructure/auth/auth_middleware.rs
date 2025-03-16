@@ -96,7 +96,7 @@ where
         let svc = self.service.clone();
         Box::pin(async move {
             let (idp_user, _) = authenticator
-                .validate_token(id_token_string.as_deref(), refresh_token_string.as_deref())
+                .verify_token(id_token_string.as_deref(), refresh_token_string.as_deref())
                 .await
                 .map_err(|e| error::ErrorUnauthorized(e))?;
 

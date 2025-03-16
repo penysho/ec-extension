@@ -46,7 +46,7 @@ where
         let (idp_user, new_id_token) = self
             .authenticator
             .clone()
-            .validate_token(id_token.as_deref(), refresh_token.as_deref())
+            .verify_token(id_token.as_deref(), refresh_token.as_deref())
             .await?;
 
         let customer = self

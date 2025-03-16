@@ -115,7 +115,7 @@ impl CognitoAuthenticator {
         })
     }
 
-    fn validate_id_token(
+    fn verify_id_token(
         &self,
         id_token_value: &str,
         key: &Key,
@@ -154,7 +154,7 @@ impl CognitoAuthenticator {
 
 #[async_trait]
 impl Authenticator for CognitoAuthenticator {
-    async fn validate_token(
+    async fn verify_token(
         &mut self,
         id_token: Option<&str>,
         refresh_token: Option<&str>,
@@ -181,7 +181,7 @@ impl Authenticator for CognitoAuthenticator {
         let kid = header.kid.ok_or(DomainError::AuthenticationError)?;
         let key = self.get_jwks_key(&kid).await?;
 
-        match self.validate_id_token(&id_token_value, &key) {
+        match self.verify_id_token(&id_token_value, &key) {
             Ok(token_data) => {
                 return Ok((
                     IdpUser {
@@ -198,7 +198,7 @@ impl Authenticator for CognitoAuthenticator {
                     .get_id_token_by_refresh_token(refresh_token.unwrap())
                     .await?;
 
-                self.validate_id_token(&new_id_token_value, &key)
+                self.verify_id_token(&new_id_token_value, &key)
                     .map(|token_data| {
                         (
                             IdpUser {
