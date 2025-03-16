@@ -66,7 +66,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useAtom(loadingAtom)
   const [error, setError] = useAtom(errorAtom)
 
-  const { mutate: postSignIn } = usePostSignIn()
+  const { mutateAsync: postSignIn } = usePostSignIn()
   const storageRef = useRef(memoryStorage)
 
   /**
@@ -142,7 +142,7 @@ export const useAuth = () => {
           const { idToken, refreshToken } = storageRef.current.getTokens()
 
           // Send tokens to backend
-          postSignIn({
+          await postSignIn({
             data: {
               id_token: idToken,
               refresh_token: refreshToken,
