@@ -11,4 +11,4 @@ VALUES (5, 'all_read');
 INSERT INTO "permission" (id, action)
 VALUES (6, 'all_write');
 INSERT INTO "permission" (id, action)
-VALUES (6, 'all_delete');
+VALUES (7, 'all_delete');

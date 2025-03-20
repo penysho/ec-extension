@@ -15,7 +15,27 @@ impl MigrationTrait for Migration {
                     .col(string(Resource::Name))
                     .to_owned(),
             )
-            .await
+            .await?;
+
+        manager
+            .get_connection()
+            .execute_unprepared(
+                r#"
+        INSERT INTO "resource" (id, name)
+        VALUES (1, 'Product');
+        INSERT INTO "resource" (id, name)
+        VALUES (2, 'Order');
+        INSERT INTO "resource" (id, name)
+        VALUES (3, 'Customer');
+        INSERT INTO "resource" (id, name)
+        VALUES (4, 'Inventory');
+        INSERT INTO "resource" (id, name)
+        VALUES (5, 'DraftOrder');
+        "#,
+            )
+            .await?;
+
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {

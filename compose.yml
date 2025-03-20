@@ -11,18 +11,33 @@ services:
     tty: true
     env_file:
       - "./backend/.env"
+    depends_on:
+      - backend-db
 
   backend-db:
     image: postgres:17.0-bookworm
     container_name: ec-extension_backend-db
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/migration/init:/docker-entrypoint-initdb.d
     ports:
       - "5433:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+
+  backend-migration:
+    build:
+      context: .
+      dockerfile: ./docker/migration/Dockerfile
+    container_name: ec-extension_backend-migration
+    working_dir: /app/backend/migration
+    tty: true
+    stdin_open: true
+    command: ["/app/target/release/migration", "up"]
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@backend-db/postgres
+    depends_on:
+      - backend-db
 
 volumes:
   postgres_data:

@@ -15,7 +15,23 @@ impl MigrationTrait for Migration {
                     .col(string(Role::Name))
                     .to_owned(),
             )
-            .await
+            .await?;
+
+        manager
+            .get_connection()
+            .execute_unprepared(
+                r#"
+            INSERT INTO "role" (id, name)
+            VALUES (1, 'admin');
+            INSERT INTO "role" (id, name)
+            VALUES (2, 'operator');
+            INSERT INTO "role" (id, name)
+            VALUES (3, 'customer');
+            "#,
+            )
+            .await?;
+
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
