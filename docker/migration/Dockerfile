@@ -4,8 +4,8 @@ WORKDIR /app
 
 RUN apk add --no-cache musl-dev libressl-dev
 
-# Copy the Cargo.toml and Cargo.lock files
-COPY ./backend/migration/Cargo.toml ./backend/migration/Cargo.lock ./
+# Copy the Cargo.toml files
+COPY ./backend/migration/Cargo.toml ./
 
 # Fetch dependencies
 RUN cargo fetch
