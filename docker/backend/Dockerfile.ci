@@ -2,7 +2,8 @@ FROM rust:1-alpine3.20
 
 WORKDIR /app/backend
 
-RUN apk add --no-cache musl-dev libressl-dev
+RUN apk add --no-cache musl-dev libressl-dev \
+    && rustup component add rustfmt clippy
 
 # Copy the Cargo.toml files
 RUN USER=root cargo init
