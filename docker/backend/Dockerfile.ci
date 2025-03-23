@@ -12,14 +12,3 @@ COPY ./backend/migration/Cargo.toml ./migration/Cargo.toml
 # Fetch dependencies
 RUN cargo fetch
 
-# Copy the actual source files
-COPY ./backend/src ./src
-
-# Build the actual application
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-	--mount=type=cache,target=/app/backend/target \
-	cargo build --tests
-
-# Set the command to run the compiled binary
-CMD ["sleep", "infinity"]
-

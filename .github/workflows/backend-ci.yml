@@ -25,15 +25,15 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # https://docs.docker.com/build/ci/github-actions/cache/#local-cache
-      - name: Cache Docker layers
+      - name: Cache Backend Docker layers
         uses: actions/cache@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          path: /tmp/backend/.buildx-cache
+          key: ${{ runner.os }}-backend-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
+            ${{ runner.os }}-backend-
 
-      - name: Build
+      - name: Build Backend Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -41,18 +41,71 @@ jobs:
           push: false
           load: true
           tags: ec-extension-backend:latest # Without this, the image will be built again when it is uploaded.
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          cache-from: type=local,src=/tmp/backend/.buildx-cache
+          cache-to: type=local,dest=/tmp/backend/.buildx-cache-new,mode=max
+
+      - name: Cache Backend Migration Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/backend-migration/.buildx-cache
+          key: ${{ runner.os }}-backend-migration-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-backend-migration-
+
+      - name: Build Backend Migration Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/backend-migration/Dockerfile
+          push: false
+          load: true
+          tags: ec-extension-backend-migration:latest
+          cache-from: type=local,src=/tmp/backend-migration/.buildx-cache
+          cache-to: type=local,dest=/tmp/backend-migration/.buildx-cache-new,mode=max
+
+      - name: Cache Backend DB Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/backend-db/.buildx-cache
+          key: ${{ runner.os }}-backend-db-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-backend-db-
+
+      - name: Create Backend DB Dockerfile
+        uses: mikefarah/yq@master
+        with:
+          cmd: |
+            IMAGE_NAME=$(yq '.services."backend-db".image' compose.yml)
+            echo "FROM $IMAGE_NAME" > Dockerfile.tmp
+
+      - name: Build Backend DB Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.tmp
+          push: false
+          load: true
+          tags: ec-extension-backend-db:latest
+          cache-from: type=local,src=/tmp/backend-db/.buildx-cache
+          cache-to: type=local,dest=/tmp/backend-db/.buildx-cache-new,mode=max
 
       - name: Move cache
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          rm -rf /tmp/backend/.buildx-cache
+          mv /tmp/backend/.buildx-cache-new /tmp/backend/.buildx-cache
+          rm -rf /tmp/backend-migration/.buildx-cache
+          mv /tmp/backend-migration/.buildx-cache-new /tmp/backend-migration/.buildx-cache
+          rm -rf /tmp/backend-db/.buildx-cache
+          mv /tmp/backend-db/.buildx-cache-new /tmp/backend-db/.buildx-cache
 
       - name: Start containers
         run: |
           cp backend/.env.example backend/.env
-          DOCKER_BUILDKIT=1 docker compose up -d
+          docker compose up -d
+
+      - name: Run build
+        run: |
+          docker compose exec backend /bin/sh -c "cargo build --release"
 
       - name: Run tests
         run: |

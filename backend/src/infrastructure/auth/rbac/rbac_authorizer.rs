@@ -181,7 +181,7 @@ impl Authorizer for RbacAuthorizer {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, sync::Arc};
+    use std::sync::Arc;
 
     use rand::{
         distributions::{Alphanumeric, DistString},
