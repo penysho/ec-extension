@@ -36,7 +36,10 @@ where
             Err(error) => return presenter.present_get_inventories(Err(error)).await,
         };
 
-        let interactor = self.interactor_provider.provide_inventory_interactor().await;
+        let interactor = self
+            .interactor_provider
+            .provide_inventory_interactor()
+            .await;
         let results = interactor.get_inventories_from_all_locations(&query).await;
 
         presenter.present_get_inventories(results).await
@@ -94,9 +97,9 @@ mod tests {
 
         // Create an application for testing
         test::init_service(
-            App::new()
-                .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractorProvider<(), ()>, (), ()>),
+            App::new().app_data(controller).configure(
+                actix_router::configure_routes::<MockInteractorProvider<(), ()>, (), ()>,
+            ),
         )
         .await
     }
