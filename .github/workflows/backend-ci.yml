@@ -40,7 +40,7 @@ jobs:
           file: ./docker/backend/Dockerfile.ci
           push: false
           load: true
-          # tags: ec-extension-backend:latest
+          tags: ec-extension-backend:latest # Without this, the image will be built again when it is uploaded.
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
 
@@ -52,8 +52,8 @@ jobs:
       - name: Start containers
         run: |
           cp backend/.env.example backend/.env
-          docker compose up -d
+          DOCKER_BUILDKIT=1 docker compose -f compose.ci.yml up -d
 
       - name: Run tests
         run: |
-          docker compose exec backend /bin/sh -c "cargo test --all-features"
+          docker compose -f compose.ci.yml exec backend /bin/sh -c "cargo test --all-features"
