@@ -14,7 +14,10 @@ RUN cargo fetch
 COPY ./backend/migration/src ./src
 
 # Build the actual application
-RUN cargo build --release
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+	--mount=type=cache,target=/app/backend/target \
+	cargo build --release
+
 
 # Set the command to run the compiled binary
 CMD ["sleep", "infinity"]

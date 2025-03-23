@@ -113,4 +113,4 @@ jobs:
 
       - name: Check formatting
         run: |
-          docker compose exec backend /bin/sh -c "ccargo fmt --all --check"
+          docker compose exec backend /bin/sh -c "cargo fmt --all --check"
