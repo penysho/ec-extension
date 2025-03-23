@@ -1,0 +1,16 @@
+# ignore docker-compose files
+compose.*.yml
+
+# ignore environment files
+.env*
+
+# ignore document files
+.docs/
+*.md
+
+# ignore editor settings
+.idea/
+.vscode/
+
+# ignore project files
+frontend

@@ -1,0 +1,28 @@
+FROM rust:1-alpine3.20
+
+WORKDIR /app/backend
+
+RUN apk add --no-cache musl-dev libressl-dev \
+    && rustup component add rustfmt clippy
+
+# Copy the Cargo.toml files
+RUN USER=root cargo init
+COPY ./backend/Cargo.toml ./Cargo.toml
+COPY ./backend/migration/Cargo.toml ./migration/Cargo.toml
+
+# Fetch dependencies
+RUN cargo fetch
+
+# Copy the actual source files
+COPY ./backend/src ./src
+
+# Build the actual application
+# Essentially, applications are built and verified by CI each time without caching Docker images
+# However, for CI efficiency, build here to take advantage of the cache
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+	--mount=type=cache,target=/app/backend/target \
+	cargo build --release
+
+# Set the command to run the compiled binary
+CMD ["sleep", "infinity"]
+

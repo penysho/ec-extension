@@ -66,9 +66,9 @@ mod tests {
 
         // Create an application for testing
         test::init_service(
-            App::new()
-                .app_data(controller)
-                .configure(actix_router::configure_routes::<MockInteractorProvider<(), ()>, (), ()>),
+            App::new().app_data(controller).configure(
+                actix_router::configure_routes::<MockInteractorProvider<(), ()>, (), ()>,
+            ),
         )
         .await
     }

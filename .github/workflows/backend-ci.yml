@@ -1,0 +1,90 @@
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+      - "!apidef/**"
+      - "!migration/**"
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # https://docs.docker.com/build/ci/github-actions/cache/#local-cache
+      - name: Cache Backend Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/backend/.buildx-cache
+          key: ${{ runner.os }}-backend-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-backend-
+
+      - name: Build Backend Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/backend/Dockerfile.ci
+          push: false
+          load: true
+          tags: ec-extension-backend:latest # Without this, the image will be built again when it is uploaded.
+          cache-from: type=local,src=/tmp/backend/.buildx-cache
+          cache-to: type=local,dest=/tmp/backend/.buildx-cache-new,mode=max
+
+      - name: Cache Backend Migration Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/backend-migration/.buildx-cache
+          key: ${{ runner.os }}-backend-migration-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-backend-migration-
+
+      - name: Build Backend Migration Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/backend-migration/Dockerfile
+          push: false
+          load: true
+          tags: ec-extension-backend-migration:latest
+          cache-from: type=local,src=/tmp/backend-migration/.buildx-cache
+          cache-to: type=local,dest=/tmp/backend-migration/.buildx-cache-new,mode=max
+
+      # backend-db uses the official image as-is and does not add custom layers, so no cache required
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/backend/.buildx-cache
+          mv /tmp/backend/.buildx-cache-new /tmp/backend/.buildx-cache
+          rm -rf /tmp/backend-migration/.buildx-cache
+          mv /tmp/backend-migration/.buildx-cache-new /tmp/backend-migration/.buildx-cache
+
+      - name: Start containers
+        run: |
+          cp backend/.env.example backend/.env
+          docker compose up -d
+
+      - name: Run tests
+        run: |
+          docker compose exec backend /bin/sh -c "cargo test --all-features"
+
+      - name: Run linter
+        run: |
+          docker compose exec backend /bin/sh -c "cargo clippy --all-targets --all-features"
+
+      - name: Check formatting
+        run: |
+          docker compose exec backend /bin/sh -c "cargo fmt --all --check"
