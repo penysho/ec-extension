@@ -103,10 +103,14 @@ jobs:
           cp backend/.env.example backend/.env
           docker compose up -d
 
-      - name: Run build
-        run: |
-          docker compose exec backend /bin/sh -c "cargo build --release"
-
       - name: Run tests
         run: |
           docker compose exec backend /bin/sh -c "cargo test --all-features"
+
+      - name: Run linter
+        run: |
+          docker compose exec backend /bin/sh -c "cargo clippy --all-targets --all-features"
+
+      - name: Check formatting
+        run: |
+          docker compose exec backend /bin/sh -c "ccargo fmt --all --check"
