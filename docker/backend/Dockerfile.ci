@@ -4,22 +4,22 @@ WORKDIR /app/backend
 
 RUN apk add --no-cache musl-dev libressl-dev
 
-# Copy the Cargo.toml files
-RUN USER=root cargo init
-COPY ./backend/Cargo.toml ./Cargo.toml
-COPY ./backend/migration/Cargo.toml ./migration/Cargo.toml
+# # Copy the Cargo.toml files
+# RUN USER=root cargo init
+# COPY ./backend/Cargo.toml ./Cargo.toml
+# COPY ./backend/migration/Cargo.toml ./migration/Cargo.toml
 
-# Fetch dependencies
-RUN cargo fetch
+# # Fetch dependencies
+# RUN cargo fetch
 
-# Copy the actual source files
-COPY ./backend/src ./src
+# # Copy the actual source files
+# COPY ./backend/src ./src
 
-# Build the actual application
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-	--mount=type=cache,target=/app/backend/target \
-	cargo build --release
+# # Build the actual application
+# RUN --mount=type=cache,target=/usr/local/cargo/registry \
+# 	--mount=type=cache,target=/app/backend/target \
+# 	cargo build --release
 
-# Set the command to run the compiled binary
-CMD ["sleep", "infinity"]
+# # Set the command to run the compiled binary
+# CMD ["sleep", "infinity"]
 
