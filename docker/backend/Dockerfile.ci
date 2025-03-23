@@ -17,7 +17,7 @@ COPY ./backend/src ./src
 
 # Build the actual application
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-	--mount=type=cache,target=/app/backend \
+	--mount=type=cache,target=/app/backend/target \
 	cargo build --release
 
 # Set the command to run the compiled binary
