@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: ./docker/backend/Dockerfile.local
     container_name: ec-extension_backend
+    working_dir: /app/backend
     ports:
       - "8011:8080"
     volumes:

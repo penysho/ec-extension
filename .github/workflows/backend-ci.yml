@@ -56,4 +56,4 @@ jobs:
 
       - name: Run tests
         run: |
-          docker compose exec backend /bin/sh -c "cd backend && cargo test --all-features"
+          docker compose exec backend /bin/sh -c "cargo test --all-features"
