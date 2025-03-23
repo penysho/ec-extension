@@ -6,6 +6,7 @@ RUN apk add --no-cache musl-dev libressl-dev
 
 # Copy the Cargo.toml files
 COPY ./backend/Cargo.toml ./
+COPY ./backend/migration/Cargo.toml ./migration/
 
 # Fetch dependencies
 RUN cargo fetch
@@ -14,7 +15,9 @@ RUN cargo fetch
 COPY ./backend/src ./src
 
 # Build the actual application
-RUN cargo build --release
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+	--mount=type=cache,target=/app/backend \
+	cargo build --release
 
 # Set the command to run the compiled binary
 CMD ["sleep", "infinity"]
