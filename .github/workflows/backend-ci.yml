@@ -63,31 +63,7 @@ jobs:
           cache-from: type=local,src=/tmp/backend-migration/.buildx-cache
           cache-to: type=local,dest=/tmp/backend-migration/.buildx-cache-new,mode=max
 
-      - name: Cache Backend DB Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/backend-db/.buildx-cache
-          key: ${{ runner.os }}-backend-db-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-backend-db-
-
-      - name: Create Backend DB Dockerfile
-        uses: mikefarah/yq@master
-        with:
-          cmd: |
-            IMAGE_NAME=$(yq '.services."backend-db".image' compose.yml)
-            echo "FROM $IMAGE_NAME" > Dockerfile.tmp
-
-      - name: Build Backend DB Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile.tmp
-          push: false
-          load: true
-          tags: ec-extension-backend-db:latest
-          cache-from: type=local,src=/tmp/backend-db/.buildx-cache
-          cache-to: type=local,dest=/tmp/backend-db/.buildx-cache-new,mode=max
+      # backend-db uses the official image as-is and does not add custom layers, so no cache required
 
       - name: Move cache
         run: |
@@ -95,8 +71,6 @@ jobs:
           mv /tmp/backend/.buildx-cache-new /tmp/backend/.buildx-cache
           rm -rf /tmp/backend-migration/.buildx-cache
           mv /tmp/backend-migration/.buildx-cache-new /tmp/backend-migration/.buildx-cache
-          rm -rf /tmp/backend-db/.buildx-cache
-          mv /tmp/backend-db/.buildx-cache-new /tmp/backend-db/.buildx-cache
 
       - name: Start containers
         run: |
