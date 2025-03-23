@@ -52,8 +52,8 @@ jobs:
       - name: Start containers
         run: |
           cp backend/.env.example backend/.env
-          DOCKER_BUILDKIT=1 docker compose -f compose.ci.yml up -d
+          DOCKER_BUILDKIT=1 docker compose up -d
 
       - name: Run tests
         run: |
-          docker compose -f compose.ci.yml exec backend /bin/sh -c "cargo test --all-features"
+          docker compose exec backend /bin/sh -c "cargo test --all-features"

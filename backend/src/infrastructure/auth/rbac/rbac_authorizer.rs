@@ -215,10 +215,6 @@ mod tests {
     const ADMIN_ROLE_ID: i32 = 1;
 
     async fn transaction_manager() -> SeaOrmTransactionManager {
-        env::set_var(
-            "DATABASE_URL",
-            "postgres://postgres:postgres@backend-db/postgres",
-        );
         let connection_provider = SeaOrmConnectionProvider::new(
             DatabaseConfig::new().expect("Failed to get database config"),
         )
