@@ -7,6 +7,7 @@ on:
       - ".github/workflows/backend-ci.yml"
       - "!apidef/**"
       - "!migration/**"
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
