@@ -7,7 +7,6 @@ import { KeyValueStorageInterface } from "aws-amplify/utils"
 import { useAtom } from "jotai"
 import { useCallback, useEffect, useRef } from "react"
 
-import config from "@/amplifyconfiguration.json"
 import { usePostSignIn } from "@/generated/backend"
 import { errorAtom, loadingAtom, userAtom } from "@/lib/stores"
 import { AuthTokens, SignInInput, SignUpParameters, User } from "@/types/auth"
@@ -54,7 +53,14 @@ class MemoryStorage implements KeyValueStorageInterface {
 const memoryStorage = new MemoryStorage()
 
 // Amplify configuration
-Amplify.configure(config)
+Amplify.configure({
+  Auth: {
+    Cognito: {
+      userPoolId: process.env.NEXT_PUBLIC_AUTH_USER_POOL_ID || "",
+      userPoolClientId: process.env.NEXT_PUBLIC_AUTH_USER_POOL_CLIENT_ID || "",
+    },
+  },
+})
 cognitoUserPoolsTokenProvider.setKeyValueStorage(memoryStorage)
 
 /**

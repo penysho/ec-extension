@@ -7,6 +7,11 @@ on:
       - ".github/workflows/backend-ci.yml"
       - "!apidef/**"
       - "!migration/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
