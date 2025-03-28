@@ -37,6 +37,10 @@ jobs:
         run: |
           npm run lint
 
+      - name: Pull Amplify
+        run: |
+          amplify pull
+
       - name: Run build
         run: |
           npm run build
