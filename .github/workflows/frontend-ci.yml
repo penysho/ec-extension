@@ -37,11 +37,6 @@ jobs:
         run: |
           npm run lint
 
-      - name: Pull Amplify
-        run: |
-          npm install -g @aws-amplify/cli
-          amplify pull
-
       - name: Run build
         run: |
           npm run build
