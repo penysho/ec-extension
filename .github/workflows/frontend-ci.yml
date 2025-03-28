@@ -39,6 +39,8 @@ jobs:
 
       - name: Pull Amplify
         run: |
+          cd frontend/real-shop
+          npm install -g @aws-amplify/cli
           amplify pull
 
       - name: Run build
