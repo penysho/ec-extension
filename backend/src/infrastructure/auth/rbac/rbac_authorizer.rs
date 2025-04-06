@@ -104,7 +104,7 @@ impl RbacAuthorizer {
                 .await
         }
         .map_err(|e| {
-            log_error!("Failed to get role resource permissions, error: {:?}", e);
+            log_error!("Failed to get role resource permissions, error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
         Ok(role_resource_permission)

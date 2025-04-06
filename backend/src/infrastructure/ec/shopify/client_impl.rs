@@ -65,12 +65,12 @@ impl ECClient for ShopifyGQLClient {
             .send()
             .await
             .map_err(|e| {
-                log_error!("Error returned by GraphQL run. Error: {:?}", e);
+                log_error!("Error returned by GraphQL run. Error."; "error" => %e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
         let graphql_response = response.json::<T>().await.map_err(|e| {
-            log_error!("Failed to parse GraphQL query response. Error: {:?}", e);
+            log_error!("Failed to parse GraphQL query response. Error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
         })?;
 
@@ -100,12 +100,12 @@ impl ECClient for ShopifyGQLClient {
             .send()
             .await
             .map_err(|e| {
-                log_error!("Error returned by GraphQL run. Error: {:?}", e);
+                log_error!("Error returned by GraphQL run. Error."; "error" => %e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
         let graphql_response = response.json::<U>().await.map_err(|e| {
-            log_error!("Failed to parse GraphQL query response. Error: {:?}", e);
+            log_error!("Failed to parse GraphQL query response. Error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
         })?;
 

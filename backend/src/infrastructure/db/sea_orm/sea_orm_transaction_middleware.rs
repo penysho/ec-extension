@@ -34,7 +34,7 @@ pub async fn sea_orm_transaction_middleware(
         SeaOrmTransactionManager::new(Arc::clone(&connection_provider.get_connection()))
             .await
             .map_err(|e| {
-                log_error!("Initialization of transaction manager failed: {}", e);
+                log_error!("Initialization of transaction manager failed."; "error" => %e);
                 error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
             })?;
 
@@ -89,9 +89,7 @@ pub async fn sea_orm_transaction_middleware(
         Err(err) => {
             // This branch assumes an error before the application logic is called, so there is no need to explicitly roll back
             // TODO: Consideration when the program panics
-            log_error!(
-                "Transaction cannot be rolled back because a response cannot be obtained"
-            );
+            log_error!("Transaction cannot be rolled back because a response cannot be obtained");
             Err(err)
         }
     }

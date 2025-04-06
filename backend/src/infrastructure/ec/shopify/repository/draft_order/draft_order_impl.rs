@@ -198,7 +198,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
     async fn create(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError> {
         let schema = DraftOrderInput::from(draft_order);
         let input = serde_json::to_value(schema).map_err(|e| {
-            log_error!("Failed to parse the request structure. Error: {:?}", e);
+            log_error!("Failed to parse the request structure. Error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
         })?;
 
@@ -293,7 +293,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
             _ => {
                 let input =
                     serde_json::to_value(DraftOrderInput::from(draft_order)).map_err(|e| {
-                        log_error!("Failed to parse the request structure. Error: {:?}", e);
+                        log_error!("Failed to parse the request structure. Error."; "error" => %e);
                         InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
                     })?;
 
@@ -342,7 +342,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
     async fn delete(&self, draft_order: DraftOrder) -> Result<DraftOrderId, DomainError> {
         let input =
             serde_json::to_value(DraftOrderDeleteInput::from(draft_order)).map_err(|e| {
-                log_error!("Failed to parse the request structure. Error: {:?}", e);
+                log_error!("Failed to parse the request structure. Error."; "error" => %e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
             })?;
 

@@ -1,10 +1,7 @@
 use derive_getters::Getters;
 use regex::Regex;
 
-use crate::{
-    domain::error::error::DomainError,
-    log_error
-};
+use crate::{domain::error::error::DomainError, log_error};
 
 /// Phone value object.
 ///
@@ -35,7 +32,7 @@ impl Phone {
             return Ok(Self { value });
         }
 
-        log_error!("Invalid phone number: {}", value);
+        log_error!("Invalid phone number."; "value" => value);
         Err(DomainError::ValidationError)
     }
 }

@@ -229,7 +229,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let location_id = schema.changes[0].location_id.clone();
 
         let input = serde_json::to_value(schema).map_err(|e| {
-            log_error!("Failed to parse the request structure. Error: {:?}", e);
+            log_error!("Failed to parse the request structure. Error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
         })?;
 

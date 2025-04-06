@@ -31,7 +31,7 @@ impl Email {
         if value.contains('@') {
             Ok(Self { value })
         } else {
-            log_error!("Invalid email address: {}", value);
+            log_error!("Invalid email address."; "value" => value);
             Err(DomainError::ValidationError)
         }
     }

@@ -20,7 +20,7 @@ use crate::{
         inventory::inventory_impl::InventoryPresenterImpl,
         inventory_presenter_interface::InventoryPresenter,
     },
-    log_error
+    log_error,
 };
 
 use super::{controller::Controller, interactor_provider_interface::InteractorProvider};
@@ -58,7 +58,7 @@ where
             "safety_stock" => InventoryType::SafetyStock,
             "reserved" => InventoryType::Reserved,
             _ => {
-                log_error!("Invalid inventory type: {}", body.name);
+                log_error!("Invalid inventory type."; "name" => body.name.clone());
                 Err(DomainError::InvalidRequest)?
             }
         };
@@ -79,7 +79,7 @@ where
             "reservation_deleted" => InventoryChangeReason::ReservationDeleted,
             "reservation_updated" => InventoryChangeReason::ReservationUpdated,
             _ => {
-                log_error!("Invalid inventory change reason: {}", body.reason);
+                log_error!("Invalid inventory change reason."; "reason" => body.reason.clone());
                 Err(DomainError::InvalidRequest)?
             }
         };
