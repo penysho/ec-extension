@@ -93,7 +93,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let graphql_response: GraphQLResponse<VariantsData> = self.client.query(&query).await?;
         match graphql_response.errors {
             Some(errors) => {
-                log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+                log_error!("Error returned in GraphQL response."; "Response" => ?errors);
                 Err(DomainError::QueryError)
             }
             None => {

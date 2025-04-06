@@ -142,7 +142,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
         let graphql_response: GraphQLResponse<DraftOrderData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response."; "Response" => ?errors);
             return Err(DomainError::QueryError);
         }
 
@@ -179,7 +179,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
         let graphql_response: GraphQLResponse<DraftOrdersData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response."; "Response" => ?errors);
             return Err(DomainError::QueryError);
         }
 
@@ -219,7 +219,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         let graphql_response: GraphQLResponse<DraftOrderCreateData> =
             self.client.mutation(&query, &input).await?;
         if let Some(errors) = graphql_response.errors {
-            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response."; "Response" => ?errors);
             return Err(DomainError::SaveError);
         }
 
@@ -268,7 +268,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                     .mutation(&query, &serde_json::to_value("").unwrap())
                     .await?;
                 if let Some(errors) = graphql_response.errors {
-                    log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+                    log_error!("Error returned in GraphQL response."; "Response" => ?errors);
                     return Err(DomainError::SaveError);
                 }
 
@@ -314,7 +314,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                 let graphql_response: GraphQLResponse<DraftOrderUpdateData> =
                     self.client.mutation(&query, &input).await?;
                 if let Some(errors) = graphql_response.errors {
-                    log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+                    log_error!("Error returned in GraphQL response."; "Response" => ?errors);
                     return Err(DomainError::SaveError);
                 }
 
@@ -324,7 +324,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                     .draft_order_update;
 
                 if !data.user_errors.is_empty() {
-                    log_error!("UserErrors returned. userErrors: {:?}", user_errors);
+                    log_error!("UserErrors returned."; "userErrors" => ?user_errors);
                     return Err(DomainError::SaveError);
                 }
 
@@ -360,7 +360,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         let graphql_response: GraphQLResponse<DraftOrderDeleteData> =
             self.client.mutation(&query, &input).await?;
         if let Some(errors) = graphql_response.errors {
-            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response."; "Response" => ?errors);
             return Err(DomainError::DeleteError);
         }
 
@@ -370,7 +370,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
             .draft_order_delete;
 
         if !data.user_errors.is_empty() {
-            log_error!("UserErrors returned. userErrors: {:?}", user_errors);
+            log_error!("UserErrors returned."; "userErrors" => ?user_errors);
             return Err(DomainError::DeleteError);
         }
 

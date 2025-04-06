@@ -101,7 +101,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let graphql_response: GraphQLResponse<InventoryItemsData> =
             self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response."; "Response" => ?errors);
             return Err(DomainError::QueryError);
         }
 
@@ -172,7 +172,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             let graphql_response: GraphQLResponse<InventoryItemsData> =
                 self.client.query(&query).await?;
             if let Some(errors) = graphql_response.errors {
-                log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+                log_error!("Error returned in GraphQL response."; "Response" => ?errors);
                 return Err(DomainError::QueryError);
             }
 
@@ -265,7 +265,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let graphql_response: GraphQLResponse<InventoryAdjustQuantitiesData> =
             self.client.mutation(&query, &input).await?;
         if let Some(errors) = graphql_response.errors {
-            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response."; "Response" => ?errors);
             return Err(DomainError::SaveError);
         }
 
@@ -275,7 +275,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             .inventory_adjust_quantities;
 
         if !data.user_errors.is_empty() {
-            log_error!("UserErrors returned. userErrors: {:?}", data.user_errors);
+            log_error!("UserErrors returned."; "userErrors" => ?data.user_errors);
             return Err(DomainError::SaveError);
         }
 

@@ -59,7 +59,7 @@ impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C>
 
         let graphql_response: GraphQLResponse<LocationsData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response."; "Response" => ?errors);
             return Err(DomainError::QueryError);
         }
 
@@ -122,7 +122,7 @@ impl<C: ECClient + Send + Sync> LocationRepository for LocationRepositoryImpl<C>
             let graphql_response: GraphQLResponse<LocationsData> =
                 self.client.query(&query).await?;
             if let Some(errors) = graphql_response.errors {
-                log_error!("Error returned in GraphQL response. Response: {:?}", errors);
+                log_error!("Error returned in GraphQL response."; "Response" => ?errors);
                 return Err(DomainError::QueryError);
             }
 
