@@ -74,28 +74,28 @@ impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C>
         );
 
         let graphql_response: GraphQLResponse<CustomersData> = self.client.query(&query).await?;
-        match graphql_response.errors {
-            Some(errors) => {
-                log_error!("Error returned in GraphQL response. Response: {:?}", errors);
-                Err(DomainError::SystemError)
-            }
-            None => {
-                let data = graphql_response.data.ok_or(DomainError::SystemError)?;
-                let customers = data.customers.edges;
-
-                if customers.is_empty() {
-                    log_error!("No customer found for email: {}", email);
-                    return Err(DomainError::NotFound);
-                }
-
-                let nodes: Vec<CustomerNode> =
-                    customers.into_iter().map(|node| node.node).collect();
-
-                let domains = CustomerNode::to_domains(nodes)?;
-
-                Ok(domains.into_iter().next().unwrap())
-            }
+        if let Some(errors) = graphql_response.errors {
+            log_error!("Error returned in GraphQL response. Response."; "errors" => ?errors);
+            return Err(DomainError::QueryError);
         }
+
+        let nodes: Vec<CustomerNode> = graphql_response
+            .data
+            .ok_or(DomainError::QueryError)?
+            .customers
+            .edges
+            .into_iter()
+            .map(|node| node.node)
+            .collect();
+
+        let domains = CustomerNode::to_domains(nodes)?;
+
+        if domains.is_empty() {
+            log_error!("No customer found for email."; "email" => email.clone());
+            return Err(DomainError::NotFound);
+        }
+
+        Ok(domains.into_iter().next().unwrap())
     }
 }
 
