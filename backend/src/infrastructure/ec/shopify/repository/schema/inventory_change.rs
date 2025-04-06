@@ -10,6 +10,7 @@ use crate::{
         },
     },
     infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::UserError},
+    log_error
 };
 
 use super::{inventory_item::InventoryItemNode, inventory_level::InventoryLevelNode};
@@ -132,7 +133,7 @@ impl InventoryAdjustmentGroupNode {
             .collect::<Vec<_>>();
 
         if changes.is_empty() {
-            log::error!("Unable to retrieve inventory update results.");
+            log_error!("Unable to retrieve inventory update results.");
             return Err(DomainError::SaveError);
         }
 

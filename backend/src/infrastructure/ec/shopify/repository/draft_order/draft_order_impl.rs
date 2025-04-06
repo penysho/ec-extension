@@ -24,6 +24,7 @@ use crate::{
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
+    log_error,
     usecase::repository::draft_order_repository_interface::DraftOrderRepository,
 };
 
@@ -141,7 +142,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
         let graphql_response: GraphQLResponse<DraftOrderData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
             return Err(DomainError::QueryError);
         }
 
@@ -178,7 +179,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
 
         let graphql_response: GraphQLResponse<DraftOrdersData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
             return Err(DomainError::QueryError);
         }
 
@@ -197,7 +198,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
     async fn create(&self, draft_order: DraftOrder) -> Result<DraftOrder, DomainError> {
         let schema = DraftOrderInput::from(draft_order);
         let input = serde_json::to_value(schema).map_err(|e| {
-            log::error!("Failed to parse the request structure. Error: {:?}", e);
+            log_error!("Failed to parse the request structure. Error: {:?}", e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
         })?;
 
@@ -218,7 +219,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         let graphql_response: GraphQLResponse<DraftOrderCreateData> =
             self.client.mutation(&query, &input).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
             return Err(DomainError::SaveError);
         }
 
@@ -228,14 +229,14 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
             .draft_order_create;
 
         if !data.user_errors.is_empty() {
-            log::error!("UserErrors returned. userErrors: {:?}", user_errors);
+            log_error!("UserErrors returned. userErrors: {:?}", user_errors);
             return Err(DomainError::SaveError);
         }
 
         match data.draft_order {
             Some(draft_order) => draft_order.to_domain(),
             None => {
-                log::error!("No draft order returned.");
+                log_error!("No draft order returned.");
                 Err(DomainError::SaveError)
             }
         }
@@ -267,7 +268,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                     .mutation(&query, &serde_json::to_value("").unwrap())
                     .await?;
                 if let Some(errors) = graphql_response.errors {
-                    log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+                    log_error!("Error returned in GraphQL response. Response: {:?}", errors);
                     return Err(DomainError::SaveError);
                 }
 
@@ -277,14 +278,14 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                     .draft_order_complete;
 
                 if !data.user_errors.is_empty() {
-                    log::error!("UserErrors returned. userErrors: {:?}", user_errors);
+                    log_error!("UserErrors returned. userErrors: {:?}", user_errors);
                     return Err(DomainError::SaveError);
                 }
 
                 match data.draft_order {
                     Some(draft_order) => draft_order.to_domain(),
                     None => {
-                        log::error!("No draft order returned.");
+                        log_error!("No draft order returned.");
                         Err(DomainError::SaveError)
                     }
                 }
@@ -292,7 +293,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
             _ => {
                 let input =
                     serde_json::to_value(DraftOrderInput::from(draft_order)).map_err(|e| {
-                        log::error!("Failed to parse the request structure. Error: {:?}", e);
+                        log_error!("Failed to parse the request structure. Error: {:?}", e);
                         InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
                     })?;
 
@@ -313,7 +314,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                 let graphql_response: GraphQLResponse<DraftOrderUpdateData> =
                     self.client.mutation(&query, &input).await?;
                 if let Some(errors) = graphql_response.errors {
-                    log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+                    log_error!("Error returned in GraphQL response. Response: {:?}", errors);
                     return Err(DomainError::SaveError);
                 }
 
@@ -323,14 +324,14 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
                     .draft_order_update;
 
                 if !data.user_errors.is_empty() {
-                    log::error!("UserErrors returned. userErrors: {:?}", user_errors);
+                    log_error!("UserErrors returned. userErrors: {:?}", user_errors);
                     return Err(DomainError::SaveError);
                 }
 
                 match data.draft_order {
                     Some(draft_order) => draft_order.to_domain(),
                     None => {
-                        log::error!("No draft order returned.");
+                        log_error!("No draft order returned.");
                         Err(DomainError::SaveError)
                     }
                 }
@@ -341,7 +342,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
     async fn delete(&self, draft_order: DraftOrder) -> Result<DraftOrderId, DomainError> {
         let input =
             serde_json::to_value(DraftOrderDeleteInput::from(draft_order)).map_err(|e| {
-                log::error!("Failed to parse the request structure. Error: {:?}", e);
+                log_error!("Failed to parse the request structure. Error: {:?}", e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
             })?;
 
@@ -359,7 +360,7 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
         let graphql_response: GraphQLResponse<DraftOrderDeleteData> =
             self.client.mutation(&query, &input).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
             return Err(DomainError::DeleteError);
         }
 
@@ -369,14 +370,14 @@ impl<C: ECClient + Send + Sync> DraftOrderRepository for DraftOrderRepositoryImp
             .draft_order_delete;
 
         if !data.user_errors.is_empty() {
-            log::error!("UserErrors returned. userErrors: {:?}", user_errors);
+            log_error!("UserErrors returned. userErrors: {:?}", user_errors);
             return Err(DomainError::DeleteError);
         }
 
         match data.deleted_id {
             Some(deleted_id) => Ok(ShopifyGQLHelper::remove_gid_prefix(&deleted_id)),
             None => {
-                log::error!("No draft order returned.");
+                log_error!("No draft order returned.");
                 Err(DomainError::DeleteError)
             }
         }

@@ -1,8 +1,10 @@
+use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use crate::domain::{
     error::error::DomainError, inventory_level::quantity::quantity::InventoryType,
 };
+use crate::log_error;
 
 use super::change::change::Change;
 
@@ -78,7 +80,9 @@ impl InventoryChange {
                     .count()
                     > 0 =>
             {
-                log::error!("Available inventory cannot have ledger document URIs");
+                log_error!(
+                    "Available inventory cannot have ledger document URIs"
+                );
                 return Err(DomainError::ValidationError);
             }
             InventoryType::Available => {}
@@ -88,7 +92,7 @@ impl InventoryChange {
                 .count()
                 > 0 =>
             {
-                log::error!("Inventory change must have ledger document URIs");
+                log_error!("Inventory change must have ledger document URIs");
                 return Err(DomainError::ValidationError);
             }
             _ => {}

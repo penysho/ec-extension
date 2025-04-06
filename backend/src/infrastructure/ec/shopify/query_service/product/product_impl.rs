@@ -9,6 +9,7 @@ use crate::{
             schema::GraphQLResponse,
         },
     },
+    log_error,
     usecase::query_service::{
         dto::product::ProductDTO,
         product_query_service_interface::{ProductQueryService, RelatedProductFilter},
@@ -76,7 +77,7 @@ impl<C: ECClient + Send + Sync> ProductQueryService for ProductQueryServiceImpl<
 
         let response: GraphQLResponse<RelatedProductsData> = self.client.query(&query).await?;
         if let Some(errors) = response.errors {
-            log::error!(
+            log_error!(
                 "Error returned in Products response. Response: {:?}",
                 errors
             );

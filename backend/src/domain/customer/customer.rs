@@ -1,14 +1,17 @@
 use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
-use crate::domain::{
-    address::address::Address,
-    authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
-    email::email::Email,
-    error::error::DomainError,
-    media::media_content::image::image::Image,
-    phone::phone::Phone,
-    user::user::Id as UserId,
+use crate::{
+    domain::{
+        address::address::Address,
+        authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+        email::email::Email,
+        error::error::DomainError,
+        media::media_content::image::image::Image,
+        phone::phone::Phone,
+        user::user::Id as UserId,
+    },
+    log_error,
 };
 
 pub type Id = String;
@@ -86,12 +89,12 @@ impl Customer {
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
-            log::error!("Id cannot be empty");
+            log_error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
         let display_name = display_name.into();
         if display_name.is_empty() {
-            log::error!("Display name cannot be empty");
+            log_error!("Display name cannot be empty");
             return Err(DomainError::ValidationError);
         }
         if let Some(default_address) = &default_address {
@@ -99,7 +102,7 @@ impl Customer {
                 .iter()
                 .any(|a| a.clone() == default_address.clone())
             {
-                log::error!("Default address ID is invalid");
+                log_error!("Default address ID is invalid");
                 return Err(DomainError::ValidationError);
             }
         }

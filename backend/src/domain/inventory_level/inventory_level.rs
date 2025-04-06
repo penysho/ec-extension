@@ -1,6 +1,9 @@
-use crate::domain::{
-    error::error::DomainError, inventory_item::inventory_item::Id as InventoryItemId,
-    location::location::Id as LocationId,
+use crate::{
+    domain::{
+        error::error::DomainError, inventory_item::inventory_item::Id as InventoryItemId,
+        location::location::Id as LocationId,
+    },
+    log_error,
 };
 use derive_getters::Getters;
 
@@ -35,14 +38,14 @@ pub struct InventoryLevel {
 
 impl InventoryLevel {
     pub fn new(
-        id: impl Into<String>,
+        id: impl Into<Id>,
         inventory_item_id: impl Into<InventoryItemId>,
         location_id: impl Into<LocationId>,
         quantities: Vec<Quantity>,
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
-            log::error!("Id cannot be empty");
+            log_error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
 

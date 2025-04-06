@@ -2,7 +2,10 @@ use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use super::media_content::media_content::MediaContent;
-use crate::domain::error::error::DomainError;
+use crate::{
+    domain::error::error::DomainError,
+    log_error
+};
 
 pub type Id = String;
 
@@ -45,7 +48,7 @@ impl Media {
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
-            log::error!("Id cannot be empty");
+            log_error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
 

@@ -18,6 +18,7 @@ use crate::{
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
+    log_error,
     usecase::repository::media_repository_interface::MediaRepository,
 };
 
@@ -80,24 +81,27 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         );
 
         let graphql_response: GraphQLResponse<MediaData> = self.client.query(&query).await?;
-        if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response= {:?}", errors);
-            return Err(DomainError::QueryError);
+        match graphql_response.errors {
+            Some(errors) => {
+                log_error!("Error returned in GraphQL response. Response= {:?}", errors);
+                Err(DomainError::SystemError)
+            }
+            None => {
+                let media_domains: Result<Vec<Media>, DomainError> = graphql_response
+                    .data
+                    .ok_or(DomainError::SystemError)?
+                    .files
+                    .edges
+                    .into_iter()
+                    .map(|node| {
+                        node.node
+                            .to_domain(Some(AssociatedId::Product(id.to_string())))
+                    })
+                    .collect();
+
+                media_domains
+            }
         }
-
-        let media_domains: Result<Vec<Media>, DomainError> = graphql_response
-            .data
-            .ok_or(DomainError::QueryError)?
-            .files
-            .edges
-            .into_iter()
-            .map(|node| {
-                node.node
-                    .to_domain(Some(AssociatedId::Product(id.to_string())))
-            })
-            .collect();
-
-        media_domains
     }
 
     async fn find_media_by_product_ids(
@@ -127,46 +131,50 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
         query.push_str(" }");
 
         let graphql_response: GraphQLResponse<Value> = self.client.query(&query).await?;
-        if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response= {:?}", errors);
-            return Err(DomainError::QueryError);
-        }
+        match graphql_response.errors {
+            Some(errors) => {
+                log_error!("Error returned in GraphQL response. Response= {:?}", errors);
+                Err(DomainError::SystemError)
+            }
+            None => {
+                let data = match graphql_response.data {
+                    Some(data) => data,
+                    None => return Ok(vec![]),
+                };
 
-        let data = graphql_response.data.ok_or(DomainError::QueryError)?;
+                let mut media_nodes = Vec::new();
+                for (i, _) in product_ids.iter().enumerate() {
+                    let alias = format!("i{}", i);
 
-        if !data.is_object() {
-            log::error!("Expected data to be an object, but got: {:?}", data);
-            return Err(DomainError::QueryError);
-        }
-
-        let mut media_nodes = Vec::new();
-        for (i, _) in product_ids.iter().enumerate() {
-            let alias = format!("i{}", i);
-
-            if let Some(file_data) = data.get(&alias).and_then(|d| d.as_object()) {
-                if let Some(files) = file_data.get("edges").and_then(|f| f.as_array()) {
-                    for edge in files {
-                        let node = &edge["node"];
-                        let v: MediaNode = serde_json::from_value(node.clone()).map_err(|e| {
-                            InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
-                        })?;
-                        media_nodes.push(v);
+                    if let Some(file_data) = data.get(&alias).and_then(|d| d.as_object()) {
+                        if let Some(files) = file_data.get("edges").and_then(|f| f.as_array()) {
+                            for edge in files {
+                                let node = &edge["node"];
+                                let v: MediaNode =
+                                    serde_json::from_value(node.clone()).map_err(|e| {
+                                        InfrastructureErrorMapper::to_domain(
+                                            InfrastructureError::ParseError(e),
+                                        )
+                                    })?;
+                                media_nodes.push(v);
+                            }
+                        }
+                    } else {
+                        log_error!("No data found for alias: {}", alias);
                     }
                 }
-            } else {
-                log::error!("No data found for alias: {}", alias);
+
+                let media_domains: Result<Vec<Media>, DomainError> = MediaNode::to_domains(
+                    media_nodes,
+                    product_ids
+                        .into_iter()
+                        .map(|id| Some(AssociatedId::Product(id.to_string())))
+                        .collect(),
+                );
+
+                media_domains
             }
         }
-
-        let media_domains: Result<Vec<Media>, DomainError> = MediaNode::to_domains(
-            media_nodes,
-            product_ids
-                .into_iter()
-                .map(|id| Some(AssociatedId::Product(id.to_string())))
-                .collect(),
-        );
-
-        media_domains
     }
 }
 

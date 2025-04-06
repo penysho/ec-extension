@@ -1,9 +1,12 @@
 use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
-use crate::domain::{
-    error::error::DomainError, inventory_item::inventory_item::Id as InventoryItemId,
-    money::amount::amount::Amount,
+use crate::{
+    domain::{
+        error::error::DomainError, inventory_item::inventory_item::Id as InventoryItemId,
+        money::amount::amount::Amount,
+    },
+    log_error
 };
 
 use super::{barcode::barcode::Barcode, sku::sku::Sku};
@@ -75,13 +78,13 @@ impl Variant {
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
-            log::error!("Id cannot be empty");
+            log_error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
         let name = name.map(|n| n.into());
         if let Some(ref n) = name {
             if n.is_empty() {
-                log::error!("Name cannot be empty");
+                log_error!("Name cannot be empty");
                 return Err(DomainError::ValidationError);
             }
         }

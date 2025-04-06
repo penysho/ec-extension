@@ -1,8 +1,11 @@
 use derive_getters::Getters;
 
-use crate::domain::{
-    error::error::DomainError,
-    media::{associated_id::associated_id::AssociatedId, src::src::Src},
+use crate::{
+    domain::{
+        error::error::DomainError,
+        media::{associated_id::associated_id::AssociatedId, src::src::Src},
+    },
+    log_error
 };
 
 pub type Id = String;
@@ -44,7 +47,7 @@ impl Image {
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
-            log::error!("Id cannot be empty");
+            log_error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
 
