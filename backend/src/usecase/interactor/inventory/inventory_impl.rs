@@ -17,6 +17,7 @@ use crate::{
         location::location::Id as LocationId,
         product::variant::sku::sku::Sku,
     },
+    log_error,
     usecase::{
         interactor::inventory_interactor_interface::{GetInventoriesQuery, InventoryInteractor},
         repository::{
@@ -92,10 +93,10 @@ impl InventoryInteractor for InventoryInteractorImpl {
             .find_inventory_level_by_sku_with_location_id(sku, location_id)
             .await?
             .ok_or_else(|| {
-                log::error!(
-                    "InventoryLevel for the specified SKU is not found. SKU: {:?}, LocationId: {}",
-                    sku,
-                    location_id
+                log_error!(
+                    "InventoryLevel for the specified SKU is not found.";
+                    "SKU" => sku.value(),
+                    "LocationId" => location_id
                 );
                 DomainError::NotFound
             })?;

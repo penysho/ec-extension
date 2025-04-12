@@ -1,4 +1,5 @@
 use crate::domain::{error::error::DomainError, product::variant::variant::Id as VariantId};
+use crate::log_error;
 use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
@@ -39,7 +40,7 @@ impl InventoryItem {
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
-            log::error!("Id cannot be empty");
+            log_error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
 

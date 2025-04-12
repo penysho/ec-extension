@@ -26,6 +26,7 @@ use crate::{
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
+    log_error,
     usecase::repository::inventory_level_repository_interface::InventoryLevelRepository,
 };
 
@@ -100,7 +101,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let graphql_response: GraphQLResponse<InventoryItemsData> =
             self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response."; "Response" => ?errors);
             return Err(DomainError::QueryError);
         }
 
@@ -116,7 +117,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let domains = InventoryLevelNode::to_domains(nodes)?;
 
         if domains.is_empty() {
-            log::info!("No inventory level found for sku: {sku}, location: {location_id}");
+            log_error!("No inventory level found for sku: {sku}, location: {location_id}");
             return Ok(None);
         }
         Ok(domains.into_iter().next())
@@ -171,7 +172,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             let graphql_response: GraphQLResponse<InventoryItemsData> =
                 self.client.query(&query).await?;
             if let Some(errors) = graphql_response.errors {
-                log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+                log_error!("Error returned in GraphQL response."; "Response" => ?errors);
                 return Err(DomainError::QueryError);
             }
 
@@ -204,7 +205,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             }
             // NOTE: The maximum number of locations in a single shop on shopify is 1000.
             if all_nodes.len() > 1000 {
-                log::warn!("Too many inventory levels found for sku: {sku}");
+                log_error!("Too many inventory levels found for sku: {sku}");
                 break;
             }
         }
@@ -218,7 +219,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
     ) -> Result<InventoryLevel, DomainError> {
         let schema = InventoryAdjustQuantitiesInput::from(inventory_change);
         if schema.changes.len() != 1 {
-            log::error!(
+            log_error!(
                 "Only one change is supported. Changes: {:?}",
                 schema.changes
             );
@@ -228,7 +229,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let location_id = schema.changes[0].location_id.clone();
 
         let input = serde_json::to_value(schema).map_err(|e| {
-            log::error!("Failed to parse the request structure. Error: {:?}", e);
+            log_error!("Failed to parse the request structure. Error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::ParseError(e))
         })?;
 
@@ -264,7 +265,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
         let graphql_response: GraphQLResponse<InventoryAdjustQuantitiesData> =
             self.client.mutation(&query, &input).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response."; "Response" => ?errors);
             return Err(DomainError::SaveError);
         }
 
@@ -274,7 +275,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
             .inventory_adjust_quantities;
 
         if !data.user_errors.is_empty() {
-            log::error!("UserErrors returned. userErrors: {:?}", user_errors);
+            log_error!("UserErrors returned."; "userErrors" => ?data.user_errors);
             return Err(DomainError::SaveError);
         }
 
@@ -283,7 +284,7 @@ impl<C: ECClient + Send + Sync> InventoryLevelRepository for InventoryLevelRepos
                 inventory_adjustment_group.to_inventory_level_domain()
             }
             None => {
-                log::error!("No inventory level returned.");
+                log_error!("No inventory level returned.");
                 Err(DomainError::SaveError)
             }
         }

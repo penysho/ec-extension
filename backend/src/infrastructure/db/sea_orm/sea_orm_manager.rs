@@ -13,6 +13,7 @@ use crate::{
         db::transaction_manager_interface::TransactionManager,
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
+    log_error,
 };
 
 /// Connection provider for SeaORM.
@@ -33,12 +34,12 @@ impl SeaOrmConnectionProvider {
             .max_lifetime(Duration::from_secs(*config.max_lifetime()));
 
         let conn = Database::connect(opt).await.map_err(|e| {
-            log::error!("Database connection error: {}", e);
+            log_error!("Database connection error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
 
         conn.ping().await.map_err(|e| {
-            log::error!("Database ping error: {}", e);
+            log_error!("Database ping error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
 
@@ -85,13 +86,13 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
         let mut lock = self.tran.lock().await;
         if lock.is_none() {
             let tran = self.conn.begin().await.map_err(|e| {
-                log::error!("Database transaction error: {}", e);
+                log_error!("Database transaction error."; "error" => %e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
             })?;
             *lock = Some(tran);
             Ok(())
         } else {
-            log::error!("Database transaction error: transaction is already started");
+            log_error!("Database transaction error: transaction is already started");
             Err(DomainError::SystemError)
         }
     }
@@ -107,7 +108,7 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
         if lock.is_some() {
             Ok(lock)
         } else {
-            log::error!("Database transaction error: transaction is not started");
+            log_error!("Database transaction error: transaction is not started");
             Err(DomainError::SystemError)
         }
     }
@@ -120,12 +121,12 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
         let mut lock = self.tran.lock().await;
         if let Some(tran) = lock.take() {
             tran.commit().await.map_err(|e| {
-                log::error!("Database commit error: {}", e);
+                log_error!("Database commit error."; "error" => %e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
             })?;
             Ok(())
         } else {
-            log::error!("Database commit error: transaction is not started");
+            log_error!("Database commit error: transaction is not started");
             Err(DomainError::SystemError)
         }
     }
@@ -134,12 +135,12 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
         let mut lock = self.tran.lock().await;
         if let Some(tran) = lock.take() {
             tran.rollback().await.map_err(|e| {
-                log::error!("Database rollback error: {}", e);
+                log_error!("Database rollback error."; "error" => %e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
             })?;
             Ok(())
         } else {
-            log::error!("Database rollback error: transaction is not started");
+            log_error!("Database rollback error: transaction is not started");
             Err(DomainError::SystemError)
         }
     }

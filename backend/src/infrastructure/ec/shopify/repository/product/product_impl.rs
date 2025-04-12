@@ -13,6 +13,7 @@ use crate::{
             schema::GraphQLResponse,
         },
     },
+    log_debug, log_error,
     usecase::repository::product_repository_interface::ProductRepository,
 };
 
@@ -90,27 +91,30 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         );
 
         let graphql_response: GraphQLResponse<VariantsData> = self.client.query(&query).await?;
-        if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
-            return Err(DomainError::QueryError);
+        match graphql_response.errors {
+            Some(errors) => {
+                log_error!("Error returned in GraphQL response."; "Response" => ?errors);
+                Err(DomainError::QueryError)
+            }
+            None => {
+                let variant_nodes: Vec<VariantNode> = graphql_response
+                    .data
+                    .ok_or(DomainError::QueryError)?
+                    .product_variants
+                    .edges
+                    .into_iter()
+                    .map(|node| node.node)
+                    .collect();
+
+                let domains = VariantNode::to_product_domains(variant_nodes)?;
+
+                if domains.is_empty() {
+                    log_error!("No product found for id: {}", id);
+                    return Err(DomainError::NotFound);
+                }
+                Ok(domains.into_iter().next().unwrap())
+            }
         }
-
-        let variant_nodes: Vec<VariantNode> = graphql_response
-            .data
-            .ok_or(DomainError::QueryError)?
-            .product_variants
-            .edges
-            .into_iter()
-            .map(|node| node.node)
-            .collect();
-
-        let domains = VariantNode::to_product_domains(variant_nodes)?;
-
-        if domains.is_empty() {
-            log::error!("No product found for id: {}", id);
-            return Err(DomainError::NotFound);
-        }
-        Ok(domains.into_iter().next().unwrap())
     }
 
     async fn find_products(
@@ -150,103 +154,109 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
 
             let products_response: GraphQLResponse<ProductsData> =
                 self.client.query(&products_query).await?;
-            if let Some(errors) = products_response.errors {
-                log::error!(
-                    "Error returned in Products response. Response: {:?}",
-                    errors
-                );
-                return Err(DomainError::QueryError);
-            }
-
-            let products_data = products_response
-                .data
-                .ok_or(DomainError::QueryError)?
-                .products;
-
-            if products_data.edges.is_empty() {
-                break;
-            }
-
-            // If only the upper limit is acquired and the acquisition is less than or equal to the offset, skip it.
-            products_cursor = products_data.page_info.end_cursor;
-            if products_data.edges.len() == query_limit
-                && query_limit * (i + 1) <= offset
-                && products_data.page_info.has_next_page
-            {
-                log::debug!(
-                    "Skip products. index: {:?} <= index < {:?}, offset: {:?}",
-                    i,
-                    (i + 1) * query_limit,
-                    offset,
-                );
-                continue;
-            }
-
-            let product_ids = products_data
-                .edges
-                .into_iter()
-                .map(|node| ShopifyGQLHelper::remove_gid_prefix(&node.node.id))
-                .collect::<Vec<String>>()
-                .join(",");
-
-            log::debug!("product_ids: {:?}", product_ids);
-
-            let mut variants_cursor = None;
-            let variant_fields = Self::variant_fields();
-            loop {
-                let variants_after_query = variants_cursor
-                    .as_deref()
-                    .map_or(String::new(), |a| format!("after: \"{}\"", a));
-
-                let variants_query = format!(
-                    "query {{
-                        productVariants({first_query}, {variants_after_query}, query: \"product_ids:'{product_ids}'\") {{
-                            edges {{
-                                node {{
-                                    {variant_fields}
-                                }}
-                            }}
-                            {page_info}
-                        }}
-                    }}"
-                );
-
-                let variants_response: GraphQLResponse<VariantsData> =
-                    self.client.query(&variants_query).await?;
-                if let Some(errors) = variants_response.errors {
-                    log::error!(
-                        "Error returned in Variants response. Response: {:?}",
+            match products_response.errors {
+                Some(errors) => {
+                    log_error!(
+                        "Error returned in Products response. Response: {:?}",
                         errors
                     );
                     return Err(DomainError::QueryError);
                 }
+                None => {
+                    let products_data = products_response
+                        .data
+                        .ok_or(DomainError::QueryError)?
+                        .products;
 
-                let variants_data = variants_response
-                    .data
-                    .ok_or(DomainError::QueryError)?
-                    .product_variants;
+                    if products_data.edges.is_empty() {
+                        break;
+                    }
 
-                let variants: Vec<VariantNode> = variants_data
-                    .edges
-                    .into_iter()
-                    .map(|node| node.node)
-                    .collect();
+                    // If only the upper limit is acquired and the acquisition is less than or equal to the offset, skip it.
+                    products_cursor = products_data.page_info.end_cursor;
+                    if products_data.edges.len() == query_limit
+                        && query_limit * (i + 1) <= offset
+                        && products_data.page_info.has_next_page
+                    {
+                        log_debug!(
+                            "Skip products. index: {:?} <= index < {:?}, offset: {:?}",
+                            i,
+                            (i + 1) * query_limit,
+                            offset,
+                        );
+                        continue;
+                    }
 
-                all_variants.extend(variants);
+                    let product_ids = products_data
+                        .edges
+                        .into_iter()
+                        .map(|node| ShopifyGQLHelper::remove_gid_prefix(&node.node.id))
+                        .collect::<Vec<String>>()
+                        .join(",");
 
-                variants_cursor = variants_data.page_info.end_cursor;
-                if !variants_data.page_info.has_next_page {
-                    break;
+                    log_debug!("product_ids: {:?}", product_ids);
+
+                    let mut variants_cursor = None;
+                    let variant_fields = Self::variant_fields();
+                    loop {
+                        let variants_after_query = variants_cursor
+                            .as_deref()
+                            .map_or(String::new(), |a| format!("after: \"{}\"", a));
+
+                        let variants_query = format!(
+                            "query {{
+                                productVariants({first_query}, {variants_after_query}, query: \"product_ids:'{product_ids}'\") {{
+                                    edges {{
+                                        node {{
+                                            {variant_fields}
+                                        }}
+                                    }}
+                                    {page_info}
+                                }}
+                            }}"
+                        );
+
+                        let variants_response: GraphQLResponse<VariantsData> =
+                            self.client.query(&variants_query).await?;
+                        match variants_response.errors {
+                            Some(errors) => {
+                                log_error!(
+                                    "Error returned in Variants response. Response: {:?}",
+                                    errors
+                                );
+                                return Err(DomainError::QueryError);
+                            }
+                            None => {
+                                let variants_data = variants_response
+                                    .data
+                                    .ok_or(DomainError::QueryError)?
+                                    .product_variants;
+
+                                let variants: Vec<VariantNode> = variants_data
+                                    .edges
+                                    .into_iter()
+                                    .map(|node| node.node)
+                                    .collect();
+
+                                all_variants.extend(variants);
+
+                                variants_cursor = variants_data.page_info.end_cursor;
+                                if !variants_data.page_info.has_next_page {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if !products_data.page_info.has_next_page {
+                        break;
+                    }
                 }
-            }
-
-            if !products_data.page_info.has_next_page {
-                break;
             }
         }
 
         let product_domains = VariantNode::to_product_domains(all_variants)?;
-        log::debug!("product_domains.len(): {}", product_domains.len());
+        log_debug!("product_domains.len(): {}", product_domains.len());
 
         let start = offset % query_limit;
         let end = (start + limit).min(product_domains.len());

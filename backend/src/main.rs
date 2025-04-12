@@ -17,6 +17,7 @@ use std::sync::Arc;
 mod domain;
 mod infrastructure;
 mod interface;
+mod library;
 mod usecase;
 
 #[actix_web::main]

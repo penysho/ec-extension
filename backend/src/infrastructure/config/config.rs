@@ -42,14 +42,14 @@ pub struct AppConfig {
 
 impl AppConfig {
     pub fn new() -> Result<Self, DomainError> {
-        let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "debug".to_string());
+        let log_level = env::var("RUST_LOG").unwrap_or_else(|_| "debug".to_string());
         if !matches!(
             log_level.as_str(),
             "error" | "warn" | "info" | "debug" | "trace" | "off"
         ) {
             eprintln!(
-                "An invalid value has been set for LOG_LEVEL.
-                    Set one of ERROR, WARN, INFO, DEBUG, TRACE, or OFF. LOG_LEVEL= {}",
+                "An invalid value has been set for RUST_LOG.
+                    Set one of ERROR, WARN, INFO, DEBUG, TRACE, or OFF. RUST_LOG= {}",
                 log_level
             );
             return Err(DomainError::InitConfigError);

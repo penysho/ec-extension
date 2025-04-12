@@ -1,6 +1,7 @@
 use derive_getters::Getters;
 
 use crate::domain::{address::address::Address, error::error::DomainError};
+use crate::log_error;
 
 pub type Id = String;
 
@@ -25,7 +26,7 @@ pub struct Location {
 
 impl Location {
     pub fn new(
-        id: impl Into<String>,
+        id: impl Into<Id>,
         name: impl Into<String>,
         is_active: bool,
         fulfills_online_orders: bool,
@@ -34,12 +35,12 @@ impl Location {
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
-            log::error!("Id cannot be empty");
+            log_error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
         let name = name.into();
         if name.is_empty() {
-            log::error!("Name cannot be empty");
+            log_error!("Name cannot be empty");
             return Err(DomainError::ValidationError);
         }
 

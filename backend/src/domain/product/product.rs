@@ -1,8 +1,11 @@
 use derive_getters::Getters;
 
-use crate::domain::error::error::DomainError;
+use crate::{
+    domain::{error::error::DomainError, product::variant::variant::Variant},
+    log_error,
+};
 
-use super::{category::category::Id as CategoryId, variant::variant::Variant};
+use super::category::category::Id as CategoryId;
 
 pub type Id = String;
 
@@ -53,17 +56,17 @@ impl Product {
     ) -> Result<Self, DomainError> {
         let id = id.into();
         if id.is_empty() {
-            log::error!("Id cannot be empty");
+            log_error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
         let name = name.into();
         if name.is_empty() {
-            log::error!("Name cannot be empty");
+            log_error!("Name cannot be empty");
             return Err(DomainError::ValidationError);
         }
         let description = description.into();
         if description.len() as u32 > Self::MAX_DESCRIPTION_LENGTH {
-            log::error!(
+            log_error!(
                 "Description cannot be longer than {} characters",
                 Self::MAX_DESCRIPTION_LENGTH
             );

@@ -15,6 +15,7 @@ use crate::{
         ec::ec_client_interface::{ECClient, ECClientResponse},
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
+    log_debug, log_error,
 };
 
 /// A client that interacts with GraphQL for Shopify.
@@ -50,7 +51,7 @@ impl ECClient for ShopifyGQLClient {
     where
         T: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
     {
-        log::debug!("Query: {}", query);
+        log_debug!("Query: {}", query);
 
         // Lock the mutex to get the client
         let client = self.client.lock().await;
@@ -64,12 +65,12 @@ impl ECClient for ShopifyGQLClient {
             .send()
             .await
             .map_err(|e| {
-                log::error!("Error returned by GraphQL run. Error: {:?}", e);
+                log_error!("Error returned by GraphQL run. Error."; "error" => %e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
         let graphql_response = response.json::<T>().await.map_err(|e| {
-            log::error!("Failed to parse GraphQL query response. Error: {:?}", e);
+            log_error!("Failed to parse GraphQL query response. Error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
         })?;
 
@@ -81,8 +82,8 @@ impl ECClient for ShopifyGQLClient {
         T: Serialize + ?Sized + Send + Sync + fmt::Display + 'static,
         U: ECClientResponse + for<'de> serde::Deserialize<'de> + Send + Sync + 'static,
     {
-        log::debug!("Query: {}", query);
-        log::debug!("Input: {}", input);
+        log_debug!("Query: {}", query);
+        log_debug!("Input: {}", input);
 
         // Lock the mutex to get the client
         let client = self.client.lock().await;
@@ -99,12 +100,12 @@ impl ECClient for ShopifyGQLClient {
             .send()
             .await
             .map_err(|e| {
-                log::error!("Error returned by GraphQL run. Error: {:?}", e);
+                log_error!("Error returned by GraphQL run. Error."; "error" => %e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
         let graphql_response = response.json::<U>().await.map_err(|e| {
-            log::error!("Failed to parse GraphQL query response. Error: {:?}", e);
+            log_error!("Failed to parse GraphQL query response. Error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
         })?;
 

@@ -11,6 +11,7 @@ use actix_web::{
 use sea_orm::{DatabaseConnection, DatabaseTransaction};
 
 use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
+use crate::log_error;
 
 use super::sea_orm_manager::{SeaOrmConnectionProvider, SeaOrmTransactionManager};
 
@@ -25,7 +26,7 @@ pub async fn sea_orm_transaction_middleware(
     let connection_provider = req
         .app_data::<web::Data<SeaOrmConnectionProvider>>()
         .ok_or_else(|| {
-            log::error!("Failed to get connection provider");
+            log_error!("Failed to get connection provider");
             error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
         })?;
 
@@ -33,7 +34,7 @@ pub async fn sea_orm_transaction_middleware(
         SeaOrmTransactionManager::new(Arc::clone(&connection_provider.get_connection()))
             .await
             .map_err(|e| {
-                log::error!("Initialization of transaction manager failed: {}", e);
+                log_error!("Initialization of transaction manager failed."; "error" => %e);
                 error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
             })?;
 
@@ -66,7 +67,7 @@ pub async fn sea_orm_transaction_middleware(
                         error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
                     })?;
                 } else {
-                    log::error!("Failed to get transaction manager");
+                    log_error!("Failed to get transaction manager");
                     return Err(error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE));
                 }
             } else {
@@ -79,7 +80,7 @@ pub async fn sea_orm_transaction_middleware(
                         error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
                     })?;
                 } else {
-                    log::error!("Failed to get transaction manager");
+                    log_error!("Failed to get transaction manager");
                     return Err(error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE));
                 }
             }
@@ -88,7 +89,7 @@ pub async fn sea_orm_transaction_middleware(
         Err(err) => {
             // This branch assumes an error before the application logic is called, so there is no need to explicitly roll back
             // TODO: Consideration when the program panics
-            log::error!("Transaction cannot be rolled back because a response cannot be obtained");
+            log_error!("Transaction cannot be rolled back because a response cannot be obtained");
             Err(err)
         }
     }

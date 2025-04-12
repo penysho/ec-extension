@@ -16,6 +16,7 @@ use crate::{
             schema::GraphQLResponse,
         },
     },
+    log_error,
     usecase::repository::inventory_item_repository_interface::InventoryItemRepository,
 };
 
@@ -65,7 +66,7 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
         let graphql_response: GraphQLResponse<VariantsDataForInventory> =
             self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
             return Err(DomainError::QueryError);
         }
 
@@ -107,7 +108,7 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
         let graphql_response: GraphQLResponse<InventoryItemsData> =
             self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
             return Err(DomainError::QueryError);
         }
 
@@ -123,7 +124,7 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
         let domains = InventoryItemNode::to_domains(nodes)?;
 
         if domains.is_empty() {
-            log::error!("No inventory item found for sku: {}", sku);
+            log_error!("No inventory item found for sku: {}", sku);
             return Err(DomainError::NotFound);
         }
         Ok(domains.into_iter().next().unwrap())

@@ -1,6 +1,6 @@
 use derive_getters::Getters;
 
-use crate::domain::error::error::DomainError;
+use crate::{domain::error::error::DomainError, log_error};
 
 /// Email value object.
 ///
@@ -31,7 +31,7 @@ impl Email {
         if value.contains('@') {
             Ok(Self { value })
         } else {
-            log::error!("Invalid email address: {}", value);
+            log_error!("Invalid email address."; "value" => value);
             Err(DomainError::ValidationError)
         }
     }

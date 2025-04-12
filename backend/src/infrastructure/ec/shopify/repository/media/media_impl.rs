@@ -18,6 +18,7 @@ use crate::{
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
+    log_error,
     usecase::repository::media_repository_interface::MediaRepository,
 };
 
@@ -81,7 +82,7 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
 
         let graphql_response: GraphQLResponse<MediaData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response= {:?}", errors);
+            log_error!("Error returned in GraphQL response. Response."; "errors" => ?errors);
             return Err(DomainError::QueryError);
         }
 
@@ -128,14 +129,14 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
 
         let graphql_response: GraphQLResponse<Value> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response= {:?}", errors);
+            log_error!("Error returned in GraphQL response. Response."; "errors" => ?errors);
             return Err(DomainError::QueryError);
         }
 
         let data = graphql_response.data.ok_or(DomainError::QueryError)?;
 
         if !data.is_object() {
-            log::error!("Expected data to be an object, but got: {:?}", data);
+            log_error!("Expected data to be an object, but got: {:?}", data);
             return Err(DomainError::QueryError);
         }
 
@@ -154,7 +155,8 @@ impl<C: ECClient + Send + Sync> MediaRepository for MediaRepositoryImpl<C> {
                     }
                 }
             } else {
-                log::error!("No data found for alias: {}", alias);
+                log_error!("No data found for alias."; "alias" => alias);
+                return Err(DomainError::QueryError);
             }
         }
 

@@ -1,15 +1,18 @@
 use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
-use crate::domain::{
-    address::address::Address,
-    authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
-    customer::customer::Id as CustomerId,
-    error::error::DomainError,
-    line_item::{discount::discount::Discount, line_item::LineItem},
-    money::money::{CurrencyCode, Money},
-    order::order::Id as OrderId,
-    user::user::Id as UserId,
+use crate::{
+    domain::{
+        address::address::Address,
+        authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+        customer::customer::Id as CustomerId,
+        error::error::DomainError,
+        line_item::{discount::discount::Discount, line_item::LineItem},
+        money::money::{CurrencyCode, Money},
+        order::order::Id as OrderId,
+        user::user::Id as UserId,
+    },
+    log_error,
 };
 
 pub type Id = String;
@@ -128,9 +131,20 @@ impl DraftOrder {
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
     ) -> Result<Self, DomainError> {
+        let id = id.into();
+        if id.is_empty() {
+            log_error!("Id cannot be empty");
+            return Err(DomainError::ValidationError);
+        }
+        let name = name.into();
+        if name.is_empty() {
+            log_error!("Name cannot be empty");
+            return Err(DomainError::ValidationError);
+        }
+
         let instance = Self {
-            id: id.into(),
-            name: name.into(),
+            id,
+            name,
             status,
             customer_id,
             billing_address,
@@ -160,11 +174,11 @@ impl DraftOrder {
 
     fn validate(&self) -> Result<(), DomainError> {
         if self.id.is_empty() {
-            log::error!("Id cannot be empty");
+            log_error!("Id cannot be empty");
             return Err(DomainError::ValidationError);
         }
         if self.name.is_empty() {
-            log::error!("Name cannot be empty");
+            log_error!("Name cannot be empty");
             return Err(DomainError::ValidationError);
         }
         Ok(())
@@ -219,7 +233,7 @@ impl DraftOrder {
 
     pub fn complete(&mut self) -> Result<(), DomainError> {
         if self.status == DraftOrderStatus::Completed {
-            log::error!("Draft order is already completed");
+            log_error!("Draft order is already completed");
             return Err(DomainError::ValidationError);
         }
         self.status = DraftOrderStatus::Completed;

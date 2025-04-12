@@ -8,6 +8,7 @@ use crate::{
         draft_order::draft_order_impl::DraftOrderPresenterImpl,
         draft_order_presenter_interface::DraftOrderPresenter,
     },
+    log_error,
 };
 
 use super::{
@@ -60,7 +61,7 @@ where
             .collect::<Result<Vec<_>, _>>()?;
 
         if line_items.is_empty() {
-            log::error!("Line items cannot be empty.");
+            log_error!("Line items cannot be empty.");
             return presenter
                 .present_post_draft_order(Err(DomainError::InvalidRequest))
                 .await;

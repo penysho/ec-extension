@@ -20,6 +20,7 @@ use crate::{
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
+    log_error,
     usecase::{
         authorizer::authorizer_interface::{Action, Authorizer},
         user::UserInterface,
@@ -68,7 +69,7 @@ impl RbacAuthorizer {
                 .await
         }
         .map_err(|e| {
-            log::error!(
+            log_error!(
                 "Failed to get user roles. user_id: {}, error: {:?}",
                 user_id,
                 e
@@ -103,7 +104,7 @@ impl RbacAuthorizer {
                 .await
         }
         .map_err(|e| {
-            log::error!("Failed to get role resource permissions, error: {:?}", e);
+            log_error!("Failed to get role resource permissions, error."; "error" => %e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
         Ok(role_resource_permission)
@@ -139,7 +140,7 @@ impl RbacAuthorizer {
 
                 ok
             }) {
-                log::error!(
+                log_error!(
                     "User is not authorized. user_id: {}, resource: {}, owner_user_id: {}, action: {}",
                     user_id,
                     resource.resource_type(),
@@ -165,7 +166,7 @@ impl Authorizer for RbacAuthorizer {
             .await?;
 
         if roles.is_empty() {
-            log::error!("User has no role. user_id: {}", user.id());
+            log_error!("User has no role. user_id: {}", user.id());
             return Err(DomainError::SystemError);
         }
 

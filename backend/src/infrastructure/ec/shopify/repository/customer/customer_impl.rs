@@ -10,6 +10,7 @@ use crate::{
             schema::GraphQLResponse,
         },
     },
+    log_error,
     usecase::repository::customer_repository_interface::CustomerRepository,
 };
 
@@ -74,7 +75,7 @@ impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C>
 
         let graphql_response: GraphQLResponse<CustomersData> = self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log::error!("Error returned in GraphQL response. Response: {:?}", errors);
+            log_error!("Error returned in GraphQL response. Response."; "errors" => ?errors);
             return Err(DomainError::QueryError);
         }
 
@@ -90,7 +91,7 @@ impl<C: ECClient + Send + Sync> CustomerRepository for CustomerRepositoryImpl<C>
         let domains = CustomerNode::to_domains(nodes)?;
 
         if domains.is_empty() {
-            log::error!("No customer found for email: {}", email);
+            log_error!("No customer found for email."; "email" => email.clone());
             return Err(DomainError::NotFound);
         }
 

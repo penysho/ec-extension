@@ -1,6 +1,6 @@
 use derive_getters::Getters;
 
-use crate::domain::error::error::DomainError;
+use crate::{domain::error::error::DomainError, log_error};
 
 /// Amount value object.
 ///
@@ -21,7 +21,7 @@ pub struct Amount {
 impl Amount {
     pub fn new(value: f64) -> Result<Self, DomainError> {
         if value < 0.0 {
-            log::error!("Money value cannot be negative: {}", value);
+            log_error!("Money value cannot be negative."; "value" => value);
             return Err(DomainError::ValidationError);
         }
 

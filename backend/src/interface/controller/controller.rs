@@ -4,7 +4,7 @@ use actix_web::HttpMessage;
 
 use crate::{
     domain::error::error::DomainError,
-    infrastructure::db::transaction_manager_interface::TransactionManager,
+    infrastructure::db::transaction_manager_interface::TransactionManager, log_error,
     usecase::user::UserInterface,
 };
 
@@ -49,7 +49,7 @@ where
         {
             Some(user) => Ok(user),
             None => {
-                log::error!(target: "Controller::get_user_id", "user_id not found");
+                log_error!("user_id not found");
                 Err(DomainError::SystemError)
             }
         }
@@ -68,7 +68,7 @@ where
         match manager {
             Some(manager) => Ok(manager),
             None => {
-                log::error!(target: "Controller::get_transaction_manager", "transaction_manager not found");
+                log_error!("transaction_manager not found");
                 Err(DomainError::SystemError)
             }
         }
