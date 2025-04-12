@@ -20,6 +20,10 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query"
 
+import { faker } from "@faker-js/faker"
+
+import { HttpResponse, delay, http } from "msw"
+
 import { customInstance } from "../lib/axiosCustomInstance"
 import type { ErrorType, BodyType } from "../lib/axiosCustomInstance"
 export interface Product {
@@ -835,3 +839,248 @@ export const usePostSignIn = <
 
   return useMutation(mutationOptions)
 }
+
+export const getGetProductResponseMock = (
+  overrideResponse: Partial<GetProductResponseResponse> = {},
+): GetProductResponseResponse => ({
+  product: {
+    id: faker.string.alpha(20),
+    name: faker.string.alpha(20),
+    description: faker.string.alpha(20),
+    status: faker.helpers.arrayElement(Object.values(ProductStatus)),
+    category_id: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+    media: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+      id: faker.string.alpha(20),
+      name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      status: faker.helpers.arrayElement(Object.values(MediaStatus)),
+      content: faker.helpers.arrayElement([
+        {
+          image: faker.helpers.arrayElement([
+            {
+              id: faker.string.alpha(20),
+              alt: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+              src: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+            },
+            undefined,
+          ]),
+        },
+        undefined,
+      ]),
+      created_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+      updated_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+    })),
+    variants: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+      id: faker.string.alpha(20),
+      name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      sku: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      barcode: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      available_for_sale: faker.datatype.boolean(),
+      list_order: faker.number.int({ min: undefined, max: undefined }),
+      inventory_item_id: faker.string.alpha(20),
+      inventory_policy: faker.helpers.arrayElement(Object.values(InventoryPolicy)),
+      inventory_quantity: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([faker.number.int({ min: undefined, max: undefined }), null]),
+        undefined,
+      ]),
+      price: faker.number.float(),
+      taxable: faker.datatype.boolean(),
+      tax_code: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      created_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+      updated_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+    })),
+  },
+  ...overrideResponse,
+})
+
+export const getGetProductsResponseMock = (
+  overrideResponse: Partial<GetProductsResponseResponse> = {},
+): GetProductsResponseResponse => ({
+  products: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+    id: faker.string.alpha(20),
+    name: faker.string.alpha(20),
+    description: faker.string.alpha(20),
+    status: faker.helpers.arrayElement(Object.values(ProductStatus)),
+    category_id: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+    media: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+      id: faker.string.alpha(20),
+      name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      status: faker.helpers.arrayElement(Object.values(MediaStatus)),
+      content: faker.helpers.arrayElement([
+        {
+          image: faker.helpers.arrayElement([
+            {
+              id: faker.string.alpha(20),
+              alt: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+              src: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+            },
+            undefined,
+          ]),
+        },
+        undefined,
+      ]),
+      created_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+      updated_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+    })),
+    variants: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+      id: faker.string.alpha(20),
+      name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      sku: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      barcode: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      available_for_sale: faker.datatype.boolean(),
+      list_order: faker.number.int({ min: undefined, max: undefined }),
+      inventory_item_id: faker.string.alpha(20),
+      inventory_policy: faker.helpers.arrayElement(Object.values(InventoryPolicy)),
+      inventory_quantity: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([faker.number.int({ min: undefined, max: undefined }), null]),
+        undefined,
+      ]),
+      price: faker.number.float(),
+      taxable: faker.datatype.boolean(),
+      tax_code: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      created_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+      updated_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+    })),
+  })),
+  ...overrideResponse,
+})
+
+export const getGetCustomersResponseMock = (
+  overrideResponse: Partial<GetCustomersResponseResponse> = {},
+): GetCustomersResponseResponse => ({
+  customers: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+    id: faker.string.alpha(20),
+    addresses: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+      address1: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      address2: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      city: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      coordinates_validated: faker.datatype.boolean(),
+      country: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      first_name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      last_name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      province: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      zip: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      phone: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+    })),
+    default_address: faker.helpers.arrayElement([
+      {
+        address1: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        address2: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        city: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        coordinates_validated: faker.datatype.boolean(),
+        country: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        first_name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        last_name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        province: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        zip: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        phone: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      },
+      undefined,
+    ]),
+    display_name: faker.string.alpha(20),
+    email: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+    first_name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+    last_name: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+    image: faker.helpers.arrayElement([
+      {
+        id: faker.string.alpha(20),
+        alt: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        src: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+      },
+      undefined,
+    ]),
+    phone: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+    note: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+    status: faker.helpers.arrayElement(Object.values(CustomerStatus)),
+    verified_email: faker.datatype.boolean(),
+    created_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+    updated_at: `${faker.date.past().toISOString().split(".")[0]}Z`,
+  })),
+  ...overrideResponse,
+})
+
+export const getGetProductMockHandler = (
+  overrideResponse?:
+    | GetProductResponseResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<GetProductResponseResponse> | GetProductResponseResponse),
+) => {
+  return http.get("*/ec-extension/products/:id", async (info) => {
+    await delay(1000)
+
+    return new HttpResponse(
+      JSON.stringify(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetProductResponseMock(),
+      ),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )
+  })
+}
+
+export const getGetProductsMockHandler = (
+  overrideResponse?:
+    | GetProductsResponseResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<GetProductsResponseResponse> | GetProductsResponseResponse),
+) => {
+  return http.get("*/ec-extension/products", async (info) => {
+    await delay(1000)
+
+    return new HttpResponse(
+      JSON.stringify(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetProductsResponseMock(),
+      ),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )
+  })
+}
+
+export const getGetCustomersMockHandler = (
+  overrideResponse?:
+    | GetCustomersResponseResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<GetCustomersResponseResponse> | GetCustomersResponseResponse),
+) => {
+  return http.get("*/ec-extension/customers", async (info) => {
+    await delay(1000)
+
+    return new HttpResponse(
+      JSON.stringify(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetCustomersResponseMock(),
+      ),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )
+  })
+}
+
+export const getPostSignInMockHandler = (
+  overrideResponse?: void | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<void> | void),
+) => {
+  return http.post("*/ec-extension/auth/sign-in", async (info) => {
+    await delay(1000)
+    if (typeof overrideResponse === "function") {
+      await overrideResponse(info)
+    }
+    return new HttpResponse(null, { status: 200 })
+  })
+}
+export const getEcExtensionBackendMock = () => [
+  getGetProductMockHandler(),
+  getGetProductsMockHandler(),
+  getGetCustomersMockHandler(),
+  getPostSignInMockHandler(),
+]

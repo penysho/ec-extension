@@ -28,8 +28,11 @@ export default function ProductListPresenter() {
   let totalPages = 1
   let displayedProducts = [] as Product[]
   if (products) {
-    totalPages = Math.ceil(products.length / itemsPerPage)
-    displayedProducts = products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    const filteredProducts = products.filter((product) =>
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
+    totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
+    displayedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   }
 
   const handleCategoryChange = (category: string) => {

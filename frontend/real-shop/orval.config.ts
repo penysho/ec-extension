@@ -20,6 +20,7 @@ export default defineConfig({
         },
       },
       httpClient: "axios",
+      mock: true,
     },
     hooks: {
       afterAllFilesWrite: ["prettier --write"],

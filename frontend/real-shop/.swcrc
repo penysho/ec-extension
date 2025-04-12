@@ -1,0 +1,14 @@
+{
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true
+    },
+    "transform": {
+      "react": {
+        // https://swc.rs/docs/configuration/compilation#jsctransformreactruntime
+        "runtime": "automatic"
+      }
+    }
+  }
+}
