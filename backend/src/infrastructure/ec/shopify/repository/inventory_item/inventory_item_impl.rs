@@ -66,9 +66,7 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
         let graphql_response: GraphQLResponse<VariantsDataForInventory> =
             self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log_error!(
-                "Error returned in GraphQL response. Response: {:?}", errors
-            );
+            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
             return Err(DomainError::QueryError);
         }
 
@@ -110,9 +108,7 @@ impl<C: ECClient + Send + Sync> InventoryItemRepository for InventoryItemReposit
         let graphql_response: GraphQLResponse<InventoryItemsData> =
             self.client.query(&query).await?;
         if let Some(errors) = graphql_response.errors {
-            log_error!(
-                "Error returned in GraphQL response. Response: {:?}", errors
-            );
+            log_error!("Error returned in GraphQL response. Response: {:?}", errors);
             return Err(DomainError::QueryError);
         }
 

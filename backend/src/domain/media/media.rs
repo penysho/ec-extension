@@ -2,10 +2,7 @@ use chrono::{DateTime, Utc};
 use derive_getters::Getters;
 
 use super::media_content::media_content::MediaContent;
-use crate::{
-    domain::error::error::DomainError,
-    log_error
-};
+use crate::{domain::error::error::DomainError, log_error};
 
 pub type Id = String;
 

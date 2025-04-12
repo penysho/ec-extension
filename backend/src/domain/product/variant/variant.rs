@@ -6,7 +6,7 @@ use crate::{
         error::error::DomainError, inventory_item::inventory_item::Id as InventoryItemId,
         money::amount::amount::Amount,
     },
-    log_error
+    log_error,
 };
 
 use super::{barcode::barcode::Barcode, sku::sku::Sku};

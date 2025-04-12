@@ -8,7 +8,7 @@ use crate::{
         draft_order::draft_order_impl::DraftOrderPresenterImpl,
         draft_order_presenter_interface::DraftOrderPresenter,
     },
-    log_error
+    log_error,
 };
 
 use super::{

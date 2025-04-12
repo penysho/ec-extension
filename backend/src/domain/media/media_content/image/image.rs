@@ -5,7 +5,7 @@ use crate::{
         error::error::DomainError,
         media::{associated_id::associated_id::AssociatedId, src::src::Src},
     },
-    log_error
+    log_error,
 };
 
 pub type Id = String;

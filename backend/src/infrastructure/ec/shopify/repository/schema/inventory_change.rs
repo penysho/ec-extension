@@ -10,7 +10,7 @@ use crate::{
         },
     },
     infrastructure::ec::shopify::{gql_helper::ShopifyGQLHelper, schema::UserError},
-    log_error
+    log_error,
 };
 
 use super::{inventory_item::InventoryItemNode, inventory_level::InventoryLevelNode};
