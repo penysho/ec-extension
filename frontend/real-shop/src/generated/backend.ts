@@ -346,14 +346,14 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1]
  * Get detailed product information
  * @summary Get detailed product information
  */
-export const getProduct = (id: number, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) => {
+export const getProduct = (id: string, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) => {
   return customInstance<GetProductResponseResponse>(
     { url: `/ec-extension/products/${id}`, method: "GET", signal },
     options,
   )
 }
 
-export const getGetProductQueryKey = (id: number) => {
+export const getGetProductQueryKey = (id: string) => {
   return [`/ec-extension/products/${id}`] as const
 }
 
@@ -361,7 +361,7 @@ export const getGetProductQueryOptions = <
   TData = Awaited<ReturnType<typeof getProduct>>,
   TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
 >(
-  id: number,
+  id: string,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>>
     request?: SecondParameter<typeof customInstance>
@@ -390,7 +390,7 @@ export function useGetProduct<
   TData = Awaited<ReturnType<typeof getProduct>>,
   TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
 >(
-  id: number,
+  id: string,
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>> &
       Pick<
@@ -408,7 +408,7 @@ export function useGetProduct<
   TData = Awaited<ReturnType<typeof getProduct>>,
   TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
 >(
-  id: number,
+  id: string,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>> &
       Pick<
@@ -426,7 +426,7 @@ export function useGetProduct<
   TData = Awaited<ReturnType<typeof getProduct>>,
   TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
 >(
-  id: number,
+  id: string,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>>
     request?: SecondParameter<typeof customInstance>
@@ -440,7 +440,7 @@ export function useGetProduct<
   TData = Awaited<ReturnType<typeof getProduct>>,
   TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
 >(
-  id: number,
+  id: string,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>>
     request?: SecondParameter<typeof customInstance>
@@ -463,7 +463,7 @@ export const prefetchGetProduct = async <
   TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
 >(
   queryClient: QueryClient,
-  id: number,
+  id: string,
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getProduct>>, TError, TData>>
     request?: SecondParameter<typeof customInstance>
@@ -859,7 +859,7 @@ export const getGetProductResponseMock = (
             {
               id: faker.string.alpha(20),
               alt: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
-              src: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+              src: faker.helpers.arrayElement(["https://placehold.jp/300x300.png", null]),
             },
             undefined,
           ]),
@@ -911,7 +911,7 @@ export const getGetProductsResponseMock = (
             {
               id: faker.string.alpha(20),
               alt: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
-              src: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+              src: faker.helpers.arrayElement(["https://placehold.jp/300x300.png", null]),
             },
             undefined,
           ]),
@@ -984,7 +984,7 @@ export const getGetCustomersResponseMock = (
       {
         id: faker.string.alpha(20),
         alt: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
-        src: faker.helpers.arrayElement([faker.helpers.arrayElement([faker.string.alpha(20), null]), undefined]),
+        src: faker.helpers.arrayElement(["https://placehold.jp/300x300.png", null]),
       },
       undefined,
     ]),

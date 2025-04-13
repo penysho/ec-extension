@@ -15,7 +15,11 @@ import Loading from "./loading"
 
 export default function Page() {
   const params = useParams()
-  const id = Number(params.id) || 0
+  const id = params.id
+  if (typeof id !== "string") {
+    notFound()
+  }
+
   const { isFetching, error, data } = useGetProduct(id)
   const product = data?.product
 
@@ -41,7 +45,7 @@ export default function Page() {
         {/* 商品画像ギャラリー */}
         <ProductGallery
           images={product.media.map((m) => ({
-            src: m.content?.image?.src || "",
+            src: m.content?.image?.src || "/no-image.svg",
             alt: m.content?.image?.alt || product.name,
           }))}
         />

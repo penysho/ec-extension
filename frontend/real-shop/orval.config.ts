@@ -18,9 +18,19 @@ export default defineConfig({
           useQuery: true,
           usePrefetch: true,
         },
+        mock: {
+          properties: {
+            // If the property is `src`, fix the mock value to avoid error with `next/image`.
+            "/src/": "https://placehold.jp/300x300.png",
+          },
+        },
       },
       httpClient: "axios",
-      mock: true,
+      mock: {
+        type: "msw",
+        delay: 1000,
+        useExamples: false,
+      },
     },
     hooks: {
       afterAllFilesWrite: ["prettier --write"],

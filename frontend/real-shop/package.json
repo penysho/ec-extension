@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:mock": "cross-env NEXT_PUBLIC_API_MOCKING=enabled next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -62,6 +63,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "cross-env": "^7.0.3",
     "eslint": "^9.21.0",
     "eslint-config-next": "15.2.1",
     "eslint-config-prettier": "^10.0.2",
@@ -86,6 +88,11 @@
     "*.{ts,tsx}": [
       "prettier --write",
       "eslint --fix"
+    ]
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
     ]
   }
 }
