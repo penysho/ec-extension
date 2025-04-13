@@ -18,6 +18,17 @@ module.exports = {
   testMatch: ["**/__tests__/**/*.test.[jt]s?(x)", "**/?(*.)+(spec|test).[jt]s?(x)"],
   transform: {
     // https://swc.rs/docs/usage/jest
-    "^.+\\.(t|j)sx?$": ["@swc/jest"],
+    "^.+\\.(t|j)sx?$": [
+      "@swc/jest",
+      {
+        jsc: {
+          transform: {
+            react: {
+              runtime: "automatic",
+            },
+          },
+        },
+      },
+    ],
   },
 }

@@ -64,19 +64,33 @@ const mockProducts = [
   },
 ]
 
-const renderWithClient = (ui: React.ReactElement) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
+// 共通のクエリクライアント
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
     },
-  })
+  },
+})
 
+const renderWithClient = (ui: React.ReactElement) => {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
 }
 
 describe("ProductListPresenter", () => {
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: "bypass" })
+  })
+
+  afterAll(() => {
+    server.close()
+  })
+
+  beforeEach(() => {
+    server.resetHandlers()
+    queryClient.clear()
+  })
+
   it("商品一覧が正しく表示される", async () => {
     server.use(
       getGetProductsMockHandler(() => ({
@@ -91,7 +105,7 @@ describe("ProductListPresenter", () => {
         expect(screen.getByText("テスト商品1")).toBeInTheDocument()
         expect(screen.getByText("テスト商品2")).toBeInTheDocument()
       },
-      { timeout: 5000 },
+      { timeout: 2000 },
     )
   })
 
@@ -108,7 +122,7 @@ describe("ProductListPresenter", () => {
       () => {
         expect(screen.getByText("テスト商品1")).toBeInTheDocument()
       },
-      { timeout: 5000 },
+      { timeout: 2000 },
     )
 
     const searchInput = screen.getByPlaceholderText("商品を検索...")
@@ -119,9 +133,9 @@ describe("ProductListPresenter", () => {
         expect(screen.getByText("テスト商品1")).toBeInTheDocument()
         expect(screen.queryByText("テスト商品2")).not.toBeInTheDocument()
       },
-      { timeout: 5000 },
+      { timeout: 2000 },
     )
-  }, 10000)
+  })
 
   it("カテゴリーフィルターが機能する", async () => {
     server.use(
@@ -136,7 +150,7 @@ describe("ProductListPresenter", () => {
       () => {
         expect(screen.getByText("テスト商品1")).toBeInTheDocument()
       },
-      { timeout: 5000 },
+      { timeout: 2000 },
     )
 
     const categoryButton = screen.getByRole("checkbox", { name: "トップス" })
@@ -146,7 +160,7 @@ describe("ProductListPresenter", () => {
       () => {
         expect(screen.getByText("テスト商品1")).toBeInTheDocument()
       },
-      { timeout: 5000 },
+      { timeout: 2000 },
     )
   })
 
@@ -191,7 +205,7 @@ describe("ProductListPresenter", () => {
       () => {
         expect(screen.getByText("テスト商品1")).toBeInTheDocument()
       },
-      { timeout: 5000 },
+      { timeout: 2000 },
     )
 
     const nextPageButton = screen.getByRole("button", { name: "2" })
@@ -201,14 +215,14 @@ describe("ProductListPresenter", () => {
       () => {
         expect(screen.getByText("テスト商品13")).toBeInTheDocument()
       },
-      { timeout: 5000 },
+      { timeout: 2000 },
     )
   })
 
   it("ローディング状態が表示される", async () => {
     server.use(
       getGetProductsMockHandler(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        await new Promise((resolve) => setTimeout(resolve, 100))
         return { products: [] }
       }),
     )
@@ -231,7 +245,7 @@ describe("ProductListPresenter", () => {
       () => {
         expect(screen.getByText(testError.message)).toBeInTheDocument()
       },
-      { timeout: 10000 },
+      { timeout: 2000 },
     )
   })
 })

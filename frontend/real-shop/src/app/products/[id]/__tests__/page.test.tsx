@@ -68,23 +68,34 @@ jest.mock("next/navigation", () => ({
   },
 }))
 
-const renderWithClient = (ui: React.ReactElement) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        throwOnError: false,
-      },
+// 共通のクエリクライアント
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      throwOnError: false,
     },
-  })
+  },
+})
 
+const renderWithClient = (ui: React.ReactElement) => {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
 }
 
 describe("ProductPage", () => {
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: "bypass" })
+  })
+
+  afterAll(() => {
+    server.close()
+  })
+
   beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    server.resetHandlers()
+    queryClient.clear()
   })
 
   it("商品詳細が正しく表示される", async () => {
@@ -97,7 +108,7 @@ describe("ProductPage", () => {
     renderWithClient(<ProductPage />)
 
     // ローディング状態が消えるのを待つ
-    await waitForElementToBeRemoved(() => screen.queryByRole("status"), { timeout: 10000 })
+    await waitForElementToBeRemoved(() => screen.queryByRole("status"), { timeout: 3000 })
 
     // 商品情報が表示されるのを確認
     expect(screen.getByText("テスト商品")).toBeInTheDocument()
@@ -114,13 +125,12 @@ describe("ProductPage", () => {
 
     renderWithClient(<ProductPage />)
 
-    await waitForElementToBeRemoved(() => screen.queryByRole("status"), { timeout: 10000 })
+    await waitForElementToBeRemoved(() => screen.queryByRole("status"), { timeout: 3000 })
 
-    const sizeL = screen.getByText("L")
+    const sizeL = screen.getByRole("radio", { name: "L" })
     fireEvent.click(sizeL)
 
-    const radioL = screen.getByRole("radio", { name: "L" })
-    expect(radioL).toBeChecked()
+    expect(sizeL).toBeChecked()
   })
 
   it("カラー選択が機能する", async () => {
@@ -132,17 +142,20 @@ describe("ProductPage", () => {
 
     renderWithClient(<ProductPage />)
 
-    await waitForElementToBeRemoved(() => screen.queryByRole("status"), { timeout: 10000 })
+    await waitForElementToBeRemoved(() => screen.queryByRole("status"), { timeout: 3000 })
 
     const colorTrigger = screen.getByRole("combobox", { name: /カラー/i })
     fireEvent.click(colorTrigger)
 
-    const navyOption = await screen.findByText("ネイビー")
+    const navyOption = await screen.findByRole("option", { name: "ネイビー" })
     fireEvent.click(navyOption)
 
-    await waitFor(() => {
-      expect(colorTrigger).toHaveTextContent("ネイビー")
-    })
+    await waitFor(
+      () => {
+        expect(colorTrigger).toHaveTextContent("ネイビー")
+      },
+      { timeout: 1000 },
+    )
   })
 
   it("数量選択が機能する", async () => {
@@ -154,7 +167,7 @@ describe("ProductPage", () => {
 
     renderWithClient(<ProductPage />)
 
-    await waitForElementToBeRemoved(() => screen.queryByRole("status"), { timeout: 10000 })
+    await waitForElementToBeRemoved(() => screen.queryByRole("status"), { timeout: 3000 })
 
     const quantityTrigger = screen.getByRole("combobox", { name: /数量/i })
     fireEvent.click(quantityTrigger)
@@ -162,9 +175,12 @@ describe("ProductPage", () => {
     const option3 = await screen.findByRole("option", { name: "3" })
     fireEvent.click(option3)
 
-    await waitFor(() => {
-      expect(quantityTrigger).toHaveTextContent("3")
-    })
+    await waitFor(
+      () => {
+        expect(quantityTrigger).toHaveTextContent("3")
+      },
+      { timeout: 1000 },
+    )
   })
 
   it("ローディング状態が表示される", async () => {
@@ -182,7 +198,7 @@ describe("ProductPage", () => {
   it("404エラーの場合、notFound()が呼ばれる", async () => {
     server.use(
       http.get("*/ec-extension/products/:id", async () => {
-        await delay(1000)
+        await delay(100)
         return new HttpResponse(JSON.stringify({ message: "Product not found" }), {
           status: 404,
           headers: { "Content-Type": "application/json" },
@@ -196,7 +212,7 @@ describe("ProductPage", () => {
       () => {
         expect(notFoundMock).toHaveBeenCalled()
       },
-      { timeout: 10000 },
+      { timeout: 2000 },
     )
   })
 
@@ -214,7 +230,7 @@ describe("ProductPage", () => {
       () => {
         expect(screen.getByText(testError.message)).toBeInTheDocument()
       },
-      { timeout: 10000 },
+      { timeout: 2000 },
     )
   })
 })
