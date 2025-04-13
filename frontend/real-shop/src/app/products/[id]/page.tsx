@@ -2,6 +2,7 @@
 import { Heart, RotateCcw, Share2, Shield, Truck } from "lucide-react"
 import { notFound, useParams } from "next/navigation"
 
+import ErrorPage from "@/app/error"
 import { ProductGallery } from "@/components/layout/product"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -14,7 +15,11 @@ import Loading from "./loading"
 
 export default function Page() {
   const params = useParams()
-  const id = Number(params.id) || 0
+  const id = params.id
+  if (typeof id !== "string") {
+    notFound()
+  }
+
   const { isFetching, error, data } = useGetProduct(id)
   const product = data?.product
 
@@ -22,12 +27,16 @@ export default function Page() {
     return <Loading />
   }
 
-  if (error?.status === 404) {
-    notFound()
+  if (error) {
+    if (error.response?.status === 404 || error.status === 404) {
+      notFound()
+    }
+
+    return <ErrorPage error={error} reset={() => window.location.reload()} />
   }
 
-  if (!product || !!error) {
-    throw error
+  if (!product) {
+    return <ErrorPage error={new Error("商品が見つかりませんでした")} reset={() => window.location.reload()} />
   }
 
   return (
@@ -36,7 +45,7 @@ export default function Page() {
         {/* 商品画像ギャラリー */}
         <ProductGallery
           images={product.media.map((m) => ({
-            src: m.content?.image?.src || "",
+            src: m.content?.image?.src || "/no-image.svg",
             alt: m.content?.image?.alt || product.name,
           }))}
         />
@@ -66,9 +75,9 @@ export default function Page() {
 
           {/* カラー選択 */}
           <div className="space-y-2">
-            <Label>カラー</Label>
-            <Select defaultValue="black">
-              <SelectTrigger>
+            <Label htmlFor="color">カラー</Label>
+            <Select defaultValue="black" name="color">
+              <SelectTrigger id="color">
                 <SelectValue placeholder="カラーを選択" />
               </SelectTrigger>
               <SelectContent>
@@ -81,9 +90,9 @@ export default function Page() {
 
           {/* 数量選択 */}
           <div className="space-y-2">
-            <Label>数量</Label>
-            <Select defaultValue="1">
-              <SelectTrigger className="w-24">
+            <Label htmlFor="quantity">数量</Label>
+            <Select defaultValue="1" name="quantity">
+              <SelectTrigger id="quantity" className="w-24">
                 <SelectValue placeholder="数量" />
               </SelectTrigger>
               <SelectContent>

@@ -2,11 +2,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function Loading() {
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="container mx-auto px-4 py-6" role="status" aria-label="読み込み中">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* 商品画像のスケルトン */}
         <div className="relative aspect-square">
-          <Skeleton className="w-full h-full rounded-lg" />
+          <Skeleton className="h-full w-full rounded-lg" />
         </div>
 
         {/* 商品情報のスケルトン */}

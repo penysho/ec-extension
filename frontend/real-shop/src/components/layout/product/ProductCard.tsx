@@ -17,7 +17,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardContent className="p-0">
           <div className="relative aspect-square">
             <Image
-              src={product.media[0].content?.image?.src ? product.media[0].content?.image?.src : "/no-image.png"}
+              src={product.media[0].content?.image?.src ? product.media[0].content?.image?.src : "/no-image.svg"}
               alt={product.name}
               fill
               className="object-cover transition-all duration-300 hover:scale-105"

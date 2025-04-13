@@ -24,7 +24,7 @@ paths:
           description: Product ID
           example: 000PRODUCTID001
           schema:
-            type: integer
+            type: string
       responses:
         "200":
           $ref: "#/components/responses/GetProductResponse"
@@ -320,6 +320,7 @@ components:
         src:
           type: string
           nullable: true
+          format: uri
           description: The source URL of the image.
           example: "https://example.com/images/img_12345.jpg"
 
