@@ -16,10 +16,10 @@ import { server } from "@/mocks/server"
 
 import ProductPage from "../page"
 
-// JSDOMのscrollIntoViewをモック
+// Mock scrollIntoView in JSDOM
 window.HTMLElement.prototype.scrollIntoView = jest.fn()
 
-// モック商品データ
+// Mock product data
 const mockImage: Image = {
   id: "image1",
   src: "/images/test-image.jpg",
@@ -57,7 +57,7 @@ const mockProduct = {
   variants: [mockVariant],
 }
 
-// モックナビゲーション
+// Mock navigation
 const notFoundMock = jest.fn()
 jest.mock("next/navigation", () => ({
   ...jest.requireActual("next/navigation"),
@@ -68,7 +68,7 @@ jest.mock("next/navigation", () => ({
   },
 }))
 
-// 共通のクエリクライアント
+// Common query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -98,7 +98,7 @@ describe("ProductPage", () => {
     queryClient.clear()
   })
 
-  it("商品詳細が正しく表示される", async () => {
+  it("displays product details correctly", async () => {
     server.use(
       getGetProductMockHandler(() => ({
         product: mockProduct,
@@ -107,16 +107,16 @@ describe("ProductPage", () => {
 
     renderWithClient(<ProductPage />)
 
-    // ローディング状態が消えるのを待つ
+    // Wait for loading state to disappear
     await waitForElementToBeRemoved(() => screen.queryByRole("status"), { timeout: 3000 })
 
-    // 商品情報が表示されるのを確認
+    // Check that product information is displayed
     expect(screen.getByText("テスト商品")).toBeInTheDocument()
     expect(screen.getByText("テスト商品の説明")).toBeInTheDocument()
     expect(screen.getByText("¥1,000")).toBeInTheDocument()
   })
 
-  it("サイズ選択が機能する", async () => {
+  it("size selection works", async () => {
     server.use(
       getGetProductMockHandler(() => ({
         product: mockProduct,
@@ -133,7 +133,7 @@ describe("ProductPage", () => {
     expect(sizeL).toBeChecked()
   })
 
-  it("カラー選択が機能する", async () => {
+  it("color selection works", async () => {
     server.use(
       getGetProductMockHandler(() => ({
         product: mockProduct,
@@ -158,7 +158,7 @@ describe("ProductPage", () => {
     )
   })
 
-  it("数量選択が機能する", async () => {
+  it("quantity selection works", async () => {
     server.use(
       getGetProductMockHandler(() => ({
         product: mockProduct,
@@ -183,7 +183,7 @@ describe("ProductPage", () => {
     )
   })
 
-  it("ローディング状態が表示される", async () => {
+  it("displays loading state", async () => {
     server.use(
       getGetProductMockHandler(async () => {
         await new Promise((resolve) => setTimeout(resolve, 100))
@@ -195,7 +195,7 @@ describe("ProductPage", () => {
     expect(screen.getByRole("status")).toBeInTheDocument()
   })
 
-  it("404エラーの場合、notFound()が呼ばれる", async () => {
+  it("notFound() is called for 404 errors", async () => {
     server.use(
       http.get("*/ec-extension/products/:id", async () => {
         await delay(100)
@@ -216,7 +216,7 @@ describe("ProductPage", () => {
     )
   })
 
-  it("その他のエラーの場合、エラーページが表示される", async () => {
+  it("displays error page for other errors", async () => {
     const testError = new Error("Request failed with status code 500")
     server.use(
       getGetProductMockHandler(() => {
