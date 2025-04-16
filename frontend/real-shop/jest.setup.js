@@ -32,11 +32,26 @@ Object.defineProperty(window, "matchMedia", {
   })),
 })
 
-// Suppress React 18 console warnings about act()
+// Suppress specific console errors
 const originalError = console.error
 console.error = (...args) => {
+  // React act() warnings
   if (/Warning.*not wrapped in act/.test(args[0])) {
     return
   }
+  // Axios error messages
+  if (args[0] instanceof Error && args[0].name === "AxiosError") {
+    return
+  }
+
   originalError.call(console, ...args)
 }
+
+// Optionally suppress console.log during tests
+// const originalLog = console.log
+// console.log = (...args) => {
+//   if (process.env.NODE_ENV === "test") {
+//     return
+//   }
+//   originalLog.call(console, ...args)
+// }
