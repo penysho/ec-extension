@@ -7,6 +7,7 @@ use crate::{
     domain::{
         authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
         error::error::DomainError,
+        user::user::UserInterface,
     },
     infrastructure::{
         db::{
@@ -21,10 +22,7 @@ use crate::{
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
     log_error,
-    usecase::{
-        authorizer::authorizer_interface::{Action, Authorizer},
-        user::UserInterface,
-    },
+    usecase::authorizer::authorizer_interface::{Action, Authorizer},
 };
 
 use super::schema::DetailAction;
@@ -194,7 +192,7 @@ mod tests {
         domain::{
             authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
             error::error::DomainError,
-            user::user::Id as UserId,
+            user::user::{Id as UserId, UserInterface},
         },
         infrastructure::{
             auth::{idp_user::IdpUser, rbac::schema::DetailAction},
@@ -205,10 +203,7 @@ mod tests {
                 transaction_manager_interface::TransactionManager,
             },
         },
-        usecase::{
-            authorizer::authorizer_interface::{Action, Authorizer},
-            user::UserInterface,
-        },
+        usecase::authorizer::authorizer_interface::{Action, Authorizer},
     };
 
     use super::RbacAuthorizer;

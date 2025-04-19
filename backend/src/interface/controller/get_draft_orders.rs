@@ -73,7 +73,7 @@ mod tests {
     use crate::interface::mock::domain_mock::mock_draft_orders;
     use crate::usecase::interactor::draft_order_interactor_interface::DraftOrderInteractor;
     use crate::usecase::interactor::draft_order_interactor_interface::MockDraftOrderInteractor;
-    use crate::usecase::user::UserInterface;
+    use crate::domain::user::user::UserInterface;
 
     use super::*;
     use actix_http::Request;

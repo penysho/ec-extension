@@ -10,7 +10,7 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 
-use crate::usecase::user::UserInterface;
+use crate::domain::user::user::UserInterface;
 
 use super::authenticator_interface::Authenticator;
 

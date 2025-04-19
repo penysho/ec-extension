@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::domain::authorized_resource::authorized_resource::AuthorizedResource;
 use crate::domain::error::error::DomainError;
-use crate::usecase::user::UserInterface;
+use crate::domain::user::user::UserInterface;
 
 /// Authorization interface.
 #[automock]

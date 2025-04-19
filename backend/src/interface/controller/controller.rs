@@ -3,9 +3,9 @@ use std::{marker::PhantomData, sync::Arc};
 use actix_web::HttpMessage;
 
 use crate::{
-    domain::error::error::DomainError,
-    infrastructure::db::transaction_manager_interface::TransactionManager, log_error,
-    usecase::user::UserInterface,
+    domain::{error::error::DomainError, user::user::UserInterface},
+    infrastructure::db::transaction_manager_interface::TransactionManager,
+    log_error,
 };
 
 use super::interactor_provider_interface::InteractorProvider;
@@ -79,13 +79,13 @@ where
 mod test {
     use std::sync::Arc;
 
+    use crate::domain::user::user::UserInterface;
     use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
     use crate::infrastructure::{
         auth::idp_user::IdpUser, db::sea_orm::sea_orm_manager::SeaOrmTransactionManager,
     };
     use crate::interface::controller::controller::Controller;
     use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
-    use crate::usecase::user::UserInterface;
     use actix_web::test::TestRequest;
     use actix_web::HttpMessage;
     use sea_orm::{DatabaseConnection, DatabaseTransaction};

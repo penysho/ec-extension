@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use mockall::automock;
 use std::sync::Arc;
 
+use crate::domain::user::user::UserInterface;
 use crate::domain::{
     address::address::Address,
     customer::customer::Id as CustomerId,
@@ -12,7 +13,6 @@ use crate::domain::{
     line_item::{discount::discount::Discount, line_item::LineItem},
     money::money::CurrencyCode,
 };
-use crate::usecase::user::UserInterface;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GetDraftOrdersQuery {

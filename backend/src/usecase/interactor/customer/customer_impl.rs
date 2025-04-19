@@ -3,12 +3,11 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::{
-    domain::{customer::customer::Customer, error::error::DomainError},
+    domain::{customer::customer::Customer, error::error::DomainError, user::user::UserInterface},
     usecase::{
         authorizer::authorizer_interface::{Action, Authorizer},
         interactor::customer_interactor_interface::{CustomerInteractor, GetCustomersQuery},
         repository::customer_repository_interface::CustomerRepository,
-        user::UserInterface,
     },
 };
 

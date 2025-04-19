@@ -1,4 +1,4 @@
-use crate::usecase::user::UserInterface;
+use crate::domain::user::user::UserInterface;
 
 /// Represent user information managed by Idp.
 /// Since the model is infrastructure-dependent, it is defined here rather than at the domain layer.

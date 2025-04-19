@@ -70,7 +70,7 @@ mod tests {
     use crate::usecase::interactor::customer_interactor_interface::{
         CustomerInteractor, MockCustomerInteractor,
     };
-    use crate::usecase::user::UserInterface;
+    use crate::domain::user::user::UserInterface;
 
     use super::*;
     use actix_http::Request;

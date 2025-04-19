@@ -12,6 +12,7 @@ use crate::{
         error::error::DomainError,
         line_item::{discount::discount::Discount, line_item::LineItem},
         money::money::CurrencyCode,
+        user::user::UserInterface,
     },
     usecase::{
         authorizer::authorizer_interface::{Action, Authorizer},
@@ -20,7 +21,6 @@ use crate::{
             customer_repository_interface::CustomerRepository,
             draft_order_repository_interface::DraftOrderRepository,
         },
-        user::UserInterface,
     },
 };
 
