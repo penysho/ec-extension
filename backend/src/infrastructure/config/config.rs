@@ -38,6 +38,7 @@ pub struct AppConfig {
     port: String,
     log_level: String,
     cors_allowed_origins: Vec<String>,
+    opentelemetry_endpoint: String,
 }
 
 impl AppConfig {
@@ -58,12 +59,15 @@ impl AppConfig {
         let port = env::var("APP_PORT").unwrap_or_else(|_| "8080".to_string());
         let address = env::var("APP_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string());
         let cors_allowed_origins = vec!["http://localhost:3000".to_string()];
+        let opentelemetry_endpoint = env::var("OPENTELEMETRY_ENDPOINT")
+            .unwrap_or_else(|_| "http://localhost:4318/v1/traces".to_string());
 
         Ok(AppConfig {
             address,
             port,
             log_level,
             cors_allowed_origins,
+            opentelemetry_endpoint,
         })
     }
 }

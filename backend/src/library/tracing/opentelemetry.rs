@@ -5,6 +5,8 @@ use opentelemetry_semantic_conventions::resource;
 use std::sync::LazyLock;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
+use crate::infrastructure::config::config::AppConfig;
+
 const APP_NAME: &str = "ec-extension-backend";
 
 static RESOURCE: LazyLock<Resource> = LazyLock::new(|| {
@@ -30,12 +32,12 @@ static RESOURCE: LazyLock<Resource> = LazyLock::new(|| {
 /// # Errors
 ///
 /// This function will return an error if the OTLP exporter fails to be created.
-pub fn init_telemetry() -> SdkTracerProvider {
+pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
     global::set_text_map_propagator(TraceContextPropagator::new());
 
     let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_http()
-        .with_endpoint("http://otel-collector:4318/v1/traces")
+        .with_endpoint(config.opentelemetry_endpoint())
         .build()
         .expect("Failed to create OTLP exporter");
 
@@ -51,7 +53,11 @@ pub fn init_telemetry() -> SdkTracerProvider {
     // Create a `tracing` layer using the otlp tracer
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
-    let fmt_layer = tracing_subscriber::fmt::layer().with_target(true).json();
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_target(true)
+        .with_line_number(true)
+        .with_file(true)
+        .json();
 
     let subscriber = Registry::default()
         .with(env_filter)

@@ -1,7 +1,6 @@
 use actix_cors::Cors;
 use actix_web::middleware::{from_fn, Logger};
 use actix_web::{http, web, App, HttpServer};
-use backend::library::tracing;
 use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
@@ -32,7 +31,7 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
-    tracing::opentelemetry::init_telemetry();
+    library::tracing::opentelemetry::init_telemetry(&app_config);
 
     let connection_provider = web::Data::new(
         SeaOrmConnectionProvider::new(config_provider.database_config().clone())
