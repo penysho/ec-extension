@@ -60,7 +60,7 @@ impl AppConfig {
         let address = env::var("APP_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string());
         let cors_allowed_origins = vec!["http://localhost:3000".to_string()];
         let opentelemetry_endpoint = env::var("OPENTELEMETRY_ENDPOINT")
-            .unwrap_or_else(|_| "http://localhost:4318/v1/traces".to_string());
+            .unwrap_or_else(|_| "http://otel-collector:4318/v1/traces".to_string());
 
         Ok(AppConfig {
             address,
