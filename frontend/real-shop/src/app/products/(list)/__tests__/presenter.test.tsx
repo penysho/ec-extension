@@ -64,7 +64,7 @@ const mockProducts = [
   },
 ]
 
-// 共通のクエリクライアント
+// Common query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -91,7 +91,7 @@ describe("ProductListPresenter", () => {
     queryClient.clear()
   })
 
-  it("商品一覧が正しく表示される", async () => {
+  it("displays the product list correctly", async () => {
     server.use(
       getGetProductsMockHandler(() => ({
         products: mockProducts,
@@ -109,7 +109,7 @@ describe("ProductListPresenter", () => {
     )
   })
 
-  it("商品検索が機能する", async () => {
+  it("product search functionality works", async () => {
     server.use(
       getGetProductsMockHandler(() => ({
         products: mockProducts,
@@ -137,7 +137,7 @@ describe("ProductListPresenter", () => {
     )
   })
 
-  it("カテゴリーフィルターが機能する", async () => {
+  it("category filter functionality works", async () => {
     server.use(
       getGetProductsMockHandler(() => ({
         products: mockProducts,
@@ -164,7 +164,7 @@ describe("ProductListPresenter", () => {
     )
   })
 
-  it("ページネーションが機能する", async () => {
+  it("pagination functionality works", async () => {
     const manyProducts = Array.from({ length: 15 }, (_, i) => ({
       id: String(i + 1),
       name: `テスト商品${i + 1}`,
@@ -219,7 +219,7 @@ describe("ProductListPresenter", () => {
     )
   })
 
-  it("ローディング状態が表示される", async () => {
+  it("displays loading state", async () => {
     server.use(
       getGetProductsMockHandler(async () => {
         await new Promise((resolve) => setTimeout(resolve, 100))
@@ -231,7 +231,7 @@ describe("ProductListPresenter", () => {
     expect(screen.getByLabelText("読み込み中")).toBeInTheDocument()
   })
 
-  it("エラー状態が表示される", async () => {
+  it("displays error state", async () => {
     const testError = new Error("Request failed with status code 500")
     server.use(
       getGetProductsMockHandler(() => {
