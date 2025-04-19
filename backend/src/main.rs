@@ -1,6 +1,7 @@
 use actix_cors::Cors;
 use actix_web::middleware::{from_fn, Logger};
 use actix_web::{http, web, App, HttpServer};
+use backend::library::tracing;
 use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
@@ -10,9 +11,11 @@ use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interactor_provider_impl::InteractorProviderImpl;
 use infrastructure::router::actix_router;
 use interface::controller::controller::Controller;
+use library::tracing::middleware::CustomRootSpanBuilder;
 use sea_orm::{DatabaseConnection, DatabaseTransaction};
 use std::io;
 use std::sync::Arc;
+use tracing_actix_web::TracingLogger;
 
 mod domain;
 mod infrastructure;
@@ -28,6 +31,8 @@ async fn main() -> std::io::Result<()> {
     let app_config = config_provider.app_config().clone();
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
+
+    tracing::opentelemetry::init_telemetry();
 
     let connection_provider = web::Data::new(
         SeaOrmConnectionProvider::new(config_provider.database_config().clone())
@@ -66,6 +71,8 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)
+            // .wrap(TracingLogger::default())
+            .wrap(TracingLogger::<CustomRootSpanBuilder>::new())
             // Definition of app data
             .app_data(connection_provider.clone())
             .app_data(controller.clone())

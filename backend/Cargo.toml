@@ -39,12 +39,12 @@ sea-orm = { version = "1.1.3", features = [ "sqlx-postgres", "runtime-tokio-nati
 rand = "0.8.5"
 once_cell = "1.19.0"
 opentelemetry = "0.29"
-opentelemetry-otlp = { version = "0.29", features = ["grpc-tonic"] }
+opentelemetry-otlp = { version = "0.29", features = ["grpc-tonic", "http-proto"] }
 opentelemetry_sdk = { version = "0.29", features = ["rt-tokio-current-thread"] }
 opentelemetry-semantic-conventions = "0.29"
 tracing = "0.1.41"
 tracing-actix-web = "0.7.18"
 tracing-opentelemetry = "0.30.0"
-tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["registry", "env-filter", "json"] }
 
 [dev-dependencies]
