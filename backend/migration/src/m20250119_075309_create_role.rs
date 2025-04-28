@@ -27,6 +27,8 @@ impl MigrationTrait for Migration {
             VALUES (2, 'operator');
             INSERT INTO "role" (id, name)
             VALUES (3, 'customer');
+            INSERT INTO "role" (id, name)
+            VALUES (4, 'not_login');
             "#,
             )
             .await?;
