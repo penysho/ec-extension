@@ -58,7 +58,7 @@ impl AuthorizedResource for Resource {
 /// - `Customer` - Customer resource.
 /// - `Inventory` - Inventory resource.
 /// - `DraftOrder` - Draft order resource.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ResourceType {
     Product = 1,
     Order,
@@ -75,6 +75,30 @@ impl fmt::Display for ResourceType {
             ResourceType::Customer => "Customer",
             ResourceType::Inventory => "Inventory",
             ResourceType::DraftOrder => "DraftOrder",
+        };
+        write!(f, "{}", value)
+    }
+}
+
+/// Resource actions subject to authorization.
+///
+/// # Variants
+/// - `Read` - Read action.
+/// - `Write` - Write action.
+/// - `Delete` - Delete action.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ResourceAction {
+    Read,
+    Write,
+    Delete,
+}
+
+impl fmt::Display for ResourceAction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            ResourceAction::Read => "Read",
+            ResourceAction::Write => "Write",
+            ResourceAction::Delete => "Delete",
         };
         write!(f, "{}", value)
     }

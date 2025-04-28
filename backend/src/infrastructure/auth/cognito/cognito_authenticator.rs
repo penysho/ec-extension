@@ -9,9 +9,12 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 use crate::{
-    domain::error::error::DomainError,
+    domain::{error::error::DomainError, user::user::UserInterface},
     infrastructure::{
-        auth::{authenticator_interface::Authenticator, idp_user::IdpUser},
+        auth::{
+            authenticator_interface::Authenticator, idp_user::IdpUser,
+            rbac::rbac_authorizer::RbacAuthorizer,
+        },
         config::config::CognitoConfig,
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
@@ -25,6 +28,7 @@ pub struct CognitoAuthenticator {
     http_client: ReqwestClient,
     cognito_client: CognitoClient,
     keys: Arc<RwLock<Vec<Key>>>,
+    authorizer: RbacAuthorizer,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,12 +55,17 @@ struct Claims {
 }
 
 impl CognitoAuthenticator {
-    pub fn new(cognito_config: CognitoConfig, sdk_config: SdkConfig) -> Self {
+    pub fn new(
+        cognito_config: CognitoConfig,
+        sdk_config: SdkConfig,
+        authorizer: RbacAuthorizer,
+    ) -> Self {
         CognitoAuthenticator {
             config: cognito_config,
             http_client: ReqwestClient::new(),
             cognito_client: CognitoClient::new(&sdk_config),
             keys: Arc::new(RwLock::new(Vec::new())),
+            authorizer,
         }
     }
 
@@ -159,13 +168,13 @@ impl Authenticator for CognitoAuthenticator {
         &mut self,
         id_token: Option<&str>,
         refresh_token: Option<&str>,
-    ) -> Result<(IdpUser, String), DomainError> {
+    ) -> Result<(Arc<dyn UserInterface>, String), DomainError> {
         if id_token.is_none() && refresh_token.is_none() {
             log_error!("Neither the ID token nor the refresh token is present in the cookie.");
             return Err(DomainError::AuthenticationError);
         };
 
-        let id_token_value = match id_token {
+        let mut id_token_value = match id_token {
             Some(token) => token.to_string(),
             None => {
                 self.get_id_token_by_refresh_token(refresh_token.unwrap())
@@ -182,16 +191,8 @@ impl Authenticator for CognitoAuthenticator {
         let kid = header.kid.ok_or(DomainError::AuthenticationError)?;
         let key = self.get_jwks_key(&kid).await?;
 
-        match self.verify_id_token(&id_token_value, &key) {
-            Ok(token_data) => {
-                return Ok((
-                    IdpUser {
-                        id: token_data.claims.sub.clone(),
-                        email: token_data.claims.email.clone(),
-                    },
-                    id_token_value.to_string(),
-                ));
-            }
+        let token_data = match self.verify_id_token(&id_token_value, &key) {
+            Ok(token_data) => token_data,
             Err(e) if e == DomainError::AuthenticationExpired && refresh_token.is_some() => {
                 log_debug!("ID Token is expired. Attempting to refresh the ID Token.");
 
@@ -199,21 +200,28 @@ impl Authenticator for CognitoAuthenticator {
                     .get_id_token_by_refresh_token(refresh_token.unwrap())
                     .await?;
 
-                self.verify_id_token(&new_id_token_value, &key)
-                    .map(|token_data| {
-                        (
-                            IdpUser {
-                                id: token_data.claims.sub.clone(),
-                                email: token_data.claims.email.clone(),
-                            },
-                            new_id_token_value,
-                        )
-                    })
+                id_token_value = new_id_token_value;
+                self.verify_id_token(&id_token_value, &key)?
             }
             Err(e) => {
                 return Err(e);
             }
-        }
+        };
+
+        let (roles, permissions) = self
+            .authorizer
+            .get_user_authorization(&token_data.claims.sub)
+            .await?;
+
+        Ok((
+            Arc::new(IdpUser::new(
+                token_data.claims.sub.clone(),
+                token_data.claims.email.clone(),
+                roles,
+                permissions,
+            )),
+            id_token_value.to_string(),
+        ))
     }
 
     async fn get_id_token_by_refresh_token(

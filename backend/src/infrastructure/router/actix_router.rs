@@ -112,8 +112,8 @@ where
             .route(
                 "/auth/sign-in",
                 web::post().to(
-                    |controller: web::Data<Controller<I, T, C>>, body: web::Json<PostSignInRequest>| async move {
-                        controller.post_sign_in(body).await
+                    |controller: web::Data<Controller<I, T, C>>, request: actix_web::HttpRequest, body: web::Json<PostSignInRequest>| async move {
+                        controller.post_sign_in(request, body).await
                     },
                 ),
             )

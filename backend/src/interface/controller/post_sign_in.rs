@@ -21,12 +21,20 @@ where
 {
     /// Perform back-end sign-in.
     /// Initiate session management with cookies.
-    pub async fn post_sign_in(&self, body: web::Json<PostSignInRequest>) -> impl Responder {
+    pub async fn post_sign_in(
+        &self,
+        request: actix_web::HttpRequest,
+        body: web::Json<PostSignInRequest>,
+    ) -> impl Responder {
         let body = body.into_inner();
         let id_token = body.id_token;
         let refresh_token = body.refresh_token;
+        let transaction_manager = self.get_transaction_manager(&request)?;
 
-        let interactor = self.interactor_provider.provide_auth_interactor().await;
+        let interactor = self
+            .interactor_provider
+            .provide_auth_interactor(transaction_manager)
+            .await;
         let result = interactor.authenticate(&id_token, &refresh_token).await;
 
         AuthPresenterImpl::new()
@@ -60,7 +68,7 @@ mod tests {
         let mut interactor_provider = MockInteractorProvider::<(), ()>::new();
         interactor_provider
             .expect_provide_auth_interactor()
-            .return_once(move || Box::new(interactor) as Box<dyn AuthInteractor>);
+            .return_once(move |_| Box::new(interactor) as Box<dyn AuthInteractor>);
 
         let controller = web::Data::new(Controller::new(interactor_provider));
 

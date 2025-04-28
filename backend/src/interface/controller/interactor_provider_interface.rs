@@ -40,5 +40,8 @@ where
         transaction_manager: Arc<dyn TransactionManager<T, C>>,
     ) -> Box<dyn CustomerInteractor>;
     /// Provide Interactor for auth.
-    async fn provide_auth_interactor(&self) -> Box<dyn AuthInteractor>;
+    async fn provide_auth_interactor(
+        &self,
+        transaction_manager: Arc<dyn TransactionManager<T, C>>,
+    ) -> Box<dyn AuthInteractor>;
 }

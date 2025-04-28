@@ -4,8 +4,11 @@ use actix_web::{http, web, App, HttpServer};
 use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
+use infrastructure::auth::rbac::rbac_authorizer::RbacAuthorizer;
 use infrastructure::config::config::ConfigProvider;
-use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmConnectionProvider;
+use infrastructure::db::sea_orm::sea_orm_manager::{
+    SeaOrmConnectionProvider, SeaOrmTransactionManager,
+};
 use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interactor_provider_impl::InteractorProviderImpl;
 use infrastructure::router::actix_router;
@@ -39,6 +42,13 @@ async fn main() -> std::io::Result<()> {
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
     );
 
+    // No transaction is started because it is used globally.
+    let transaction_manager = Arc::new(
+        SeaOrmTransactionManager::new(Arc::clone(&connection_provider.get_connection()))
+            .await
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
+    );
+
     let controller = web::Data::new(Controller::new(InteractorProviderImpl::new(
         config_provider.shopify_config().clone(),
         config_provider.cognito_config().clone(),
@@ -64,6 +74,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(AuthTransform::new(CognitoAuthenticator::new(
                 config_provider.cognito_config().clone(),
                 config_provider.aws_sdk_config().clone(),
+                RbacAuthorizer::new(transaction_manager.clone()),
             )))
             .wrap(from_fn(
                 sea_orm_transaction_middleware::sea_orm_transaction_middleware,

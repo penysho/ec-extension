@@ -3,9 +3,12 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::{
-    domain::{customer::customer::Customer, error::error::DomainError, user::user::UserInterface},
+    domain::{
+        authorized_resource::authorized_resource::ResourceAction, customer::customer::Customer,
+        error::error::DomainError, user::user::UserInterface,
+    },
     usecase::{
-        authorizer::authorizer_interface::{Action, Authorizer},
+        authorizer::authorizer_interface::Authorizer,
         interactor::customer_interactor_interface::{CustomerInteractor, GetCustomersQuery},
         repository::customer_repository_interface::CustomerRepository,
     },
@@ -44,7 +47,7 @@ impl CustomerInteractor for CustomerInteractorImpl {
                     .await?;
 
                 self.authorizer
-                    .authorize(user, vec![&customer], &Action::Read)
+                    .authorize(user, vec![&customer], &ResourceAction::Read)
                     .await?;
                 Ok(vec![customer])
             }

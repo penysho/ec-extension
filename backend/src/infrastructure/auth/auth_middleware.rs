@@ -1,7 +1,6 @@
 use std::{
     future::{ready, Ready},
     rc::Rc,
-    sync::Arc,
 };
 
 use actix_web::{
@@ -9,8 +8,6 @@ use actix_web::{
     error, Error, HttpMessage,
 };
 use futures_util::future::LocalBoxFuture;
-
-use crate::domain::user::user::UserInterface;
 
 use super::authenticator_interface::Authenticator;
 
@@ -95,13 +92,12 @@ where
 
         let svc = self.service.clone();
         Box::pin(async move {
-            let (idp_user, _) = authenticator
+            let (user, _) = authenticator
                 .verify_token(id_token_string.as_deref(), refresh_token_string.as_deref())
                 .await
                 .map_err(|e| error::ErrorUnauthorized(e))?;
 
-            req.extensions_mut()
-                .insert(Arc::new(idp_user) as Arc<dyn UserInterface>);
+            req.extensions_mut().insert(user);
 
             let res = svc.call(req).await?;
             Ok(res)
