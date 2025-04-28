@@ -170,9 +170,20 @@ impl Authenticator for CognitoAuthenticator {
         refresh_token: Option<&str>,
     ) -> Result<(Arc<dyn UserInterface>, String), DomainError> {
         if id_token.is_none() && refresh_token.is_none() {
-            log_error!("Neither the ID token nor the refresh token is present in the cookie.");
-            return Err(DomainError::AuthenticationError);
-        };
+            log_debug!("Neither the ID token nor the refresh token is present in the cookie.");
+
+            let (roles, permissions) = self.authorizer.get_not_login_user_authorization().await?;
+
+            return Ok((
+                Arc::new(IdpUser::new(
+                    String::new(),
+                    String::new(),
+                    roles,
+                    permissions,
+                )),
+                String::new(),
+            ));
+        }
 
         let mut id_token_value = match id_token {
             Some(token) => token.to_string(),

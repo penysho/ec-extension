@@ -134,6 +134,17 @@ impl RbacAuthorizer {
 
         Ok((roles, permissions))
     }
+
+    /// Get the authorization of the not login user.
+    pub async fn get_not_login_user_authorization(
+        &self,
+    ) -> Result<(Vec<Role>, HashMap<ResourceType, HashSet<UserAction>>), DomainError> {
+        let permissions = self
+            .get_user_permissions(vec![Role::NotLogin as i32])
+            .await?;
+
+        Ok((vec![Role::NotLogin], permissions))
+    }
 }
 
 #[async_trait]
