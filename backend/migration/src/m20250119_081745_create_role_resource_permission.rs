@@ -106,11 +106,11 @@ impl MigrationTrait for Migration {
         INSERT INTO "role_resource_permission" (id, role_id, resource_id, permission_id)
         VALUES (22, 3, 2, 2);
         INSERT INTO "role_resource_permission" (id, role_id, resource_id, permission_id)
-        VALUES (22, 3, 2, 3);
+        VALUES (23, 3, 2, 3);
         INSERT INTO "role_resource_permission" (id, role_id, resource_id, permission_id)
-        VALUES (22, 3, 3, 2);
+        VALUES (24, 3, 3, 2);
         INSERT INTO "role_resource_permission" (id, role_id, resource_id, permission_id)
-        VALUES (22, 3, 3, 3);
+        VALUES (25, 3, 3, 3);
         "#,
             )
             .await?;
