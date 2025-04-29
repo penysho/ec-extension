@@ -88,7 +88,7 @@ export class RdsStack extends Stack {
       engine: rds.DatabaseClusterEngine.auroraPostgres({
         version: currentEnvConfig.auroraPostgresEngineVersion,
       }),
-      credentials: rds.Credentials.fromSecret(rdsAdminSecret),
+      credentials: rds.Credentials.fromSecret(this.rdsAdminSecret),
       clusterIdentifier: `${projectName}-${deployEnv}-cluster`,
       deletionProtection: false,
       iamAuthentication: true,
