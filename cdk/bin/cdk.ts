@@ -4,6 +4,7 @@ import { currentEnvConfig, deployEnv, projectName } from "../config/config";
 import { BackendStack } from "../lib/backend";
 import { CiStack } from "../lib/ci";
 import { ElbStack } from "../lib/elb";
+import { RdsStack } from "../lib/rds";
 import { VpcStack } from "../lib/vpc";
 
 const app = new cdk.App();
@@ -25,6 +26,11 @@ const elbStack = new ElbStack(app, `${projectName}-${deployEnv}-elb`, {
   vpcStack: vpcStack,
 });
 
+const rdsStack = new RdsStack(app, `${projectName}-${deployEnv}-rds`, {
+  env: envProps,
+  vpcStack: vpcStack,
+});
+
 const backendStack = new BackendStack(
   app,
   `${projectName}-${deployEnv}-backend`,
@@ -32,6 +38,7 @@ const backendStack = new BackendStack(
     env: envProps,
     vpcStack: vpcStack,
     elbStack: elbStack,
+    rdsStack: rdsStack,
   }
 );
 

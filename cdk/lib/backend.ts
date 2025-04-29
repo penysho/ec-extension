@@ -1,4 +1,5 @@
 import * as cdk from "aws-cdk-lib";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
@@ -6,11 +7,13 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { currentEnvConfig, deployEnv, projectName } from "../config/config";
 import { ElbStack } from "./elb";
+import { RdsStack } from "./rds";
 import { VpcStack } from "./vpc";
 
 export interface BackendStackProps extends cdk.StackProps {
   readonly vpcStack: VpcStack;
   readonly elbStack: ElbStack;
+  rdsStack: RdsStack;
 }
 
 /**
@@ -226,8 +229,8 @@ export class BackendStack extends cdk.Stack {
       this,
       "TaskDefinition",
       {
-        cpu: 256,
-        memoryLimitMiB: 512,
+        cpu: currentEnvConfig.ecsTaskCpu,
+        memoryLimitMiB: currentEnvConfig.ecsTaskMemory,
         executionRole: taskExecutionRole,
         family: `${projectName}-backend-${deployEnv}`,
       }
@@ -258,14 +261,13 @@ export class BackendStack extends cdk.Stack {
       cluster: this.cluster,
       serviceName: `${projectName}-backend-${deployEnv}`,
       taskDefinition,
-      desiredCount: 1,
+      desiredCount: currentEnvConfig.ecsServiceDesiredCount,
       deploymentController: {
         type: ecs.DeploymentControllerType.CODE_DEPLOY,
       },
       enableExecuteCommand: true,
       assignPublicIp: true,
       // Security groups that allow communication from the ALB to the container are automatically granted
-      // securityGroups: [props.elasticacheStack.cacheClientSg],
       vpcSubnets: {
         // To retrieve images from ECR
         subnets: vpc.publicSubnets,
@@ -275,5 +277,11 @@ export class BackendStack extends cdk.Stack {
 
     // Register the service with the blue target group
     this.blueTargetGroup.addTarget(service);
+
+    props.rdsStack.rdsCluster.connections.allowFrom(
+      service,
+      ec2.Port.tcp(5432),
+      "Allow access to RDS from the ECS service"
+    );
   }
 }
