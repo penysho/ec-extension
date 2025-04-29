@@ -65,11 +65,7 @@ impl RbacAuthorizer {
                 .await
         }
         .map_err(|e| {
-            log_error!(
-                "Failed to get user roles. user_id: {}, error: {:?}",
-                user_id,
-                e
-            );
+            log_error!("Failed to get user roles.", "user_id" => user_id, "error" => e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
         Ok(roles.iter().map(|role| role.role_id).collect())
@@ -100,7 +96,7 @@ impl RbacAuthorizer {
                     .await
             }
             .map_err(|e| {
-                log_error!("Failed to get role resource permissions, error."; "error" => %e);
+                log_error!("Failed to get role resource permissions.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
             })?;
 
@@ -173,11 +169,11 @@ impl Authorizer for RbacAuthorizer {
                 is_resource_type_match && is_action_match
             }) {
                 log_error!(
-                    "User is not authorized. user_id: {}, resource: {}, owner_user_id: {}, action: {}",
-                    user.id(),
-                    resource.resource_type(),
-                    resource.owner_user_id().unwrap_or_else(|| "".to_string()),
-                    action
+                    "User is not authorized.",
+                    "user_id" => user.id(),
+                    "resource" => resource.resource_type(),
+                    "owner_user_id" => resource.owner_user_id().unwrap_or_else(|| "".to_string()),
+                    "action" => action
                 );
                 return Err(DomainError::AuthorizationError);
             }

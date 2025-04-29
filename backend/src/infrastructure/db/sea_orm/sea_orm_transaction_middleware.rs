@@ -34,7 +34,7 @@ pub async fn sea_orm_transaction_middleware(
         SeaOrmTransactionManager::new(Arc::clone(&connection_provider.get_connection()))
             .await
             .map_err(|e| {
-                log_error!("Initialization of transaction manager failed."; "error" => %e);
+                log_error!("Initialization of transaction manager failed.", "error" => e);
                 error::ErrorInternalServerError(TRANSACTION_ERROR_MESSAGE)
             })?;
 

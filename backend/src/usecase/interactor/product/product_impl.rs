@@ -46,6 +46,7 @@ impl ProductInteractor for ProductInteractorImpl {
         &self,
         id: &ProductId,
     ) -> Result<(Product, Vec<Media>), DomainError> {
+        tracing::info!("get_product_with_media: {}", id);
         let product_result = self.product_repository.find_product_by_id(id).await;
         let media_result = self.media_repository.find_media_by_product_id(id).await;
 

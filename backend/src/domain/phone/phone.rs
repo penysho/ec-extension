@@ -32,7 +32,7 @@ impl Phone {
             return Ok(Self { value });
         }
 
-        log_error!("Invalid phone number."; "value" => value);
+        log_error!("Invalid phone number.", "value" => value);
         Err(DomainError::ValidationError)
     }
 }

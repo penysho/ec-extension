@@ -67,8 +67,8 @@ impl Product {
         let description = description.into();
         if description.len() as u32 > Self::MAX_DESCRIPTION_LENGTH {
             log_error!(
-                "Description cannot be longer than {} characters",
-                Self::MAX_DESCRIPTION_LENGTH
+                "Description exceeds the maximum number of characters.",
+                "max_length" => Self::MAX_DESCRIPTION_LENGTH
             );
             return Err(DomainError::ValidationError);
         }

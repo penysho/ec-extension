@@ -82,13 +82,13 @@ impl CognitoAuthenticator {
             .send()
             .await
             .map_err(|e| {
-                log_error!("Failed to fetch JWKs."; "error" => %e);
+                log_error!("Failed to fetch JWKs.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?
             .json::<Jwks>()
             .await
             .map_err(|e| {
-                log_error!("Failed to parse fetch JWKs response."; "error" => %e);
+                log_error!("Failed to parse fetch JWKs response.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
@@ -104,21 +104,18 @@ impl CognitoAuthenticator {
             .into_iter()
             .find(|key| key.kid == kid);
         if let Some(key) = cached_key {
-            log_debug!("Found cached key: {}", kid);
+            log_debug!("Found cached key.", "kid" => kid);
             return Ok(key);
         }
 
-        log_warn!(
-            "Since the cache is not found, it is retrieved from JWKS_URI. kid: {}",
-            kid
-        );
+        log_warn!("Since the cache is not found, it is retrieved from JWKS_URI.", "kid" => kid);
         let jwks = self.fetch_jwks().await?;
         let mut keys = self.keys.write().await;
         *keys = jwks.keys.clone();
 
         let key = jwks.keys.into_iter().find(|key| key.kid == kid);
         key.ok_or_else(|| {
-            log_error!("Failed to find key."; "kid" => kid);
+            log_error!("Failed to find key.", "kid" => kid);
             return DomainError::AuthenticationError;
         })
     }
@@ -144,15 +141,12 @@ impl CognitoAuthenticator {
                 return DomainError::AuthenticationExpired;
             }
 
-            log_error!("Failed to validate ID Token."; "error" => %e);
+            log_error!("Failed to validate ID Token.", "error" => e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
         })?;
 
         if decoded_token.claims.token_use != "id" {
-            log_error!(
-                "Token is not ID Token. token_use: {}",
-                decoded_token.claims.token_use
-            );
+            log_error!("Token is not ID Token.", "token_use" => decoded_token.claims.token_use);
             return Err(DomainError::AuthenticationError);
         }
 
@@ -192,7 +186,7 @@ impl Authenticator for CognitoAuthenticator {
         };
 
         let header = jsonwebtoken::decode_header(&id_token_value).map_err(|e| {
-            log_error!("Failed to decode header."; "error" => %e);
+            log_error!("Failed to decode header.", "error" => e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
         })?;
 
@@ -247,7 +241,7 @@ impl Authenticator for CognitoAuthenticator {
             .send()
             .await
             .map_err(|e| {
-                log_error!("Failed to get ID Token by refresh token."; "error" => %e);
+                log_error!("Failed to get ID Token by refresh token.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::CognitoInitiateAuthError(
                     e,
                 ))

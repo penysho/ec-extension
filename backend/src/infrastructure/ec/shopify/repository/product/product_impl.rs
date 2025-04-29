@@ -93,7 +93,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         let graphql_response: GraphQLResponse<VariantsData> = self.client.query(&query).await?;
         match graphql_response.errors {
             Some(errors) => {
-                log_error!("Error returned in GraphQL response."; "Response" => ?errors);
+                log_error!("Error returned in GraphQL response.", "Response" => errors);
                 Err(DomainError::QueryError)
             }
             None => {
@@ -109,7 +109,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 let domains = VariantNode::to_product_domains(variant_nodes)?;
 
                 if domains.is_empty() {
-                    log_error!("No product found for id: {}", id);
+                    log_error!("No product found for id.", "id" => id);
                     return Err(DomainError::NotFound);
                 }
                 Ok(domains.into_iter().next().unwrap())
@@ -156,10 +156,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                 self.client.query(&products_query).await?;
             match products_response.errors {
                 Some(errors) => {
-                    log_error!(
-                        "Error returned in Products response. Response: {:?}",
-                        errors
-                    );
+                    log_error!("Error returned in Products response.", "Response" => errors);
                     return Err(DomainError::QueryError);
                 }
                 None => {
@@ -179,10 +176,10 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                         && products_data.page_info.has_next_page
                     {
                         log_debug!(
-                            "Skip products. index: {:?} <= index < {:?}, offset: {:?}",
-                            i,
-                            (i + 1) * query_limit,
-                            offset,
+                            "Skip products",
+                            "index" => i,
+                            "index + 1 * query_limit" => (i + 1) * query_limit,
+                            "offset" => offset
                         );
                         continue;
                     }
@@ -194,7 +191,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                         .collect::<Vec<String>>()
                         .join(",");
 
-                    log_debug!("product_ids: {:?}", product_ids);
+                    log_debug!("product_ids", "product_ids" => product_ids);
 
                     let mut variants_cursor = None;
                     let variant_fields = Self::variant_fields();
@@ -220,10 +217,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
                             self.client.query(&variants_query).await?;
                         match variants_response.errors {
                             Some(errors) => {
-                                log_error!(
-                                    "Error returned in Variants response. Response: {:?}",
-                                    errors
-                                );
+                                log_error!("Error returned in Variants response.", "Response" => errors);
                                 return Err(DomainError::QueryError);
                             }
                             None => {
@@ -256,7 +250,7 @@ impl<C: ECClient + Send + Sync> ProductRepository for ProductRepositoryImpl<C> {
         }
 
         let product_domains = VariantNode::to_product_domains(all_variants)?;
-        log_debug!("product_domains.len(): {}", product_domains.len());
+        log_debug!("product_domains.len()", "len" => product_domains.len());
 
         let start = offset % query_limit;
         let end = (start + limit).min(product_domains.len());

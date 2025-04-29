@@ -21,7 +21,7 @@ pub struct Amount {
 impl Amount {
     pub fn new(value: f64) -> Result<Self, DomainError> {
         if value < 0.0 {
-            log_error!("Money value cannot be negative."; "value" => value);
+            log_error!("Money value cannot be negative.", "value" => value);
             return Err(DomainError::ValidationError);
         }
 

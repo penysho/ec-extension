@@ -77,10 +77,7 @@ impl<C: ECClient + Send + Sync> ProductQueryService for ProductQueryServiceImpl<
 
         let response: GraphQLResponse<RelatedProductsData> = self.client.query(&query).await?;
         if let Some(errors) = response.errors {
-            log_error!(
-                "Error returned in Products response. Response: {:?}",
-                errors
-            );
+            log_error!("Error returned in Products response.", "response" => errors);
             return Err(DomainError::QueryError);
         }
 
