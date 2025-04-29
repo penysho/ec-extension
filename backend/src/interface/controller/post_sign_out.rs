@@ -42,7 +42,7 @@ mod tests {
         let mut interactor_provider = MockInteractorProvider::<(), ()>::new();
         interactor_provider
             .expect_provide_auth_interactor()
-            .return_once(move || Box::new(interactor) as Box<dyn AuthInteractor>);
+            .return_once(move |_| Box::new(interactor) as Box<dyn AuthInteractor>);
 
         let controller = web::Data::new(Controller::new(interactor_provider));
 

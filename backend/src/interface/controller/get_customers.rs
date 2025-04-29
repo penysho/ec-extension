@@ -61,6 +61,7 @@ fn validate_query_params(
 mod tests {
     use std::sync::Arc;
 
+    use crate::domain::user::user::UserInterface;
     use crate::infrastructure::auth::idp_user::IdpUser;
     use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
     use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
@@ -70,7 +71,6 @@ mod tests {
     use crate::usecase::interactor::customer_interactor_interface::{
         CustomerInteractor, MockCustomerInteractor,
     };
-    use crate::usecase::user::UserInterface;
 
     use super::*;
     use actix_http::Request;

@@ -27,6 +27,8 @@ impl MigrationTrait for Migration {
             VALUES ('test_operator_user', 'test_operator_user_name');
             INSERT INTO "user" (id, name)
             VALUES ('test_customer_user', 'test_customer_user_name');
+            INSERT INTO "user" (id, name)
+            VALUES ('test_not_login_user', 'test_not_login_user_name');
             "#,
             )
             .await?;

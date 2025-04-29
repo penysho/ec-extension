@@ -9,13 +9,14 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 use crate::{
-    domain::error::error::DomainError,
+    domain::{error::error::DomainError, user::user::UserInterface},
     infrastructure::{
-        auth::{authenticator_interface::Authenticator, idp_user::IdpUser},
+        auth::{idp_user::IdpUser, rbac::rbac_authorizer::RbacAuthorizer},
         config::config::CognitoConfig,
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
     log_debug, log_error, log_warn,
+    usecase::auth::authenticator_interface::Authenticator,
 };
 
 /// Authenticator with Cognito wrap.
@@ -25,6 +26,7 @@ pub struct CognitoAuthenticator {
     http_client: ReqwestClient,
     cognito_client: CognitoClient,
     keys: Arc<RwLock<Vec<Key>>>,
+    authorizer: RbacAuthorizer,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,12 +53,17 @@ struct Claims {
 }
 
 impl CognitoAuthenticator {
-    pub fn new(cognito_config: CognitoConfig, sdk_config: SdkConfig) -> Self {
+    pub fn new(
+        cognito_config: CognitoConfig,
+        sdk_config: SdkConfig,
+        authorizer: RbacAuthorizer,
+    ) -> Self {
         CognitoAuthenticator {
             config: cognito_config,
             http_client: ReqwestClient::new(),
             cognito_client: CognitoClient::new(&sdk_config),
             keys: Arc::new(RwLock::new(Vec::new())),
+            authorizer,
         }
     }
 
@@ -75,13 +82,13 @@ impl CognitoAuthenticator {
             .send()
             .await
             .map_err(|e| {
-                log_error!("Failed to fetch JWKs."; "error" => %e);
+                log_error!("Failed to fetch JWKs.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?
             .json::<Jwks>()
             .await
             .map_err(|e| {
-                log_error!("Failed to parse fetch JWKs response."; "error" => %e);
+                log_error!("Failed to parse fetch JWKs response.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::NetworkError(e))
             })?;
 
@@ -97,21 +104,18 @@ impl CognitoAuthenticator {
             .into_iter()
             .find(|key| key.kid == kid);
         if let Some(key) = cached_key {
-            log_debug!("Found cached key: {}", kid);
+            log_debug!("Found cached key.", "kid" => kid);
             return Ok(key);
         }
 
-        log_warn!(
-            "Since the cache is not found, it is retrieved from JWKS_URI. kid: {}",
-            kid
-        );
+        log_warn!("Since the cache is not found, it is retrieved from JWKS_URI.", "kid" => kid);
         let jwks = self.fetch_jwks().await?;
         let mut keys = self.keys.write().await;
         *keys = jwks.keys.clone();
 
         let key = jwks.keys.into_iter().find(|key| key.kid == kid);
         key.ok_or_else(|| {
-            log_error!("Failed to find key."; "kid" => kid);
+            log_error!("Failed to find key.", "kid" => kid);
             return DomainError::AuthenticationError;
         })
     }
@@ -137,15 +141,12 @@ impl CognitoAuthenticator {
                 return DomainError::AuthenticationExpired;
             }
 
-            log_error!("Failed to validate ID Token."; "error" => %e);
+            log_error!("Failed to validate ID Token.", "error" => e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
         })?;
 
         if decoded_token.claims.token_use != "id" {
-            log_error!(
-                "Token is not ID Token. token_use: {}",
-                decoded_token.claims.token_use
-            );
+            log_error!("Token is not ID Token.", "token_use" => decoded_token.claims.token_use);
             return Err(DomainError::AuthenticationError);
         }
 
@@ -159,13 +160,24 @@ impl Authenticator for CognitoAuthenticator {
         &mut self,
         id_token: Option<&str>,
         refresh_token: Option<&str>,
-    ) -> Result<(IdpUser, String), DomainError> {
+    ) -> Result<(Arc<dyn UserInterface>, String), DomainError> {
         if id_token.is_none() && refresh_token.is_none() {
-            log_error!("Neither the ID token nor the refresh token is present in the cookie.");
-            return Err(DomainError::AuthenticationError);
-        };
+            log_debug!("Neither the ID token nor the refresh token is present in the cookie.");
 
-        let id_token_value = match id_token {
+            let (roles, permissions) = self.authorizer.get_not_login_user_authorization().await?;
+
+            return Ok((
+                Arc::new(IdpUser::new(
+                    String::new(),
+                    String::new(),
+                    roles,
+                    permissions,
+                )),
+                String::new(),
+            ));
+        }
+
+        let mut id_token_value = match id_token {
             Some(token) => token.to_string(),
             None => {
                 self.get_id_token_by_refresh_token(refresh_token.unwrap())
@@ -174,7 +186,7 @@ impl Authenticator for CognitoAuthenticator {
         };
 
         let header = jsonwebtoken::decode_header(&id_token_value).map_err(|e| {
-            log_error!("Failed to decode header."; "error" => %e);
+            log_error!("Failed to decode header.", "error" => e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::JwtError(e))
         })?;
 
@@ -182,16 +194,8 @@ impl Authenticator for CognitoAuthenticator {
         let kid = header.kid.ok_or(DomainError::AuthenticationError)?;
         let key = self.get_jwks_key(&kid).await?;
 
-        match self.verify_id_token(&id_token_value, &key) {
-            Ok(token_data) => {
-                return Ok((
-                    IdpUser {
-                        id: token_data.claims.sub.clone(),
-                        email: token_data.claims.email.clone(),
-                    },
-                    id_token_value.to_string(),
-                ));
-            }
+        let token_data = match self.verify_id_token(&id_token_value, &key) {
+            Ok(token_data) => token_data,
             Err(e) if e == DomainError::AuthenticationExpired && refresh_token.is_some() => {
                 log_debug!("ID Token is expired. Attempting to refresh the ID Token.");
 
@@ -199,21 +203,28 @@ impl Authenticator for CognitoAuthenticator {
                     .get_id_token_by_refresh_token(refresh_token.unwrap())
                     .await?;
 
-                self.verify_id_token(&new_id_token_value, &key)
-                    .map(|token_data| {
-                        (
-                            IdpUser {
-                                id: token_data.claims.sub.clone(),
-                                email: token_data.claims.email.clone(),
-                            },
-                            new_id_token_value,
-                        )
-                    })
+                id_token_value = new_id_token_value;
+                self.verify_id_token(&id_token_value, &key)?
             }
             Err(e) => {
                 return Err(e);
             }
-        }
+        };
+
+        let (roles, permissions) = self
+            .authorizer
+            .get_user_authorization(&token_data.claims.sub)
+            .await?;
+
+        Ok((
+            Arc::new(IdpUser::new(
+                token_data.claims.sub.clone(),
+                token_data.claims.email.clone(),
+                roles,
+                permissions,
+            )),
+            id_token_value.to_string(),
+        ))
     }
 
     async fn get_id_token_by_refresh_token(
@@ -230,7 +241,7 @@ impl Authenticator for CognitoAuthenticator {
             .send()
             .await
             .map_err(|e| {
-                log_error!("Failed to get ID Token by refresh token."; "error" => %e);
+                log_error!("Failed to get ID Token by refresh token.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::CognitoInitiateAuthError(
                     e,
                 ))

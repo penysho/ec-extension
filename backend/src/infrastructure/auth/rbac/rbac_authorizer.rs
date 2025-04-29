@@ -1,35 +1,35 @@
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use sea_orm::{ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter};
 
 use crate::{
     domain::{
-        authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+        authorized_resource::authorized_resource::{
+            AuthorizedResource, ResourceAction, ResourceType,
+        },
         error::error::DomainError,
+        user::user::{Role, UserAction, UserInterface},
     },
     infrastructure::{
         db::{
             model::{
-                permission::Model as PermissionModel,
                 prelude::{Permission, RoleResourcePermission, UserRole},
-                role_resource_permission::{self, Model as RoleResourcePermissionModel},
-                user_role::{self, Model as UserRoleModel},
+                role_resource_permission, user_role,
             },
             transaction_manager_interface::TransactionManager,
         },
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
     log_error,
-    usecase::{
-        authorizer::authorizer_interface::{Action, Authorizer},
-        user::UserInterface,
-    },
+    usecase::auth::authorizer_interface::Authorizer,
 };
 
-use super::schema::DetailAction;
-
 /// Authorization by RBAC.
+#[derive(Clone)]
 pub struct RbacAuthorizer {
     transaction_manager: Arc<dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>>,
 }
@@ -46,17 +46,13 @@ impl RbacAuthorizer {
         }
     }
 
-    /// Get the roles of the user.
-    async fn get_user_roles(
-        &self,
-        transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
-        user_id: &str,
-    ) -> Result<Vec<UserRoleModel>, DomainError> {
+    /// Get the role ids of the user.
+    async fn get_user_role_ids(&self, user_id: &str) -> Result<Vec<i32>, DomainError> {
         let role_query = UserRole::find().filter(user_role::Column::UserId.eq(user_id));
-        let roles = if transaction_manager.is_transaction_started().await {
+        let roles = if self.transaction_manager.is_transaction_started().await {
             role_query
                 .all(
-                    transaction_manager
+                    self.transaction_manager
                         .get_transaction()
                         .await?
                         .as_ref()
@@ -65,91 +61,85 @@ impl RbacAuthorizer {
                 .await
         } else {
             role_query
-                .all(transaction_manager.get_connection().await?.as_ref())
+                .all(self.transaction_manager.get_connection().await?.as_ref())
                 .await
         }
         .map_err(|e| {
-            log_error!(
-                "Failed to get user roles. user_id: {}, error: {:?}",
-                user_id,
-                e
-            );
+            log_error!("Failed to get user roles.", "user_id" => user_id, "error" => e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
-        Ok(roles)
+        Ok(roles.iter().map(|role| role.role_id).collect())
     }
 
-    /// Get the role resource permissions.
-    async fn get_role_resource_permissions(
+    /// Get the permissions of the user.
+    async fn get_user_permissions(
         &self,
-        transaction_manager: &dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
         role_ids: Vec<i32>,
-    ) -> Result<Vec<(RoleResourcePermissionModel, Option<PermissionModel>)>, DomainError> {
+    ) -> Result<HashMap<ResourceType, HashSet<UserAction>>, DomainError> {
         let permission_query = RoleResourcePermission::find()
             .find_also_related(Permission)
             .filter(role_resource_permission::Column::RoleId.is_in(role_ids));
-        let role_resource_permission = if transaction_manager.is_transaction_started().await {
-            permission_query
-                .all(
-                    transaction_manager
-                        .get_transaction()
-                        .await?
-                        .as_ref()
-                        .ok_or(DomainError::SystemError)?,
-                )
-                .await
-        } else {
-            permission_query
-                .all(transaction_manager.get_connection().await?.as_ref())
-                .await
+        let role_resource_permissions =
+            if self.transaction_manager.is_transaction_started().await {
+                permission_query
+                    .all(
+                        self.transaction_manager
+                            .get_transaction()
+                            .await?
+                            .as_ref()
+                            .ok_or(DomainError::SystemError)?,
+                    )
+                    .await
+            } else {
+                permission_query
+                    .all(self.transaction_manager.get_connection().await?.as_ref())
+                    .await
+            }
+            .map_err(|e| {
+                log_error!("Failed to get role resource permissions.", "error" => e);
+                InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
+            })?;
+
+        let mut permission_map = HashMap::new();
+        for (role_resource_permission, permission) in role_resource_permissions {
+            let resource_type = ResourceType::try_from(role_resource_permission.resource_id)?;
+            let user_action = permission.clone().unwrap().action.parse::<UserAction>()?;
+
+            permission_map
+                .entry(resource_type)
+                .or_insert(HashSet::new())
+                .insert(user_action);
         }
-        .map_err(|e| {
-            log_error!("Failed to get role resource permissions, error."; "error" => %e);
-            InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
-        })?;
-        Ok(role_resource_permission)
+
+        Ok(permission_map)
     }
 
-    /// Determine the authorization.
-    async fn determine_authorization(
+    /// Get the authorization of the user.
+    pub async fn get_user_authorization(
         &self,
         user_id: &str,
-        resources: Vec<&dyn AuthorizedResource>,
-        action: &Action,
-        role_resource_permission: Vec<(RoleResourcePermissionModel, Option<PermissionModel>)>,
-    ) -> Result<(), DomainError> {
-        Ok(for resource in resources {
-            if !role_resource_permission.iter().any(|permission| {
-                let ok = match ResourceType::try_from(permission.0.resource_id) {
-                    Ok(permission_resource) => permission_resource == resource.resource_type(),
-                    Err(_) => false,
-                } && match permission.1.clone().unwrap().action.parse::<DetailAction>() {
-                    Ok(allowed_detail_action) => {
-                        if allowed_detail_action.is_own_action()
-                            && resource.owner_user_id().is_some()
-                            && resource.owner_user_id().as_ref().unwrap() != user_id
-                        {
-                            // If the action is an own action and the owner is different, it is not allowed.
-                            return false;
-                        }
+    ) -> Result<(Vec<Role>, HashMap<ResourceType, HashSet<UserAction>>), DomainError> {
+        let role_ids = self.get_user_role_ids(user_id).await?;
 
-                        allowed_detail_action.to_actions().contains(action)
-                    }
-                    Err(_) => false,
-                };
+        let roles = role_ids
+            .iter()
+            .map(|role_id| Role::try_from(*role_id))
+            .collect::<Result<Vec<Role>, DomainError>>()?;
 
-                ok
-            }) {
-                log_error!(
-                    "User is not authorized. user_id: {}, resource: {}, owner_user_id: {}, action: {}",
-                    user_id,
-                    resource.resource_type(),
-                    resource.owner_user_id().unwrap_or_else(|| "".to_string()),
-                    action
-                );
-                return Err(DomainError::AuthorizationError);
-            }
-        })
+        let permissions = self.get_user_permissions(role_ids.clone()).await?;
+
+        Ok((roles, permissions))
+    }
+
+    /// Get the authorization of the not login user.
+    pub async fn get_not_login_user_authorization(
+        &self,
+    ) -> Result<(Vec<Role>, HashMap<ResourceType, HashSet<UserAction>>), DomainError> {
+        let permissions = self
+            .get_user_permissions(vec![Role::NotLogin as i32])
+            .await?;
+
+        Ok((vec![Role::NotLogin], permissions))
     }
 }
 
@@ -159,24 +149,35 @@ impl Authorizer for RbacAuthorizer {
         &self,
         user: Arc<dyn UserInterface>,
         resources: Vec<&'a dyn AuthorizedResource>,
-        action: &Action,
+        action: &ResourceAction,
     ) -> Result<(), DomainError> {
-        let roles = self
-            .get_user_roles(self.transaction_manager.as_ref(), user.id())
-            .await?;
+        Ok(for resource in resources {
+            if !user.permissions().into_iter().any(|permission| {
+                let is_resource_type_match = permission.0 == resource.resource_type();
+                let is_action_match = permission.1.into_iter().any(|user_action| {
+                    if user_action.is_own_action()
+                        && resource.owner_user_id().is_some()
+                        && resource.owner_user_id().as_ref().unwrap() != user.id()
+                    {
+                        // If the action is an own action and the owner is different, it is not allowed.
+                        return false;
+                    }
 
-        if roles.is_empty() {
-            log_error!("User has no role. user_id: {}", user.id());
-            return Err(DomainError::SystemError);
-        }
+                    user_action.to_resource_actions().contains(action)
+                });
 
-        let role_ids: Vec<i32> = roles.iter().map(|role| role.role_id).collect();
-        let role_resource_permission = self
-            .get_role_resource_permissions(self.transaction_manager.as_ref(), role_ids)
-            .await?;
-
-        self.determine_authorization(user.id(), resources, action, role_resource_permission)
-            .await
+                is_resource_type_match && is_action_match
+            }) {
+                log_error!(
+                    "User is not authorized.",
+                    "user_id" => user.id(),
+                    "resource" => resource.resource_type(),
+                    "owner_user_id" => resource.owner_user_id().unwrap_or_else(|| "".to_string()),
+                    "action" => action
+                );
+                return Err(DomainError::AuthorizationError);
+            }
+        })
     }
 }
 
@@ -192,28 +193,23 @@ mod tests {
 
     use crate::{
         domain::{
-            authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+            authorized_resource::authorized_resource::{
+                AuthorizedResource, ResourceAction, ResourceType,
+            },
             error::error::DomainError,
-            user::user::Id as UserId,
+            user::user::{Id as UserId, Role, UserInterface},
         },
         infrastructure::{
-            auth::{idp_user::IdpUser, rbac::schema::DetailAction},
+            auth::{idp_user::IdpUser, rbac::rbac_authorizer::RbacAuthorizer},
             config::config::DatabaseConfig,
             db::{
-                model::{permission, role, role_resource_permission, user, user_role},
+                model::{user, user_role},
                 sea_orm::sea_orm_manager::{SeaOrmConnectionProvider, SeaOrmTransactionManager},
                 transaction_manager_interface::TransactionManager,
             },
         },
-        usecase::{
-            authorizer::authorizer_interface::{Action, Authorizer},
-            user::UserInterface,
-        },
+        usecase::auth::authorizer_interface::Authorizer,
     };
-
-    use super::RbacAuthorizer;
-
-    const ADMIN_ROLE_ID: i32 = 1;
 
     async fn transaction_manager() -> SeaOrmTransactionManager {
         let connection_provider = SeaOrmConnectionProvider::new(
@@ -235,77 +231,42 @@ mod tests {
         transaction_manager
     }
 
-    /// Insert an admin user into the database.
-    async fn insert_admin_user(
+    /// Insert an user into the database.
+    async fn insert_user(
         transaction: &DatabaseTransaction,
-        user: Arc<dyn UserInterface>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+        role: &Role,
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let mut rng = rand::thread_rng();
-        let user_id = user.id();
+        let user_id = Alphanumeric.sample_string(&mut rng, 10);
 
-        let admin_user = user::ActiveModel {
+        let user = user::ActiveModel {
             id: Set(user_id.to_string()),
             name: Set("name".to_string()),
         };
-        admin_user.insert(transaction).await?;
+        user.insert(transaction).await?;
 
-        let admin_user_role = user_role::ActiveModel {
+        let user_role = user_role::ActiveModel {
             id: Set(rng.gen_range(1000..10000)),
             user_id: Set(user_id.to_string()),
-            role_id: Set(ADMIN_ROLE_ID),
+            role_id: Set(role.clone() as i32),
         };
-        admin_user_role.insert(transaction).await?;
+        user_role.insert(transaction).await?;
 
-        Ok(())
+        Ok(user_id)
     }
 
-    /// Insert a custom user into the database.
-    /// The user has a custom role and permission.
-    async fn insert_custom_user<'a>(
-        transaction: &DatabaseTransaction,
-        user: Arc<dyn UserInterface>,
-        resource: &'a dyn AuthorizedResource,
-        detail_action: &DetailAction,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut rng = rand::thread_rng();
-        let user_id = user.id();
+    async fn user_interface(authorizer: &RbacAuthorizer, user_id: &str) -> Arc<dyn UserInterface> {
+        let (roles, permissions) = authorizer
+            .get_user_authorization(user_id)
+            .await
+            .expect("Failed to get user authorization");
 
-        let custom_user = user::ActiveModel {
-            id: Set(user_id.to_string()),
-            name: Set("name".to_string()),
-        };
-        custom_user.insert(transaction).await?;
-
-        let custom_role_id = rng.gen_range(1000..10000);
-        let custom_role = role::ActiveModel {
-            id: Set(custom_role_id),
-            name: Set("custom".to_string()),
-        };
-        custom_role.insert(transaction).await?;
-
-        let custom_user_role = user_role::ActiveModel {
-            id: Set(rng.gen_range(1000..10000)),
-            user_id: Set(user_id.to_string()),
-            role_id: Set(custom_role_id),
-        };
-        custom_user_role.insert(transaction).await?;
-
-        let permission_id = rng.gen_range(1000..10000);
-        let custom_permission = permission::ActiveModel {
-            id: Set(permission_id),
-            action: Set(detail_action.to_string()),
-        };
-        custom_permission.insert(transaction).await?;
-
-        let custom_role_resource_permission = role_resource_permission::ActiveModel {
-            id: Set(rng.gen_range(1000..10000)),
-            role_id: Set(custom_role_id),
-            resource_id: Set(resource.resource_type().clone() as i32),
-            permission_id: Set(permission_id),
-        };
-        custom_role_resource_permission.insert(transaction).await?;
-
-        Ok(())
+        Arc::new(IdpUser::new(
+            user_id.to_string(),
+            "example@example.com".to_string(),
+            roles,
+            permissions,
+        ))
     }
 
     struct MockProduct {
@@ -321,22 +282,25 @@ mod tests {
         }
     }
 
+    struct MockOrder {
+        owner_user_id: Option<UserId>,
+    }
+    impl AuthorizedResource for MockOrder {
+        fn resource_type(&self) -> ResourceType {
+            ResourceType::Order
+        }
+
+        fn owner_user_id(&self) -> Option<UserId> {
+            self.owner_user_id.clone()
+        }
+    }
+
     #[tokio::test]
     async fn test_authorize_with_admin_user_success() {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
-        let mut rng = rand::thread_rng();
-        let user = Arc::new(IdpUser {
-            id: Alphanumeric.sample_string(&mut rng, 10),
-            email: "example@example.com".to_string(),
-        }) as Arc<dyn UserInterface>;
-        let resource = vec![&MockProduct {
-            owner_user_id: None,
-        } as &dyn AuthorizedResource];
-        let action = Action::Read;
-
-        insert_admin_user(
+        let user_id = insert_user(
             transaction_manager
                 .clone()
                 .get_transaction()
@@ -344,12 +308,23 @@ mod tests {
                 .unwrap()
                 .as_ref()
                 .unwrap(),
-            user.clone(),
+            &Role::Admin,
         )
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, resource, &action).await;
+        let resource = vec![&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource];
+        let action = ResourceAction::Read;
+
+        let result = authorizer
+            .authorize(
+                user_interface(&authorizer, &user_id).await,
+                resource,
+                &action,
+            )
+            .await;
 
         assert!(result.is_ok());
     }
@@ -359,23 +334,7 @@ mod tests {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
-        let mut rng = rand::thread_rng();
-        let user = Arc::new(IdpUser {
-            id: Alphanumeric.sample_string(&mut rng, 10),
-            email: "example@example.com".to_string(),
-        }) as Arc<dyn UserInterface>;
-        let binding = MockProduct {
-            owner_user_id: Some(user.id().to_string()),
-        };
-        let resource = vec![
-            &MockProduct {
-                owner_user_id: None,
-            } as &dyn AuthorizedResource,
-            &binding as &dyn AuthorizedResource,
-        ];
-        let action = Action::Read;
-
-        insert_admin_user(
+        let user_id = insert_user(
             transaction_manager
                 .clone()
                 .get_transaction()
@@ -383,12 +342,29 @@ mod tests {
                 .unwrap()
                 .as_ref()
                 .unwrap(),
-            user.clone(),
+            &Role::Admin,
         )
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, resource, &action).await;
+        let binding = MockProduct {
+            owner_user_id: Some(user_id.to_string()),
+        };
+        let resource = vec![
+            &MockProduct {
+                owner_user_id: None,
+            } as &dyn AuthorizedResource,
+            &binding as &dyn AuthorizedResource,
+        ];
+        let action = ResourceAction::Read;
+
+        let result = authorizer
+            .authorize(
+                user_interface(&authorizer, &user_id).await,
+                resource,
+                &action,
+            )
+            .await;
 
         assert!(result.is_ok());
     }
@@ -398,17 +374,7 @@ mod tests {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
-        let mut rng = rand::thread_rng();
-        let user = Arc::new(IdpUser {
-            id: Alphanumeric.sample_string(&mut rng, 10),
-            email: "example@example.com".to_string(),
-        }) as Arc<dyn UserInterface>;
-        let resource = vec![&MockProduct {
-            owner_user_id: None,
-        } as &dyn AuthorizedResource];
-        let action = Action::Read;
-
-        insert_custom_user(
+        let user_id = insert_user(
             transaction_manager
                 .clone()
                 .get_transaction()
@@ -416,12 +382,16 @@ mod tests {
                 .unwrap()
                 .as_ref()
                 .unwrap(),
-            user.clone(),
-            resource[0],
-            &DetailAction::AllRead,
+            &Role::Operator,
         )
         .await
         .expect("Failed to insert test data");
+
+        let user = user_interface(&authorizer, &user_id).await;
+        let resource = vec![&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource];
+        let action = ResourceAction::Read;
 
         let result = authorizer.authorize(user, resource, &action).await;
 
@@ -433,18 +403,7 @@ mod tests {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
-        let mut rng = rand::thread_rng();
-        let user = Arc::new(IdpUser {
-            id: Alphanumeric.sample_string(&mut rng, 10),
-            email: "example@example.com".to_string(),
-        }) as Arc<dyn UserInterface>;
-        let binding = MockProduct {
-            owner_user_id: Some(user.id().to_string()),
-        };
-        let resource = vec![&binding as &dyn AuthorizedResource];
-        let action = Action::Delete;
-
-        insert_custom_user(
+        let user_id = insert_user(
             transaction_manager
                 .clone()
                 .get_transaction()
@@ -452,12 +411,17 @@ mod tests {
                 .unwrap()
                 .as_ref()
                 .unwrap(),
-            user.clone(),
-            resource[0],
-            &DetailAction::OwnDelete,
+            &Role::Operator,
         )
         .await
         .expect("Failed to insert test data");
+
+        let user = user_interface(&authorizer, &user_id).await;
+        let binding = MockProduct {
+            owner_user_id: Some(user_id.to_string()),
+        };
+        let resource = vec![&binding as &dyn AuthorizedResource];
+        let action = ResourceAction::Delete;
 
         let result = authorizer.authorize(user, resource, &action).await;
 
@@ -465,46 +429,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_authorize_with_user_not_found() {
-        let transaction_manager = transaction_manager().await;
-        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
-
-        let mut rng = rand::thread_rng();
-        let user = Arc::new(IdpUser {
-            id: Alphanumeric.sample_string(&mut rng, 10),
-            email: "example@example.com".to_string(),
-        }) as Arc<dyn UserInterface>;
-        let resource = vec![&MockProduct {
-            owner_user_id: None,
-        } as &dyn AuthorizedResource];
-        let action = Action::Read;
-
-        let result = authorizer.authorize(user, resource, &action).await;
-
-        assert!(result.is_err());
-        if let Err(DomainError::SystemError) = result {
-            // Test passed
-        } else {
-            panic!("Expected DomainError::SystemError, but got something else");
-        }
-    }
-
-    #[tokio::test]
     async fn test_authorize_with_no_permission() {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
-        let mut rng = rand::thread_rng();
-        let user = Arc::new(IdpUser {
-            id: Alphanumeric.sample_string(&mut rng, 10),
-            email: "example@example.com".to_string(),
-        }) as Arc<dyn UserInterface>;
-        let resource = vec![&MockProduct {
-            owner_user_id: None,
-        } as &dyn AuthorizedResource];
-        let action = Action::Delete;
-
-        insert_custom_user(
+        let user_id = insert_user(
             transaction_manager
                 .clone()
                 .get_transaction()
@@ -512,14 +441,23 @@ mod tests {
                 .unwrap()
                 .as_ref()
                 .unwrap(),
-            user.clone(),
-            resource[0],
-            &DetailAction::OwnRead, // This action is not allowed.
+            &Role::Customer,
         )
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, resource, &action).await;
+        let resource = vec![&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource];
+        let action = ResourceAction::Delete; // The action is not allowed.
+
+        let result = authorizer
+            .authorize(
+                user_interface(&authorizer, &user_id).await,
+                resource,
+                &action,
+            )
+            .await;
 
         assert!(result.is_err());
         if let Err(DomainError::AuthorizationError) = result {
@@ -534,18 +472,7 @@ mod tests {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
-        let mut rng = rand::thread_rng();
-        let user = Arc::new(IdpUser {
-            id: Alphanumeric.sample_string(&mut rng, 10),
-            email: "example@example.com".to_string(),
-        }) as Arc<dyn UserInterface>;
-        let binding = MockProduct {
-            owner_user_id: Some("another_user_id".to_string()), // Different owner user ID
-        };
-        let resource = vec![&binding as &dyn AuthorizedResource];
-        let action = Action::Delete;
-
-        insert_custom_user(
+        let user_id = insert_user(
             transaction_manager
                 .clone()
                 .get_transaction()
@@ -553,14 +480,24 @@ mod tests {
                 .unwrap()
                 .as_ref()
                 .unwrap(),
-            user.clone(),
-            resource[0],
-            &DetailAction::OwnDelete,
+            &Role::Customer,
         )
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, resource, &action).await;
+        let binding = MockOrder {
+            owner_user_id: Some("another_user_id".to_string()), // The owner is different.
+        };
+        let resource = vec![&binding as &dyn AuthorizedResource];
+        let action = ResourceAction::Delete;
+
+        let result = authorizer
+            .authorize(
+                user_interface(&authorizer, &user_id).await,
+                resource,
+                &action,
+            )
+            .await;
 
         assert!(result.is_err());
         if let Err(DomainError::AuthorizationError) = result {
@@ -575,24 +512,7 @@ mod tests {
         let transaction_manager = transaction_manager().await;
         let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
 
-        let mut rng = rand::thread_rng();
-        let user = Arc::new(IdpUser {
-            id: Alphanumeric.sample_string(&mut rng, 10),
-            email: "example@example.com".to_string(),
-        }) as Arc<dyn UserInterface>;
-        let binding1 = MockProduct {
-            owner_user_id: Some(user.id().to_string()),
-        };
-        let binding2 = MockProduct {
-            owner_user_id: Some("another_user_id".to_string()),
-        };
-        let resource = vec![
-            &binding1 as &dyn AuthorizedResource,
-            &binding2 as &dyn AuthorizedResource,
-        ];
-        let action = Action::Delete;
-
-        insert_custom_user(
+        let user_id = insert_user(
             transaction_manager
                 .clone()
                 .get_transaction()
@@ -600,14 +520,30 @@ mod tests {
                 .unwrap()
                 .as_ref()
                 .unwrap(),
-            user.clone(),
-            resource[0],
-            &DetailAction::OwnDelete,
+            &Role::Customer,
         )
         .await
         .expect("Failed to insert test data");
 
-        let result = authorizer.authorize(user, resource, &action).await;
+        let binding1 = MockProduct {
+            owner_user_id: Some(user_id.to_string()),
+        };
+        let binding2 = MockOrder {
+            owner_user_id: Some("another_user_id".to_string()), // The owner is different.
+        };
+        let resource = vec![
+            &binding1 as &dyn AuthorizedResource,
+            &binding2 as &dyn AuthorizedResource,
+        ];
+        let action = ResourceAction::Delete;
+
+        let result = authorizer
+            .authorize(
+                user_interface(&authorizer, &user_id).await,
+                resource,
+                &action,
+            )
+            .await;
 
         assert!(result.is_err());
         if let Err(DomainError::AuthorizationError) = result {

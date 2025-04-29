@@ -133,9 +133,18 @@ impl InteractorProvider<DatabaseTransaction, Arc<DatabaseConnection>> for Intera
         ))
     }
 
-    async fn provide_auth_interactor(&self) -> Box<dyn AuthInteractor> {
+    async fn provide_auth_interactor(
+        &self,
+        transaction_manager: Arc<
+            dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+        >,
+    ) -> Box<dyn AuthInteractor> {
         Box::new(AuthInteractorImpl::new(
-            CognitoAuthenticator::new(self.cognito_config.clone(), self.aws_sdk_config.clone()),
+            CognitoAuthenticator::new(
+                self.cognito_config.clone(),
+                self.aws_sdk_config.clone(),
+                RbacAuthorizer::new(Arc::clone(&transaction_manager)),
+            ),
             CustomerRepositoryImpl::new(ShopifyGQLClient::new(self.shopify_config.clone())),
         ))
     }

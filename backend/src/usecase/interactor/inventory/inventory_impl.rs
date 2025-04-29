@@ -94,7 +94,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
             .await?
             .ok_or_else(|| {
                 log_error!(
-                    "InventoryLevel for the specified SKU is not found.";
+                    "InventoryLevel for the specified SKU is not found.",
                     "SKU" => sku.value(),
                     "LocationId" => location_id
                 );

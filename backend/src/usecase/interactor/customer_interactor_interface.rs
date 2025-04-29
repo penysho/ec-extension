@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::domain::customer::customer::Customer;
 use crate::domain::email::email::Email;
 use crate::domain::error::error::DomainError;
-use crate::usecase::user::UserInterface;
+use crate::domain::user::user::UserInterface;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GetCustomersQuery {

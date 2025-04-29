@@ -18,6 +18,8 @@ where
     pub async fn get_product(&self, path: Path<(String,)>) -> impl Responder {
         let id = &path.into_inner().0;
 
+        tracing::info!("get_product interface: {}", id);
+
         let product_interactor = self.interactor_provider.provide_product_interactor().await;
         let result = product_interactor.get_product_with_media(id).await;
 

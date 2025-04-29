@@ -42,6 +42,7 @@ mod tests {
     use std::sync::Arc;
 
     use crate::domain::error::error::DomainError;
+    use crate::domain::user::user::UserInterface;
     use crate::infrastructure::auth::idp_user::IdpUser;
     use crate::infrastructure::db::sea_orm::sea_orm_manager::SeaOrmTransactionManager;
     use crate::infrastructure::db::transaction_manager_interface::TransactionManager;
@@ -49,7 +50,6 @@ mod tests {
     use crate::interface::controller::interactor_provider_interface::MockInteractorProvider;
     use crate::usecase::interactor::draft_order_interactor_interface::DraftOrderInteractor;
     use crate::usecase::interactor::draft_order_interactor_interface::MockDraftOrderInteractor;
-    use crate::usecase::user::UserInterface;
 
     use super::*;
     use actix_http::Request;

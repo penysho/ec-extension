@@ -2,10 +2,10 @@ use async_trait::async_trait;
 
 use crate::{
     domain::{customer::customer::Customer, email::email::Email, error::error::DomainError},
-    infrastructure::auth::authenticator_interface::Authenticator,
     usecase::{
+        auth::authenticator_interface::Authenticator,
         interactor::auth_interactor_interface::AuthInteractor,
-        repository::customer_repository_interface::CustomerRepository, user::UserInterface,
+        repository::customer_repository_interface::CustomerRepository,
     },
 };
 
@@ -43,7 +43,7 @@ where
         id_token: &Option<String>,
         refresh_token: &Option<String>,
     ) -> Result<(Customer, String), DomainError> {
-        let (idp_user, new_id_token) = self
+        let (user, new_id_token) = self
             .authenticator
             .clone()
             .verify_token(id_token.as_deref(), refresh_token.as_deref())
@@ -51,7 +51,7 @@ where
 
         let customer = self
             .customer_repository
-            .find_customer_by_email(&Email::new(idp_user.email())?)
+            .find_customer_by_email(&Email::new(user.email())?)
             .await?;
 
         Ok((customer, new_id_token))

@@ -4,15 +4,20 @@ use actix_web::{http, web, App, HttpServer};
 use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
+use infrastructure::auth::rbac::rbac_authorizer::RbacAuthorizer;
 use infrastructure::config::config::ConfigProvider;
-use infrastructure::db::sea_orm::sea_orm_manager::SeaOrmConnectionProvider;
+use infrastructure::db::sea_orm::sea_orm_manager::{
+    SeaOrmConnectionProvider, SeaOrmTransactionManager,
+};
 use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interactor_provider_impl::InteractorProviderImpl;
 use infrastructure::router::actix_router;
 use interface::controller::controller::Controller;
+use library::tracing::middleware::CustomRootSpanBuilder;
 use sea_orm::{DatabaseConnection, DatabaseTransaction};
 use std::io;
 use std::sync::Arc;
+use tracing_actix_web::TracingLogger;
 
 mod domain;
 mod infrastructure;
@@ -29,8 +34,17 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
+    library::tracing::opentelemetry::init_telemetry(&app_config);
+
     let connection_provider = web::Data::new(
         SeaOrmConnectionProvider::new(config_provider.database_config().clone())
+            .await
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
+    );
+
+    // No transaction is started because it is used globally.
+    let transaction_manager = Arc::new(
+        SeaOrmTransactionManager::new(Arc::clone(&connection_provider.get_connection()))
             .await
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?,
     );
@@ -60,12 +74,14 @@ async fn main() -> std::io::Result<()> {
             .wrap(AuthTransform::new(CognitoAuthenticator::new(
                 config_provider.cognito_config().clone(),
                 config_provider.aws_sdk_config().clone(),
+                RbacAuthorizer::new(transaction_manager.clone()),
             )))
             .wrap(from_fn(
                 sea_orm_transaction_middleware::sea_orm_transaction_middleware,
             ))
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)
+            .wrap(TracingLogger::<CustomRootSpanBuilder>::new())
             // Definition of app data
             .app_data(connection_provider.clone())
             .app_data(controller.clone())

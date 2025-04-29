@@ -34,12 +34,12 @@ impl SeaOrmConnectionProvider {
             .max_lifetime(Duration::from_secs(*config.max_lifetime()));
 
         let conn = Database::connect(opt).await.map_err(|e| {
-            log_error!("Database connection error."; "error" => %e);
+            log_error!("Database connection error.", "error" => e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
 
         conn.ping().await.map_err(|e| {
-            log_error!("Database ping error."; "error" => %e);
+            log_error!("Database ping error.", "error" => e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
 
@@ -86,7 +86,7 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
         let mut lock = self.tran.lock().await;
         if lock.is_none() {
             let tran = self.conn.begin().await.map_err(|e| {
-                log_error!("Database transaction error."; "error" => %e);
+                log_error!("Database transaction error.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
             })?;
             *lock = Some(tran);
@@ -121,7 +121,7 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
         let mut lock = self.tran.lock().await;
         if let Some(tran) = lock.take() {
             tran.commit().await.map_err(|e| {
-                log_error!("Database commit error."; "error" => %e);
+                log_error!("Database commit error.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
             })?;
             Ok(())
@@ -135,7 +135,7 @@ impl TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>> for SeaOrm
         let mut lock = self.tran.lock().await;
         if let Some(tran) = lock.take() {
             tran.rollback().await.map_err(|e| {
-                log_error!("Database rollback error."; "error" => %e);
+                log_error!("Database rollback error.", "error" => e);
                 InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
             })?;
             Ok(())

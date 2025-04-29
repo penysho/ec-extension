@@ -1,8 +1,8 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 
-use crate::domain::error::error::DomainError;
-
-use super::idp_user::IdpUser;
+use crate::domain::{error::error::DomainError, user::user::UserInterface};
 
 /// Authentication interface.
 #[async_trait]
@@ -17,8 +17,8 @@ pub trait Authenticator: Send + Sync + Clone {
     ///
     /// # Returns
     ///
-    /// * `Result<(IdpUser, String), DomainError>` - The result of the operation.
-    ///   - `Ok((IdpUser, String))` - Idp user information and ID Token. If an ID token is obtained using a refresh token, the updated ID token is returned, not the one received as an argument.
+    /// * `Result<(Arc<dyn UserInterface>, String), DomainError>` - The result of the operation.
+    ///   - `Ok((Arc<dyn UserInterface>, String))` - Idp user information and ID Token. If an ID token is obtained using a refresh token, the updated ID token is returned, not the one received as an argument.
     ///   - `Err(DomainError)` - The error.
     ///
     /// # Errors
@@ -28,7 +28,7 @@ pub trait Authenticator: Send + Sync + Clone {
         &mut self,
         id_token: Option<&str>,
         refresh_token: Option<&str>,
-    ) -> Result<(IdpUser, String), DomainError>;
+    ) -> Result<(Arc<dyn UserInterface>, String), DomainError>;
 
     /// Obtain an ID Token by means of a refresh token.
     async fn get_id_token_by_refresh_token(

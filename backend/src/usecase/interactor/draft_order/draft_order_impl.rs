@@ -6,21 +6,23 @@ use chrono::{DateTime, Utc};
 use crate::{
     domain::{
         address::address::Address,
-        authorized_resource::authorized_resource::{AuthorizedResource, Resource, ResourceType},
+        authorized_resource::authorized_resource::{
+            AuthorizedResource, Resource, ResourceAction, ResourceType,
+        },
         customer::customer::Id as CustomerId,
         draft_order::draft_order::{DraftOrder, Id as DraftOrderId},
         error::error::DomainError,
         line_item::{discount::discount::Discount, line_item::LineItem},
         money::money::CurrencyCode,
+        user::user::UserInterface,
     },
     usecase::{
-        authorizer::authorizer_interface::{Action, Authorizer},
+        auth::authorizer_interface::Authorizer,
         interactor::draft_order_interactor_interface::{DraftOrderInteractor, GetDraftOrdersQuery},
         repository::{
             customer_repository_interface::CustomerRepository,
             draft_order_repository_interface::DraftOrderRepository,
         },
-        user::UserInterface,
     },
 };
 
@@ -71,7 +73,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
                     .iter()
                     .map(|d| d as &dyn AuthorizedResource)
                     .collect(),
-                &Action::Read,
+                &ResourceAction::Read,
             )
             .await?;
 
@@ -95,7 +97,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
             .authorize(
                 user.clone(),
                 vec![&Resource::new(ResourceType::DraftOrder, None)],
-                &Action::Write,
+                &ResourceAction::Write,
             )
             .await?;
 
@@ -126,7 +128,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
             .await?;
 
         self.authorizer
-            .authorize(user.clone(), vec![&draft_order], &Action::Write)
+            .authorize(user.clone(), vec![&draft_order], &ResourceAction::Write)
             .await?;
 
         draft_order.complete()?;
@@ -145,7 +147,7 @@ impl DraftOrderInteractor for DraftOrderInteractorImpl {
             .await?;
 
         self.authorizer
-            .authorize(user.clone(), vec![&draft_order], &Action::Delete)
+            .authorize(user.clone(), vec![&draft_order], &ResourceAction::Delete)
             .await?;
 
         self.draft_order_repository.delete(draft_order).await
