@@ -256,7 +256,40 @@ export class BackendStack extends cdk.Stack {
         streamPrefix: "ecs",
       }),
     });
-    container.addEnvironment("JWT_SECRET", "secret");
+    container.addEnvironment("RUST_LOG", currentEnvConfig.appConfig.RUST_LOG);
+    container.addEnvironment("STORE_URL", currentEnvConfig.appConfig.STORE_URL);
+    container.addEnvironment(
+      "ACCESS_TOKEN",
+      currentEnvConfig.appConfig.ACCESS_TOKEN
+    );
+    container.addEnvironment(
+      "COGNITO_USER_POOL_ID",
+      props.cognitoStack.userPool.userPoolId
+    );
+    container.addEnvironment(
+      "COGNITO_CLIENT_ID",
+      props.cognitoStack.userPoolClient.userPoolClientId
+    );
+    container.addEnvironment(
+      "COGNITO_REGION",
+      props.env?.region ?? "ap-northeast-1"
+    );
+    container.addEnvironment(
+      "COGNITO_JWKS_URI",
+      `https://cognito-idp.${props.env?.region}.amazonaws.com/${props.cognitoStack.userPool.userPoolId}/.well-known/jwks.json`
+    );
+    container.addEnvironment(
+      "DATABASE_URL",
+      `postgres://${
+        props.rdsStack.rdsAdminSecret.secretValueFromJson("username")
+          .unsafeUnwrap
+      }:${
+        props.rdsStack.rdsAdminSecret.secretValueFromJson("password")
+          .unsafeUnwrap
+      }@${props.rdsStack.rdsCluster.clusterEndpoint.hostname}:${
+        props.rdsStack.rdsCluster.clusterEndpoint.port
+      }/postgres`
+    );
 
     // Service
     const service = new ecs.FargateService(this, "Service", {

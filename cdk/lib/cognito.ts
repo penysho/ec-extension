@@ -13,6 +13,10 @@ export class CognitoStack extends cdk.Stack {
    * User Pool
    */
   public readonly userPool: cognito.UserPool;
+  /**
+   * User Pool Client
+   */
+  public readonly userPoolClient: cognito.UserPoolClient;
 
   constructor(scope: Construct, id: string, props: CognitoStackProps) {
     super(scope, id, props);

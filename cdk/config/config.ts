@@ -31,6 +31,11 @@ export interface EnvConfig {
   ecsServiceDesiredCount: number;
   auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion;
   auroraInstanceType: ec2.InstanceType;
+  appConfig: {
+    RUST_LOG: string;
+    STORE_URL: string;
+    ACCESS_TOKEN: string;
+  };
 }
 
 export const envConfig: Record<EnvCode, EnvConfig> = {
@@ -48,6 +53,13 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
     ),
+    appConfig: {
+      RUST_LOG: "debug",
+      STORE_URL:
+        "https://pesh-shared-demo.myshopify.com/admin/api/2024-07/graphql.json",
+      // Receive in cdk deploy argument and update the value.
+      ACCESS_TOKEN: "",
+    },
   },
   tst: {
     backendImageTag: "latest",
@@ -63,6 +75,12 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
     ),
+    appConfig: {
+      RUST_LOG: "debug",
+      STORE_URL:
+        "https://pesh-shared-demo.myshopify.com/admin/api/2024-07/graphql.json",
+      ACCESS_TOKEN: "",
+    },
   },
   prd: {
     backendImageTag: "latest",
@@ -78,6 +96,12 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
     ),
+    appConfig: {
+      RUST_LOG: "debug",
+      STORE_URL:
+        "https://pesh-shared-demo.myshopify.com/admin/api/2024-07/graphql.json",
+      ACCESS_TOKEN: "",
+    },
   },
 };
 

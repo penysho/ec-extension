@@ -22,6 +22,10 @@ export class RdsStack extends Stack {
    * Aurora Cluster
    */
   public readonly rdsCluster: rds.DatabaseCluster;
+  /**
+   * RDS Secret
+   */
+  public readonly rdsAdminSecret: sm.Secret;
 
   constructor(scope: Construct, id: string, props: RdsStackProps) {
     super(scope, id, props);
@@ -36,7 +40,7 @@ export class RdsStack extends Stack {
     /**
      * RDS Admin User Secret
      */
-    const rdsAdminSecret = new sm.Secret(this, `RdsAdminSecret`, {
+    this.rdsAdminSecret = new sm.Secret(this, `RdsAdminSecret`, {
       secretName: `${projectName}-${deployEnv}/rds/admin-secret`,
       description: `${projectName}-${deployEnv} RDS Admin User Secret.`,
       generateSecretString: {
