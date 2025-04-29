@@ -11,14 +11,12 @@ use tokio::sync::RwLock;
 use crate::{
     domain::{error::error::DomainError, user::user::UserInterface},
     infrastructure::{
-        auth::{
-            authenticator_interface::Authenticator, idp_user::IdpUser,
-            rbac::rbac_authorizer::RbacAuthorizer,
-        },
+        auth::{idp_user::IdpUser, rbac::rbac_authorizer::RbacAuthorizer},
         config::config::CognitoConfig,
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
     log_debug, log_error, log_warn,
+    usecase::auth::authenticator_interface::Authenticator,
 };
 
 /// Authenticator with Cognito wrap.

@@ -2,8 +2,8 @@ use async_trait::async_trait;
 
 use crate::{
     domain::{customer::customer::Customer, email::email::Email, error::error::DomainError},
-    infrastructure::auth::authenticator_interface::Authenticator,
     usecase::{
+        auth::authenticator_interface::Authenticator,
         interactor::auth_interactor_interface::AuthInteractor,
         repository::customer_repository_interface::CustomerRepository,
     },

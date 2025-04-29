@@ -25,7 +25,7 @@ use crate::{
         error::{InfrastructureError, InfrastructureErrorMapper},
     },
     log_error,
-    usecase::authorizer::authorizer_interface::Authorizer,
+    usecase::auth::authorizer_interface::Authorizer,
 };
 
 /// Authorization by RBAC.
@@ -212,7 +212,7 @@ mod tests {
                 transaction_manager_interface::TransactionManager,
             },
         },
-        usecase::authorizer::authorizer_interface::Authorizer,
+        usecase::auth::authorizer_interface::Authorizer,
     };
 
     async fn transaction_manager() -> SeaOrmTransactionManager {

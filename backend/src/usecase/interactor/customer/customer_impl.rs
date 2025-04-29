@@ -8,7 +8,7 @@ use crate::{
         error::error::DomainError, user::user::UserInterface,
     },
     usecase::{
-        authorizer::authorizer_interface::Authorizer,
+        auth::authorizer_interface::Authorizer,
         interactor::customer_interactor_interface::{CustomerInteractor, GetCustomersQuery},
         repository::customer_repository_interface::CustomerRepository,
     },

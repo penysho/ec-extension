@@ -9,7 +9,7 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 
-use super::authenticator_interface::Authenticator;
+use crate::usecase::auth::authenticator_interface::Authenticator;
 
 const ID_TOKEN_COOKIE_NAME: &str = "ID_TOKEN";
 const REFRESH_TOKEN_COOKIE_NAME: &str = "REFRESH_TOKEN";

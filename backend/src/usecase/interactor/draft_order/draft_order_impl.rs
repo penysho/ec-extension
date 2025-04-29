@@ -17,7 +17,7 @@ use crate::{
         user::user::UserInterface,
     },
     usecase::{
-        authorizer::authorizer_interface::Authorizer,
+        auth::authorizer_interface::Authorizer,
         interactor::draft_order_interactor_interface::{DraftOrderInteractor, GetDraftOrdersQuery},
         repository::{
             customer_repository_interface::CustomerRepository,

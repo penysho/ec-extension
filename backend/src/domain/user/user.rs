@@ -12,6 +12,7 @@ pub trait UserInterface: Send + Sync {
     fn id(&self) -> &str;
     /// Get the email address of the user.
     fn email(&self) -> &str;
+    #[allow(dead_code)]
     /// Get the roles of the user.
     fn roles(&self) -> Vec<Role>;
     /// Get the permissions of the user.
