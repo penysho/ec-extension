@@ -1,20 +1,41 @@
 #!/usr/bin/env node
-import * as cdk from 'aws-cdk-lib';
-import { CdkStack } from '../lib/cdk-stack';
+import * as cdk from "aws-cdk-lib";
+import { currentEnvConfig, deployEnv, projectName } from "../config/config";
+import { BackendStack } from "../lib/backend";
+import { CiStack } from "../lib/ci";
+import { ElbStack } from "../lib/elb";
+import { VpcStack } from "../lib/vpc";
 
 const app = new cdk.App();
-new CdkStack(app, 'CdkStack', {
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
 
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  // env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+const envProps = {
+  account: process.env.CDK_DEFAULT_ACCOUNT,
+  region: process.env.CDK_DEFAULT_REGION,
+};
 
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
+// Get Value from context
+const backendImageTag = app.node.tryGetContext("backendImageTag");
+currentEnvConfig.backendImageTag = backendImageTag;
 
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
+// Define Stacks
+const vpcStack = new VpcStack(app, `${projectName}-${deployEnv}-vpc`, {});
+
+const elbStack = new ElbStack(app, `${projectName}-${deployEnv}-elb`, {
+  env: envProps,
+  vpcStack: vpcStack,
+});
+
+const backendStack = new BackendStack(
+  app,
+  `${projectName}-${deployEnv}-backend`,
+  {
+    env: envProps,
+    vpcStack: vpcStack,
+    elbStack: elbStack,
+  }
+);
+
+new CiStack(app, `${projectName}-${deployEnv}-ci`, {
+  env: envProps,
+  backendStack: backendStack,
 });
