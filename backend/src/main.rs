@@ -81,7 +81,6 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)
-            // .wrap(TracingLogger::default())
             .wrap(TracingLogger::<CustomRootSpanBuilder>::new())
             // Definition of app data
             .app_data(connection_provider.clone())
