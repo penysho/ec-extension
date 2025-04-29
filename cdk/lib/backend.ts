@@ -6,6 +6,7 @@ import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2"
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { currentEnvConfig, deployEnv, projectName } from "../config/config";
+import { CognitoStack } from "./cognito";
 import { ElbStack } from "./elb";
 import { RdsStack } from "./rds";
 import { VpcStack } from "./vpc";
@@ -13,7 +14,8 @@ import { VpcStack } from "./vpc";
 export interface BackendStackProps extends cdk.StackProps {
   readonly vpcStack: VpcStack;
   readonly elbStack: ElbStack;
-  rdsStack: RdsStack;
+  readonly rdsStack: RdsStack;
+  readonly cognitoStack: CognitoStack;
 }
 
 /**
