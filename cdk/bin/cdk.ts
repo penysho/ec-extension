@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
-import { currentEnvConfig, deployEnv, projectName } from "../config/config";
+import { config, deployEnv, projectName } from "../config/config";
 import { BackendStack } from "../lib/backend";
 import { CiStack } from "../lib/ci";
 import { CognitoStack } from "../lib/cognito";
@@ -17,9 +17,8 @@ const envProps = {
 };
 
 // Get Value from context
-currentEnvConfig.backendImageTag = app.node.tryGetContext("backendImageTag");
-currentEnvConfig.appConfig.accessToken =
-  app.node.tryGetContext("storeAccessToken");
+config.backendImageTag = app.node.tryGetContext("backendImageTag");
+config.appConfig.accessToken = app.node.tryGetContext("storeAccessToken");
 
 // Define Stacks
 const vpcStack = new VpcStack(app, `${projectName}-${deployEnv}-vpc`, {});

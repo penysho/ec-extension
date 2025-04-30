@@ -105,4 +105,4 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
   },
 };
 
-export const currentEnvConfig: EnvConfig = envConfig[deployEnv];
+export const config: EnvConfig = envConfig[deployEnv];

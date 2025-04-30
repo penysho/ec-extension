@@ -8,7 +8,7 @@ import {
 import { SubnetType } from "aws-cdk-lib/aws-ec2";
 
 import { Construct } from "constructs";
-import { currentEnvConfig, deployEnv, projectName } from "../config/config";
+import { config, deployEnv, projectName } from "../config/config";
 import { VpcStack } from "./vpc";
 
 export interface RdsStackProps extends StackProps {
@@ -84,7 +84,7 @@ export class RdsStack extends Stack {
     const parameterGroupName = `${projectName}-${deployEnv}`;
     const parameterGroup = new rds.ParameterGroup(this, `ParameterGroup`, {
       engine: rds.DatabaseClusterEngine.auroraPostgres({
-        version: currentEnvConfig.auroraPostgresEngineVersion,
+        version: config.auroraPostgresEngineVersion,
       }),
       description: `${projectName}-${deployEnv} Parameter group for aurora-postgresql.`,
     });
@@ -101,7 +101,7 @@ export class RdsStack extends Stack {
      */
     this.rdsCluster = new rds.DatabaseCluster(this, `RdsCluster`, {
       engine: rds.DatabaseClusterEngine.auroraPostgres({
-        version: currentEnvConfig.auroraPostgresEngineVersion,
+        version: config.auroraPostgresEngineVersion,
       }),
       credentials: rds.Credentials.fromSecret(this.rdsAdminSecret),
       clusterIdentifier: `${projectName}-${deployEnv}-cluster`,
@@ -110,7 +110,7 @@ export class RdsStack extends Stack {
       readers: [
         rds.ClusterInstance.provisioned(`Reader1`, {
           instanceIdentifier: `${projectName}-${deployEnv}-reader-1`,
-          instanceType: currentEnvConfig.auroraInstanceType,
+          instanceType: config.auroraInstanceType,
           // Make publicly accessible for development environments.
           publiclyAccessible: true,
           parameterGroup,
@@ -121,7 +121,7 @@ export class RdsStack extends Stack {
       vpc,
       writer: rds.ClusterInstance.provisioned(`Writer`, {
         instanceIdentifier: `${projectName}-${deployEnv}-writer`,
-        instanceType: currentEnvConfig.auroraInstanceType,
+        instanceType: config.auroraInstanceType,
         // Make publicly accessible for development environments.
         publiclyAccessible: true,
         parameterGroup,

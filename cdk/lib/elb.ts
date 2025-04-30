@@ -2,7 +2,7 @@ import * as cdk from "aws-cdk-lib";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as route53 from "aws-cdk-lib/aws-route53";
 import * as targets from "aws-cdk-lib/aws-route53-targets";
-import { currentEnvConfig, deployEnv, projectName } from "../config/config";
+import { config, deployEnv, projectName } from "../config/config";
 import { VpcStack } from "./vpc";
 
 export interface ElbStackProps extends cdk.StackProps {
@@ -38,7 +38,7 @@ export class ElbStack extends cdk.Stack {
     this.loadBalancer = loadBalancer;
 
     const hostedZone = route53.HostedZone.fromLookup(this, "HostedZone", {
-      domainName: currentEnvConfig.apiDomain,
+      domainName: config.apiDomain,
     });
 
     new route53.ARecord(this, "RecordSet", {

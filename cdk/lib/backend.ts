@@ -3,7 +3,7 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
-import { currentEnvConfig, deployEnv, projectName } from "../config/config";
+import { config, deployEnv, projectName } from "../config/config";
 import { CognitoStack } from "./cognito";
 import { EcrStack } from "./ecr";
 import { ElbStack } from "./elb";
@@ -77,7 +77,7 @@ export class BackendStack extends cdk.Stack {
         protocol: elasticloadbalancingv2.ApplicationProtocol.HTTPS,
         certificates: [
           {
-            certificateArn: currentEnvConfig.certificateArn,
+            certificateArn: config.certificateArn,
           },
         ],
       }
@@ -112,7 +112,7 @@ export class BackendStack extends cdk.Stack {
         ),
         certificates: [
           {
-            certificateArn: currentEnvConfig.certificateArn,
+            certificateArn: config.certificateArn,
           },
         ],
       }
@@ -212,8 +212,8 @@ export class BackendStack extends cdk.Stack {
       this,
       "TaskDefinition",
       {
-        cpu: currentEnvConfig.ecsTaskCpu,
-        memoryLimitMiB: currentEnvConfig.ecsTaskMemory,
+        cpu: config.ecsTaskCpu,
+        memoryLimitMiB: config.ecsTaskMemory,
         executionRole: taskExecutionRole,
         family: `${projectName}-backend-${deployEnv}`,
       }
@@ -222,7 +222,7 @@ export class BackendStack extends cdk.Stack {
       containerName,
       image: ecs.ContainerImage.fromEcrRepository(
         props.ecrStack.repository,
-        currentEnvConfig.backendImageTag
+        config.backendImageTag
       ),
       essential: true,
       portMappings: [
@@ -237,12 +237,9 @@ export class BackendStack extends cdk.Stack {
         streamPrefix: "ecs",
       }),
     });
-    container.addEnvironment("RUST_LOG", currentEnvConfig.appConfig.rustLog);
-    container.addEnvironment("STORE_URL", currentEnvConfig.appConfig.storeUrl);
-    container.addEnvironment(
-      "ACCESS_TOKEN",
-      currentEnvConfig.appConfig.accessToken
-    );
+    container.addEnvironment("RUST_LOG", config.appConfig.rustLog);
+    container.addEnvironment("STORE_URL", config.appConfig.storeUrl);
+    container.addEnvironment("ACCESS_TOKEN", config.appConfig.accessToken);
     container.addEnvironment(
       "COGNITO_USER_POOL_ID",
       props.cognitoStack.userPool.userPoolId
@@ -277,7 +274,7 @@ export class BackendStack extends cdk.Stack {
       cluster: this.cluster,
       serviceName: `${projectName}-backend-${deployEnv}`,
       taskDefinition,
-      desiredCount: currentEnvConfig.ecsServiceDesiredCount,
+      desiredCount: config.ecsServiceDesiredCount,
       deploymentController: {
         type: ecs.DeploymentControllerType.CODE_DEPLOY,
       },
