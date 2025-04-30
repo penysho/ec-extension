@@ -18,7 +18,8 @@ const envProps = {
 
 // Get Value from context
 currentEnvConfig.backendImageTag = app.node.tryGetContext("backendImageTag");
-currentEnvConfig.appConfig.accessToken = app.node.tryGetContext("storeAccessToken");
+currentEnvConfig.appConfig.accessToken =
+  app.node.tryGetContext("storeAccessToken");
 
 // Define Stacks
 const vpcStack = new VpcStack(app, `${projectName}-${deployEnv}-vpc`, {});

@@ -1,5 +1,4 @@
 import * as cdk from "aws-cdk-lib";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -285,6 +284,7 @@ export class BackendStack extends cdk.Stack {
       enableExecuteCommand: true,
       assignPublicIp: true,
       // Security groups that allow communication from the ALB to the container are automatically granted
+      securityGroups: [props.rdsStack.rdsClientSg],
       vpcSubnets: {
         // To retrieve images from ECR
         subnets: vpc.publicSubnets,
@@ -294,11 +294,5 @@ export class BackendStack extends cdk.Stack {
 
     // Register the service with the blue target group
     this.blueTargetGroup.addTarget(service);
-
-    props.rdsStack.rdsCluster.connections.allowFrom(
-      service,
-      ec2.Port.tcp(5432),
-      "Allow access to RDS from the ECS service"
-    );
   }
 }

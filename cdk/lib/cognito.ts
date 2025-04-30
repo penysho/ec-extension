@@ -34,7 +34,7 @@ export class CognitoStack extends cdk.Stack {
       },
     });
 
-    this.userPool.addClient("UserPoolClient", {
+    this.userPoolClient = this.userPool.addClient("UserPoolClient", {
       authFlows: {
         adminUserPassword: true,
         userPassword: true,

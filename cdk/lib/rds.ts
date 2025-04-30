@@ -1,6 +1,7 @@
 import {
   Stack,
   StackProps,
+  aws_ec2 as ec2,
   aws_rds as rds,
   aws_secretsmanager as sm,
 } from "aws-cdk-lib";
@@ -23,6 +24,10 @@ export class RdsStack extends Stack {
    */
   public readonly rdsCluster: rds.DatabaseCluster;
   /**
+   * Security groups to attach to clients to make RDS accessible.
+   */
+  public readonly rdsClientSg: ec2.SecurityGroup;
+  /**
    * RDS Secret
    */
   public readonly rdsAdminSecret: sm.Secret;
@@ -35,6 +40,16 @@ export class RdsStack extends Stack {
     const vpc = props.vpcStack.vpc;
     const publicSubnets = vpc.selectSubnets({
       subnetType: SubnetType.PUBLIC,
+    });
+
+    /**
+     * Security Group for RDS client
+     */
+    this.rdsClientSg = new ec2.SecurityGroup(this, `RdsClientSg`, {
+      vpc,
+      securityGroupName: `${projectName}-${deployEnv}-rds-client`,
+      description: `${projectName}-${deployEnv} RDS Client Security Group.`,
+      allowAllOutbound: true,
     });
 
     /**
@@ -112,5 +127,11 @@ export class RdsStack extends Stack {
         parameterGroup,
       }),
     });
+
+    this.rdsCluster.connections.allowFrom(
+      this.rdsClientSg,
+      ec2.Port.tcp(5432),
+      "Allow access to RDS from the RDS client security group"
+    );
   }
 }
