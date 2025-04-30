@@ -1,13 +1,15 @@
-use once_cell::sync::Lazy;
-pub use slog::*;
-use slog_async::Async;
+// Deprecated
 
-pub static DEFAULT: Lazy<Logger> = Lazy::new(|| {
-    let mk_json = || slog_json::Json::default(std::io::stdout()).fuse();
-    let drain = Async::default(slog_envlogger::new(mk_json())).fuse();
+// use once_cell::sync::Lazy;
+// pub use slog::*;
+// use slog_async::Async;
 
-    Logger::root(drain, o!())
-});
+// pub static DEFAULT: Lazy<Logger> = Lazy::new(|| {
+//     let mk_json = || slog_json::Json::default(std::io::stdout()).fuse();
+//     let drain = Async::default(slog_envlogger::new(mk_json())).fuse();
+
+//     Logger::root(drain, o!())
+// });
 
 // #[macro_export]
 // macro_rules! log_error {
