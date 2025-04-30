@@ -1,0 +1,219 @@
+name: Infrastructure and Application Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        type: choice
+        default: "dev"
+        options:
+          - dev
+          - tst
+      is_application_deploy:
+        description: "Whether to deploy the application"
+        required: true
+        type: boolean
+        default: true
+
+env:
+  BACKEND_IMAGE_NAME: ec-extension-backend
+
+jobs:
+  create-container-repository:
+    name: Create Container Repository
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 22.8
+
+      - name: Cache CDK Dependency
+        uses: actions/cache@v4
+        id: cache-cdk-dependency
+        env:
+          cache-name: cache-cdk-dependency
+        with:
+          path: cdk/node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('cdk/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-
+
+      - name: Install CDK Dependency
+        if: ${{ steps.cache-cdk-dependency.outputs.cache-hit != 'true' }}
+        run: |
+          cd cdk
+          npm install
+
+      - name: CDK Deploy
+        run: |
+          cd cdk
+          npx cdk deploy ec-extension-${{ inputs.environment }}-ecr --require-approval never
+
+  build-and-push-docker-images:
+    name: Build and Push Docker Images
+    needs: create-container-repository
+    if: ${{ inputs.is_application_deploy }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: 551152530614.dkr.ecr.ap-northeast-1.amazonaws.com/${{ env.BACKEND_IMAGE_NAME }}-${{ inputs.environment }}
+
+      - name: Build and Push Backend Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/backend/Dockerfile.remote
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-cdk:
+    name: Deploy CDK
+    needs: build-and-push-docker-images
+    if: ${{  !cancelled() && !failure() }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 22.8
+
+      - name: Cache CDK Dependency
+        uses: actions/cache@v4
+        id: cache-cdk-dependency
+        env:
+          cache-name: cache-cdk-dependency
+        with:
+          path: cdk/node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('cdk/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-
+
+      - name: Install CDK Dependency
+        if: ${{ steps.cache-cdk-dependency.outputs.cache-hit != 'true' }}
+        run: |
+          cd cdk
+          npm install
+
+      - name: Get latest image tag
+        if: ${{ !inputs.is_application_deploy }}
+        env:
+          ECR_REPOSITORY_NAME: ec-extension-${{ inputs.environment }}
+        run: |
+          export latest_image_tag=$(aws ecr describe-images \
+            --repository-name ${{ env.ECR_REPOSITORY_NAME }} \
+            --region ap-northeast-1 \
+            --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
+            --output text)
+          echo "BACKEND_IMAGE_TAG=${latest_image_tag}" >> $GITHUB_ENV
+
+      - name: Set new image tag
+        if: ${{ inputs.is_application_deploy }}
+        run: |
+          echo "BACKEND_IMAGE_TAG=${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: CDK Deploy
+        run: |
+          cd cdk
+          npx cdk deploy --all --require-approval never -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }}
+
+  deploy-application:
+    name: Deploy Application
+    needs: deploy-cdk
+    if: ${{ inputs.is_application_deploy }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+
+      - name: Fetch TaskDefinition ARN
+        env:
+          FAMILY_PREFIX: ec-extension-backend-${{ inputs.environment }}
+        run: |
+          export task_definition_arn=$(aws ecs list-task-definitions \
+          --family-prefix ${{ env.FAMILY_PREFIX }} \
+          --sort DESC \
+          --query 'taskDefinitionArns[0]' \
+          --region ap-northeast-1 \
+          --output text)
+          echo "TASK_DEFINITION_ARN=${task_definition_arn}" >> $GITHUB_ENV
+
+      - name: Deploy app with CodeDeploy Blue/Green deployment
+        env:
+          APPLICATION_NAME: ec-extension-${{ inputs.environment }}
+          DEPLOYMENT_GROUP_NAME: ec-extension-${{ inputs.environment }}
+          TASK_DEFINITION_ARN: ${{ env.TASK_DEFINITION_ARN }}
+          CONTAINER_NAME: backend
+          CONTAINER_PORT: 8080
+        run: |
+          aws deploy create-deployment \
+          --application-name ${{ env.APPLICATION_NAME }} \
+          --deployment-group-name ${{ env.DEPLOYMENT_GROUP_NAME }} \
+          --revision '{"revisionType":"AppSpecContent","appSpecContent":{"content":"{\"version\":\"0.0\",\"Resources\":[{\"TargetService\":{\"Type\":\"AWS::ECS::Service\",\"Properties\":{\"TaskDefinition\":\"${{ env.TASK_DEFINITION_ARN }}\",\"LoadBalancerInfo\":{\"ContainerName\":\"${{ env.CONTAINER_NAME }}\",\"ContainerPort\":${{ env.CONTAINER_PORT }}}}}}]}"}}' \
+          --region ap-northeast-1
