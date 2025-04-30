@@ -95,6 +95,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: 551152530614.dkr.ecr.ap-northeast-1.amazonaws.com/${{ env.BACKEND_IMAGE_NAME }}-${{ inputs.environment }}
+          tags: type=raw,value=${{ github.sha }}
 
       - name: Build and Push Backend Docker Image
         uses: docker/build-push-action@v6
@@ -169,7 +170,7 @@ jobs:
       - name: CDK Deploy
         run: |
           cd cdk
-          npx cdk deploy --all --require-approval never -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }}
+          npx cdk deploy --all --require-approval never -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c sotreAccessToken=${{ secrets.STORE_ACCESS_TOKEN }}
 
   deploy-application:
     name: Deploy Application

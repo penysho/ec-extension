@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-import * as cdk from "aws-cdk-lib";
-import { config, deployEnv, projectName } from "../config/config";
+import { app, deployEnv, projectName } from "../config/config";
 import { BackendStack } from "../lib/backend";
 import { CiStack } from "../lib/ci";
 import { CognitoStack } from "../lib/cognito";
@@ -9,16 +8,10 @@ import { ElbStack } from "../lib/elb";
 import { RdsStack } from "../lib/rds";
 import { VpcStack } from "../lib/vpc";
 
-const app = new cdk.App();
-
 const envProps = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
   region: process.env.CDK_DEFAULT_REGION,
 };
-
-// Get Value from context
-config.backendImageTag = app.node.tryGetContext("backendImageTag");
-config.appConfig.accessToken = app.node.tryGetContext("storeAccessToken");
 
 // Define Stacks
 const vpcStack = new VpcStack(app, `${projectName}-${deployEnv}-vpc`, {});
