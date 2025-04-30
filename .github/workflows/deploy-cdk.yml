@@ -93,11 +93,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract metadata for Docker
+      - name: Extract metadata For Backend Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: 551152530614.dkr.ecr.ap-northeast-1.amazonaws.com/${{ env.BACKEND_IMAGE_NAME }}-${{ inputs.environment }}
+          images: 551152530614.dkr.ecr.ap-northeast-1.amazonaws.com/${{ env.BACKEND_RESOURCE_NAME }}-${{ inputs.environment }}
           tags: type=raw,value=${{ github.sha }}
 
       - name: Build and Push Backend Docker Image
@@ -196,7 +196,7 @@ jobs:
           aws-region: ap-northeast-1
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
 
-      - name: Fetch backend task definition ARN
+      - name: Fetch Backend TaskDefinition ARN
         env:
           FAMILY_PREFIX: ${{ env.BACKEND_RESOURCE_NAME }}-${{ inputs.environment }}
         run: |
@@ -208,7 +208,7 @@ jobs:
           --output text)
           echo "TASK_DEFINITION_ARN=${task_definition_arn}" >> $GITHUB_ENV
 
-      - name: Deploy backend with CodeDeploy Blue/Green deployment
+      - name: Deploy Backend with CodeDeploy Blue/Green deployment
         env:
           APPLICATION_NAME: ${{ env.BACKEND_RESOURCE_NAME }}-${{ inputs.environment }}
           DEPLOYMENT_GROUP_NAME: ${{ env.BACKEND_RESOURCE_NAME }}-${{ inputs.environment }}
