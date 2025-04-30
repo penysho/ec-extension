@@ -1,12 +1,12 @@
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { currentEnvConfig, deployEnv, projectName } from "../config/config";
 import { CognitoStack } from "./cognito";
+import { EcrStack } from "./ecr";
 import { ElbStack } from "./elb";
 import { RdsStack } from "./rds";
 import { VpcStack } from "./vpc";
@@ -16,16 +16,13 @@ export interface BackendStackProps extends cdk.StackProps {
   readonly elbStack: ElbStack;
   readonly rdsStack: RdsStack;
   readonly cognitoStack: CognitoStack;
+  readonly ecrStack: EcrStack;
 }
 
 /**
  * Define resources for the backend.
  */
 export class BackendStack extends cdk.Stack {
-  /**
-   * ECR
-   */
-  public readonly repository: ecr.IRepository;
   /**
    * ECS Cluster
    */
@@ -177,21 +174,6 @@ export class BackendStack extends cdk.Stack {
       clusterName: `${projectName}-${deployEnv}`,
     });
 
-    // ECR
-    this.repository = new ecr.Repository(this, "Repository", {
-      repositoryName: `${projectName}-${deployEnv}`,
-      lifecycleRules: [
-        {
-          rulePriority: 1,
-          description: "Expire images older than 3 generations",
-          maxImageCount: 3,
-          tagStatus: ecr.TagStatus.ANY,
-        },
-      ],
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      emptyOnDelete: true,
-    });
-
     // Log Group
     const logGroup = new logs.LogGroup(this, "LogGroup", {
       retention: logs.RetentionDays.THREE_MONTHS,
@@ -240,7 +222,7 @@ export class BackendStack extends cdk.Stack {
     const container = taskDefinition.addContainer(containerName, {
       containerName,
       image: ecs.ContainerImage.fromEcrRepository(
-        this.repository,
+        props.ecrStack.repository,
         currentEnvConfig.backendImageTag
       ),
       essential: true,

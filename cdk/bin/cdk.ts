@@ -4,6 +4,7 @@ import { currentEnvConfig, deployEnv, projectName } from "../config/config";
 import { BackendStack } from "../lib/backend";
 import { CiStack } from "../lib/ci";
 import { CognitoStack } from "../lib/cognito";
+import { EcrStack } from "../lib/ecr";
 import { ElbStack } from "../lib/elb";
 import { RdsStack } from "../lib/rds";
 import { VpcStack } from "../lib/vpc";
@@ -40,6 +41,10 @@ const cognitoStack = new CognitoStack(
   }
 );
 
+const ecrStack = new EcrStack(app, `${projectName}-${deployEnv}-ecr`, {
+  env: envProps,
+});
+
 const backendStack = new BackendStack(
   app,
   `${projectName}-${deployEnv}-backend`,
@@ -49,6 +54,7 @@ const backendStack = new BackendStack(
     elbStack: elbStack,
     rdsStack: rdsStack,
     cognitoStack: cognitoStack,
+    ecrStack: ecrStack,
   }
 );
 
