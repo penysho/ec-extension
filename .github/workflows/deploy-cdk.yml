@@ -18,7 +18,7 @@ on:
         default: true
 
 env:
-  BACKEND_IMAGE_NAME: ec-extension-backend
+  BACKEND_RESOURCE_NAME: ec-extension-backend
 
 jobs:
   create-container-repository:
@@ -156,7 +156,7 @@ jobs:
       - name: Get latest image tag
         if: ${{ !inputs.is_application_deploy }}
         env:
-          ECR_REPOSITORY_NAME: ec-extension-${{ inputs.environment }}
+          ECR_REPOSITORY_NAME: ${{ env.BACKEND_RESOURCE_NAME }}-${{ inputs.environment }}
         run: |
           export latest_image_tag=$(aws ecr describe-images \
             --repository-name ${{ env.ECR_REPOSITORY_NAME }} \
@@ -196,9 +196,9 @@ jobs:
           aws-region: ap-northeast-1
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
 
-      - name: Fetch TaskDefinition ARN
+      - name: Fetch backend task definition ARN
         env:
-          FAMILY_PREFIX: ec-extension-backend-${{ inputs.environment }}
+          FAMILY_PREFIX: ${{ env.BACKEND_RESOURCE_NAME }}-${{ inputs.environment }}
         run: |
           export task_definition_arn=$(aws ecs list-task-definitions \
           --family-prefix ${{ env.FAMILY_PREFIX }} \
@@ -208,10 +208,10 @@ jobs:
           --output text)
           echo "TASK_DEFINITION_ARN=${task_definition_arn}" >> $GITHUB_ENV
 
-      - name: Deploy app with CodeDeploy Blue/Green deployment
+      - name: Deploy backend with CodeDeploy Blue/Green deployment
         env:
-          APPLICATION_NAME: ec-extension-${{ inputs.environment }}
-          DEPLOYMENT_GROUP_NAME: ec-extension-${{ inputs.environment }}
+          APPLICATION_NAME: ${{ env.BACKEND_RESOURCE_NAME }}-${{ inputs.environment }}
+          DEPLOYMENT_GROUP_NAME: ${{ env.BACKEND_RESOURCE_NAME }}-${{ inputs.environment }}
           TASK_DEFINITION_ARN: ${{ env.TASK_DEFINITION_ARN }}
           CONTAINER_NAME: backend
           CONTAINER_PORT: 8080

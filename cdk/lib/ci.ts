@@ -20,7 +20,7 @@ export class CiStack extends cdk.Stack {
       this,
       "CodeDeployApplication",
       {
-        applicationName: `${projectName}-${deployEnv}`,
+        applicationName: `${projectName}-backend-${deployEnv}`,
       }
     );
 
@@ -41,7 +41,7 @@ export class CiStack extends cdk.Stack {
         testListener: props.backendStack.greenListener,
       },
       deploymentConfig: codedeploy.EcsDeploymentConfig.ALL_AT_ONCE,
-      deploymentGroupName: `${projectName}-${deployEnv}`,
+      deploymentGroupName: `${projectName}-backend-${deployEnv}`,
       service: props.backendStack.service,
     });
   }

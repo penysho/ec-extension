@@ -18,7 +18,7 @@ export class EcrStack extends cdk.Stack {
 
     // ECR
     this.repository = new ecr.Repository(this, "Repository", {
-      repositoryName: `${projectName}-${deployEnv}`,
+      repositoryName: `${projectName}-backend-${deployEnv}`,
       lifecycleRules: [
         {
           rulePriority: 1,
