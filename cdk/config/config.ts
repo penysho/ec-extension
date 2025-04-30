@@ -32,9 +32,9 @@ export interface EnvConfig {
   auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion;
   auroraInstanceType: ec2.InstanceType;
   appConfig: {
-    RUST_LOG: string;
-    STORE_URL: string;
-    ACCESS_TOKEN: string;
+    rustLog: string;
+    storeUrl: string;
+    accessToken: string;
   };
 }
 
@@ -47,18 +47,18 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     branch: "main",
     ecsTaskCpu: 256,
     ecsTaskMemory: 512,
-    ecsServiceDesiredCount: -1,
+    ecsServiceDesiredCount: 1,
     auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion.VER_17_1,
     auroraInstanceType: ec2.InstanceType.of(
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
     ),
     appConfig: {
-      RUST_LOG: "debug",
-      STORE_URL:
+      rustLog: "debug",
+      storeUrl:
         "https://pesh-shared-demo.myshopify.com/admin/api/2024-07/graphql.json",
       // Receive in cdk deploy argument and update the value.
-      ACCESS_TOKEN: "",
+      accessToken: "",
     },
   },
   tst: {
@@ -76,10 +76,10 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceSize.MEDIUM
     ),
     appConfig: {
-      RUST_LOG: "debug",
-      STORE_URL:
+      rustLog: "debug",
+      storeUrl:
         "https://pesh-shared-demo.myshopify.com/admin/api/2024-07/graphql.json",
-      ACCESS_TOKEN: "",
+      accessToken: "",
     },
   },
   prd: {
@@ -97,10 +97,10 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceSize.MEDIUM
     ),
     appConfig: {
-      RUST_LOG: "debug",
-      STORE_URL:
+      rustLog: "debug",
+      storeUrl:
         "https://pesh-shared-demo.myshopify.com/admin/api/2024-07/graphql.json",
-      ACCESS_TOKEN: "",
+      accessToken: "",
     },
   },
 };

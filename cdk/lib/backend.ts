@@ -256,11 +256,11 @@ export class BackendStack extends cdk.Stack {
         streamPrefix: "ecs",
       }),
     });
-    container.addEnvironment("RUST_LOG", currentEnvConfig.appConfig.RUST_LOG);
-    container.addEnvironment("STORE_URL", currentEnvConfig.appConfig.STORE_URL);
+    container.addEnvironment("RUST_LOG", currentEnvConfig.appConfig.rustLog);
+    container.addEnvironment("STORE_URL", currentEnvConfig.appConfig.storeUrl);
     container.addEnvironment(
       "ACCESS_TOKEN",
-      currentEnvConfig.appConfig.ACCESS_TOKEN
+      currentEnvConfig.appConfig.accessToken
     );
     container.addEnvironment(
       "COGNITO_USER_POOL_ID",
