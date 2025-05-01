@@ -64,7 +64,7 @@ jobs:
       - name: CDK Deploy
         run: |
           cd cdk
-          npx cdk deploy ec-extension-${{ inputs.environment }}-ecr --require-approval never
+          npx cdk deploy ec-extension-${{ inputs.environment }}-ecr --require-approval never -c deployEnv=${{ inputs.environment }}
 
   build-and-push-docker-images:
     name: Build and Push Docker Images
@@ -173,7 +173,7 @@ jobs:
       - name: CDK Deploy
         run: |
           cd cdk
-          npx cdk deploy --all --require-approval never -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c sotreAccessToken=${{ secrets.STORE_ACCESS_TOKEN }}
+          npx cdk deploy --all --require-approval never -c deployEnv=${{ inputs.environment }} -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c sotreAccessToken=${{ secrets.STORE_ACCESS_TOKEN }}
 
   deploy-application:
     name: Deploy Application
