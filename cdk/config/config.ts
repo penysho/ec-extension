@@ -51,7 +51,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     ecsTaskCpu: 256,
     ecsTaskMemory: 512,
     ecsServiceDesiredCount: 1,
-    auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion.VER_17_1,
+    auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion.VER_16_6,
     auroraInstanceType: ec2.InstanceType.of(
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
@@ -73,7 +73,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     ecsTaskCpu: 256,
     ecsTaskMemory: 512,
     ecsServiceDesiredCount: 1,
-    auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion.VER_17_1,
+    auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion.VER_16_6,
     auroraInstanceType: ec2.InstanceType.of(
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
@@ -94,7 +94,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     ecsTaskCpu: 256,
     ecsTaskMemory: 512,
     ecsServiceDesiredCount: 1,
-    auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion.VER_17_1,
+    auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion.VER_16_6,
     auroraInstanceType: ec2.InstanceType.of(
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
