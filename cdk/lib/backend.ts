@@ -258,15 +258,13 @@ export class BackendStack extends cdk.Stack {
     );
     container.addEnvironment(
       "DATABASE_URL",
-      `postgres://${
-        props.rdsStack.rdsAdminSecret.secretValueFromJson("username")
-          .unsafeUnwrap
-      }:${
-        props.rdsStack.rdsAdminSecret.secretValueFromJson("password")
-          .unsafeUnwrap
-      }@${props.rdsStack.rdsCluster.clusterEndpoint.hostname}:${
-        props.rdsStack.rdsCluster.clusterEndpoint.port
-      }/postgres`
+      `postgres://${props.rdsStack.rdsAdminSecret
+        .secretValueFromJson("username")
+        .unsafeUnwrap()}:${props.rdsStack.rdsAdminSecret
+        .secretValueFromJson("password")
+        .unsafeUnwrap()}@${
+        props.rdsStack.rdsCluster.clusterEndpoint.hostname
+      }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
     );
 
     // Service
