@@ -19,6 +19,7 @@ on:
 
 env:
   BACKEND_RESOURCE_NAME: ec-extension-backend
+  BACKEND_MIGRATION_RESOURCE_NAME: ec-extension-backend-migration
 
 jobs:
   create-container-repository:
@@ -72,6 +73,11 @@ jobs:
     if: ${{ inputs.is_application_deploy }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
+    strategy:
+      matrix:
+        image:
+          - BACKEND_RESOURCE_NAME
+          - BACKEND_MIGRATION_RESOURCE_NAME
 
     permissions:
       id-token: write
@@ -93,11 +99,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract metadata For Backend Docker
+      - name: Extract metadata For Backend Docker Image
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: 551152530614.dkr.ecr.ap-northeast-1.amazonaws.com/${{ env.BACKEND_RESOURCE_NAME }}-${{ inputs.environment }}
+          images: 551152530614.dkr.ecr.ap-northeast-1.amazonaws.com/${{ env[matrix.image] }}-${{ inputs.environment }}
           tags: type=raw,value=${{ github.sha }}
 
       - name: Build and Push Backend Docker Image
