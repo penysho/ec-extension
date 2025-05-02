@@ -56,7 +56,6 @@ export class BackendStack extends cdk.Stack {
 
     const vpc = props.vpcStack.vpc;
 
-    const containerName = "backend";
     const containerPort = 8080;
 
     // Resources
@@ -218,10 +217,10 @@ export class BackendStack extends cdk.Stack {
         family: `${projectName}-backend-${deployEnv}`,
       }
     );
-    const container = taskDefinition.addContainer(containerName, {
-      containerName,
+    const backendContainer = taskDefinition.addContainer("backend", {
+      containerName: "backend",
       image: ecs.ContainerImage.fromEcrRepository(
-        props.ecrStack.repository,
+        props.ecrStack.backendRepository,
         config.backendImageTag
       ),
       essential: true,
@@ -237,26 +236,53 @@ export class BackendStack extends cdk.Stack {
         streamPrefix: "ecs",
       }),
     });
-    container.addEnvironment("RUST_LOG", config.appConfig.rustLog);
-    container.addEnvironment("STORE_URL", config.appConfig.storeUrl);
-    container.addEnvironment("ACCESS_TOKEN", config.appConfig.accessToken);
-    container.addEnvironment(
+    backendContainer.addEnvironment("RUST_LOG", config.appConfig.rustLog);
+    backendContainer.addEnvironment("STORE_URL", config.appConfig.storeUrl);
+    backendContainer.addEnvironment(
+      "ACCESS_TOKEN",
+      config.appConfig.accessToken
+    );
+    backendContainer.addEnvironment(
       "COGNITO_USER_POOL_ID",
       props.cognitoStack.userPool.userPoolId
     );
-    container.addEnvironment(
+    backendContainer.addEnvironment(
       "COGNITO_CLIENT_ID",
       props.cognitoStack.userPoolClient.userPoolClientId
     );
-    container.addEnvironment(
+    backendContainer.addEnvironment(
       "COGNITO_REGION",
       props.env?.region ?? "ap-northeast-1"
     );
-    container.addEnvironment(
+    backendContainer.addEnvironment(
       "COGNITO_JWKS_URI",
       `https://cognito-idp.${props.env?.region}.amazonaws.com/${props.cognitoStack.userPool.userPoolId}/.well-known/jwks.json`
     );
-    container.addEnvironment(
+    backendContainer.addEnvironment(
+      "DATABASE_URL",
+      `postgres://${props.rdsStack.rdsAdminSecret
+        .secretValueFromJson("username")
+        .unsafeUnwrap()}:${props.rdsStack.rdsAdminSecret
+        .secretValueFromJson("password")
+        .unsafeUnwrap()}@${
+        props.rdsStack.rdsCluster.clusterEndpoint.hostname
+      }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
+    );
+
+    const migrationContainer = taskDefinition.addContainer("migration", {
+      containerName: "migration",
+      image: ecs.ContainerImage.fromEcrRepository(
+        props.ecrStack.migrationRepository,
+        config.backendImageTag
+      ),
+      essential: false,
+      logging: ecs.LogDrivers.awsLogs({
+        logGroup,
+        streamPrefix: "ecs",
+      }),
+      command: ["/app/target/release/migration", "up"],
+    });
+    migrationContainer.addEnvironment(
       "DATABASE_URL",
       `postgres://${props.rdsStack.rdsAdminSecret
         .secretValueFromJson("username")
