@@ -268,6 +268,10 @@ export class BackendStack extends cdk.Stack {
         props.rdsStack.rdsCluster.clusterEndpoint.hostname
       }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
     );
+    backendContainer.addEnvironment(
+      "AWS_XRAY_DAEMON_ADDRESS",
+      "127.0.0.1:2000"
+    );
 
     const migrationContainer = taskDefinition.addContainer("migration", {
       containerName: "migration",
@@ -295,6 +299,24 @@ export class BackendStack extends cdk.Stack {
         props.rdsStack.rdsCluster.clusterEndpoint.hostname
       }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
     );
+
+    // https://docs.aws.amazon.com/ja_jp/xray/latest/devguide/xray-daemon-ecs.html#xray-daemon-ecs-image
+    const xrayDaemonContainer = taskDefinition.addContainer("xray-daemon", {
+      containerName: "xray-daemon",
+      image: ecs.ContainerImage.fromRegistry("amazon/aws-xray-daemon"),
+      essential: false,
+      portMappings: [
+        {
+          containerPort: 2000,
+          hostPort: 0,
+          protocol: ecs.Protocol.UDP,
+        },
+      ],
+      logging: ecs.LogDrivers.awsLogs({
+        logGroup,
+        streamPrefix: "ecs",
+      }),
+    });
 
     // Service
     const service = new ecs.FargateService(this, "Service", {
