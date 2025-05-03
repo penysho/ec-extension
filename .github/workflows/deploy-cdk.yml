@@ -16,6 +16,11 @@ on:
         required: true
         type: boolean
         default: true
+      execute_migration:
+        description: "Whether to execute the migration"
+        required: true
+        type: boolean
+        default: false
 
 env:
   BACKEND_RESOURCE_NAME: ec-extension-backend
