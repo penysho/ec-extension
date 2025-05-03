@@ -175,6 +175,7 @@ export class BackendStack extends cdk.Stack {
     // Log Group
     const logGroup = new logs.LogGroup(this, "LogGroup", {
       retention: logs.RetentionDays.THREE_MONTHS,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     const metricFilterForServerError = new logs.CfnMetricFilter(
@@ -203,6 +204,9 @@ export class BackendStack extends cdk.Stack {
         {
           managedPolicyArn:
             "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+        },
+        {
+          managedPolicyArn: "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess",
         },
       ],
     });
@@ -234,6 +238,7 @@ export class BackendStack extends cdk.Stack {
       logging: ecs.LogDrivers.awsLogs({
         logGroup,
         streamPrefix: "ecs",
+        mode: ecs.AwsLogDriverMode.NON_BLOCKING,
       }),
     });
     backendContainer.addEnvironment("RUST_LOG", config.appConfig.rustLog);
@@ -268,9 +273,13 @@ export class BackendStack extends cdk.Stack {
         props.rdsStack.rdsCluster.clusterEndpoint.hostname
       }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
     );
+    // backendContainer.addEnvironment(
+    //   "AWS_XRAY_DAEMON_ADDRESS",
+    //   "127.0.0.1:2000"
+    // );
     backendContainer.addEnvironment(
-      "AWS_XRAY_DAEMON_ADDRESS",
-      "127.0.0.1:2000"
+      "OPENTELEMETRY_ENDPOINT",
+      "http://localhost:4318/v1/traces"
     );
 
     const migrationContainer = taskDefinition.addContainer("migration", {
@@ -283,6 +292,7 @@ export class BackendStack extends cdk.Stack {
       logging: ecs.LogDrivers.awsLogs({
         logGroup,
         streamPrefix: "ecs",
+        mode: ecs.AwsLogDriverMode.NON_BLOCKING,
       }),
       command: [
         "/app/target/release/migration",
@@ -300,21 +310,36 @@ export class BackendStack extends cdk.Stack {
       }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
     );
 
-    // https://docs.aws.amazon.com/ja_jp/xray/latest/devguide/xray-daemon-ecs.html#xray-daemon-ecs-image
-    const xrayDaemonContainer = taskDefinition.addContainer("xray-daemon", {
-      containerName: "xray-daemon",
-      image: ecs.ContainerImage.fromRegistry("amazon/aws-xray-daemon"),
+    // // https://docs.aws.amazon.com/ja_jp/xray/latest/devguide/xray-daemon-ecs.html#xray-daemon-ecs-image
+    // const xrayDaemonContainer = taskDefinition.addContainer("xray-daemon", {
+    //   containerName: "xray-daemon",
+    //   image: ecs.ContainerImage.fromRegistry("amazon/aws-xray-daemon"),
+    //   essential: false,
+    //   portMappings: [
+    //     {
+    //       containerPort: 2000,
+    //       hostPort: 2000,
+    //       protocol: ecs.Protocol.UDP,
+    //     },
+    //   ],
+    //   logging: ecs.LogDrivers.awsLogs({
+    //     logGroup,
+    //     streamPrefix: "ecs",
+    //     mode: ecs.AwsLogDriverMode.NON_BLOCKING,
+    //   }),
+    // });
+
+    taskDefinition.addContainer("aws-otel-collector", {
+      containerName: "aws-otel-collector",
+      image: ecs.ContainerImage.fromRegistry(
+        "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.2"
+      ),
       essential: false,
-      portMappings: [
-        {
-          containerPort: 2000,
-          hostPort: 2000,
-          protocol: ecs.Protocol.UDP,
-        },
-      ],
+      command: ["--config", "/etc/ecs/ecs-xray.yaml"],
       logging: ecs.LogDrivers.awsLogs({
         logGroup,
         streamPrefix: "ecs",
+        mode: ecs.AwsLogDriverMode.NON_BLOCKING,
       }),
     });
 
