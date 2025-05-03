@@ -198,6 +198,8 @@ export class BackendStack extends cdk.Stack {
       cdk.CfnDeletionPolicy.DELETE;
 
     // Task definition
+
+    // https://aws-otel.github.io/docs/setup/ecs/create-iam-role
     const executionRole = new iam.Role(this, "ExecutionRole", {
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       managedPolicies: [
@@ -214,6 +216,7 @@ export class BackendStack extends cdk.Stack {
       ],
     });
 
+    // https://aws-otel.github.io/docs/setup/permissions#create-iam-policy
     const taskRole = new iam.Role(this, "TaskRole", {
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       managedPolicies: [
@@ -222,6 +225,21 @@ export class BackendStack extends cdk.Stack {
         },
       ],
     });
+    taskRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "logs:PutLogEvents",
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:DescribeLogStreams",
+          "logs:DescribeLogGroups",
+          "logs:PutRetentionPolicy",
+          "ssm:GetParameters",
+        ],
+        resources: ["*"],
+        effect: iam.Effect.ALLOW,
+      })
+    );
 
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
@@ -286,6 +304,7 @@ export class BackendStack extends cdk.Stack {
         props.rdsStack.rdsCluster.clusterEndpoint.hostname
       }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
     );
+    // // When using the X-Ray daemon
     // backendContainer.addEnvironment(
     //   "AWS_XRAY_DAEMON_ADDRESS",
     //   "127.0.0.1:2000"
@@ -324,6 +343,7 @@ export class BackendStack extends cdk.Stack {
     );
 
     // // https://docs.aws.amazon.com/ja_jp/xray/latest/devguide/xray-daemon-ecs.html#xray-daemon-ecs-image
+    // // When using the X-Ray daemon
     // const xrayDaemonContainer = taskDefinition.addContainer("xray-daemon", {
     //   containerName: "xray-daemon",
     //   image: ecs.ContainerImage.fromRegistry("amazon/aws-xray-daemon"),
@@ -347,7 +367,7 @@ export class BackendStack extends cdk.Stack {
       image: ecs.ContainerImage.fromRegistry(
         "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.2"
       ),
-      essential: false,
+      essential: true,
       command: ["--config", "/etc/ecs/ecs-xray.yaml"],
       logging: ecs.LogDrivers.awsLogs({
         logGroup,
