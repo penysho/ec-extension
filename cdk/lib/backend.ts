@@ -198,13 +198,25 @@ export class BackendStack extends cdk.Stack {
       cdk.CfnDeletionPolicy.DELETE;
 
     // Task definition
-    const taskExecutionRole = new iam.Role(this, "TaskExecutionRole", {
+    const executionRole = new iam.Role(this, "ExecutionRole", {
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       managedPolicies: [
         {
           managedPolicyArn:
             "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
         },
+        {
+          managedPolicyArn: "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+        },
+        {
+          managedPolicyArn: "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
+        },
+      ],
+    });
+
+    const taskRole = new iam.Role(this, "TaskRole", {
+      assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+      managedPolicies: [
         {
           managedPolicyArn: "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess",
         },
@@ -217,7 +229,8 @@ export class BackendStack extends cdk.Stack {
       {
         cpu: config.ecsTaskCpu,
         memoryLimitMiB: config.ecsTaskMemory,
-        executionRole: taskExecutionRole,
+        executionRole,
+        taskRole,
         family: `${projectName}-backend-${deployEnv}`,
       }
     );
