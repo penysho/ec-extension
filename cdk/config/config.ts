@@ -34,6 +34,7 @@ export interface EnvConfig {
   ecsServiceDesiredCount: number;
   auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion;
   auroraInstanceType: ec2.InstanceType;
+  createReaderInstance: boolean;
   appConfig: {
     rustLog: string;
     storeUrl: string;
@@ -56,6 +57,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
     ),
+    createReaderInstance: false,
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -78,6 +80,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
     ),
+    createReaderInstance: false,
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -99,6 +102,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceClass.T4G,
       ec2.InstanceSize.MEDIUM
     ),
+    createReaderInstance: true,
     appConfig: {
       rustLog: "debug",
       storeUrl:

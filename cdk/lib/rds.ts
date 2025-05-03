@@ -107,15 +107,17 @@ export class RdsStack extends Stack {
       clusterIdentifier: `${projectName}-${deployEnv}-cluster`,
       deletionProtection: false,
       iamAuthentication: true,
-      readers: [
-        rds.ClusterInstance.provisioned(`Reader1`, {
-          instanceIdentifier: `${projectName}-${deployEnv}-reader-1`,
-          instanceType: config.auroraInstanceType,
-          // Make publicly accessible for development environments.
-          publiclyAccessible: true,
-          parameterGroup,
-        }),
-      ],
+      readers: config.createReaderInstance
+        ? [
+            rds.ClusterInstance.provisioned(`Reader1`, {
+              instanceIdentifier: `${projectName}-${deployEnv}-reader-1`,
+              instanceType: config.auroraInstanceType,
+              // Make publicly accessible for development environments.
+              publiclyAccessible: true,
+              parameterGroup,
+            }),
+          ]
+        : undefined,
       storageEncrypted: true,
       subnetGroup,
       vpc,
