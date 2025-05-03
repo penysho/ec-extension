@@ -308,7 +308,7 @@ export class BackendStack extends cdk.Stack {
       portMappings: [
         {
           containerPort: 2000,
-          hostPort: 0,
+          hostPort: 2000,
           protocol: ecs.Protocol.UDP,
         },
       ],
