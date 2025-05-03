@@ -280,7 +280,10 @@ export class BackendStack extends cdk.Stack {
         logGroup,
         streamPrefix: "ecs",
       }),
-      command: ["/app/target/release/migration", "up"],
+      command: [
+        "/app/target/release/migration",
+        config.executeMigration ? "up" : "status",
+      ],
     });
     migrationContainer.addEnvironment(
       "DATABASE_URL",

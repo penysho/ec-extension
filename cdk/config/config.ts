@@ -35,6 +35,7 @@ export interface EnvConfig {
   auroraPostgresEngineVersion: rds.AuroraPostgresEngineVersion;
   auroraInstanceType: ec2.InstanceType;
   createReaderInstance: boolean;
+  executeMigration: boolean;
   appConfig: {
     rustLog: string;
     storeUrl: string;
@@ -58,6 +59,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceSize.MEDIUM
     ),
     createReaderInstance: false,
+    executeMigration: false,
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -81,6 +83,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceSize.MEDIUM
     ),
     createReaderInstance: false,
+    executeMigration: false,
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -103,6 +106,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
       ec2.InstanceSize.MEDIUM
     ),
     createReaderInstance: true,
+    executeMigration: false,
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -117,3 +121,4 @@ export const config: EnvConfig = envConfig[deployEnv];
 // Get Value from context
 config.backendImageTag = app.node.tryGetContext("backendImageTag");
 config.appConfig.accessToken = app.node.tryGetContext("storeAccessToken");
+config.executeMigration = app.node.tryGetContext("executeMigration");
