@@ -75,9 +75,11 @@ jobs:
     environment: ${{ inputs.environment }}
     strategy:
       matrix:
-        image:
-          - BACKEND_RESOURCE_NAME
-          - BACKEND_MIGRATION_RESOURCE_NAME
+        include:
+          - image: BACKEND_RESOURCE_NAME
+            dockerfile: ./docker/backend/Dockerfile.remote
+          - image: BACKEND_MIGRATION_RESOURCE_NAME
+            dockerfile: ./docker/backend-migration/Dockerfile
 
     permissions:
       id-token: write
@@ -110,7 +112,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./docker/backend/Dockerfile.remote
+          file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
