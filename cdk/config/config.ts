@@ -36,6 +36,7 @@ export interface EnvConfig {
   auroraInstanceType: ec2.InstanceType;
   createReaderInstance: boolean;
   executeMigration: boolean;
+  enableContainerInsights: boolean;
   appConfig: {
     rustLog: string;
     storeUrl: string;
@@ -60,6 +61,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     ),
     createReaderInstance: false,
     executeMigration: false,
+    enableContainerInsights: true,
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -84,6 +86,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     ),
     createReaderInstance: false,
     executeMigration: false,
+    enableContainerInsights: true,
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -107,6 +110,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     ),
     createReaderInstance: true,
     executeMigration: false,
+    enableContainerInsights: true,
     appConfig: {
       rustLog: "debug",
       storeUrl:
