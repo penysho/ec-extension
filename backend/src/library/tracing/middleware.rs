@@ -1,5 +1,17 @@
+// Dependencies required for X-Ray and OpenTelemetry integration:
+// Add the following dependencies to Cargo.toml:
+// ```
+// [dependencies]
+// # Existing dependencies...
+// opentelemetry = { version = "0.19", features = ["rt-tokio"] }
+// opentelemetry-aws = "0.8"
+// tracing-opentelemetry = "0.19"
+// ```
+
 use actix_web::Error;
 use actix_web::HttpMessage;
+use opentelemetry::trace::TraceContextExt;
+use opentelemetry::Context;
 use std::time::Instant;
 use tracing::Level;
 
@@ -7,12 +19,52 @@ use tracing::Level;
 #[derive(Debug, Clone)]
 struct RequestStartTime(Instant);
 
+/// Error type for trace ID extraction
+#[derive(Debug)]
+enum TraceIdError {
+    Missing,
+}
+
+const X_AMZN_TRACE_ID: &str = "X-Amzn-Trace-Id";
+
+/// Extracts X-Ray trace ID from request headers or OpenTelemetry context
+/// X-Ray trace header format: "Root=1-5f84c596-5c35c1dba9b2147a1cce26b0;Parent=c2c789fe1929327f;Sampled=1"
+fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<String, TraceIdError> {
+    // Check for X-Ray trace header
+    if let Some(xray_header) = request.headers().get(X_AMZN_TRACE_ID) {
+        if let Ok(header_str) = xray_header.to_str() {
+            // Extract the Root part (1-5f84c596-5c35c1dba9b2147a1cce26b0)
+            if let Some(root_part) = header_str.split(';').next() {
+                if let Some(trace_id) = root_part.strip_prefix("Root=") {
+                    return Ok(trace_id.to_string());
+                }
+            }
+        }
+    }
+
+    // Get trace ID from OpenTelemetry context
+    let current_context = Context::current();
+    let span = current_context.span();
+    let span_context = span.span_context();
+    if span_context.is_valid() {
+        return Ok(span_context.trace_id().to_string());
+    }
+
+    Err(TraceIdError::Missing)
+}
+
 pub struct CustomRootSpanBuilder;
 
 impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
     fn on_request_start(request: &actix_web::dev::ServiceRequest) -> tracing::Span {
-        // Create a span with standard fields
-        let span = tracing_actix_web::root_span!(request);
+        // Extract X-Ray trace ID from headers if present
+        let trace_id = extract_xray_trace_id(request).unwrap_or_else(|_| "unavailable".to_string());
+
+        // Create a span with standard fields and add X-Ray trace ID
+        let span = tracing_actix_web::root_span!(
+            request,
+            xray.trace_id = %trace_id,
+        );
 
         // Store request start time in the request extensions
         request
