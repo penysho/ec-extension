@@ -368,7 +368,7 @@ export class BackendStack extends cdk.Stack {
         "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.2"
       ),
       essential: true,
-      command: ["--config", "/etc/ecs/ecs-xray.yaml"],
+      command: ["--config", "/etc/ecs/ecs-cloudwatch-xray.yaml"],
       logging: ecs.LogDrivers.awsLogs({
         logGroup,
         streamPrefix: "ecs",
