@@ -170,6 +170,9 @@ export class BackendStack extends cdk.Stack {
     this.cluster = new ecs.Cluster(this, "Cluster", {
       vpc,
       clusterName: `${projectName}-${deployEnv}`,
+      containerInsightsV2: config.enableContainerInsights
+        ? ecs.ContainerInsights.ENHANCED
+        : ecs.ContainerInsights.DISABLED,
     });
 
     // Log Group
