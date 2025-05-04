@@ -29,7 +29,7 @@ enum TraceIdError {
 }
 
 // X-Ray trace header constants
-const X_AMZN_TRACE_ID: &str = "X-Amzn-Trace-Id";
+const X_AMZN_TRACE_ID: &str = "x-amzn-trace-id";
 const ROOT_PREFIX: &str = "Root=";
 
 /// Extracts X-Ray trace ID from request headers or OpenTelemetry context
