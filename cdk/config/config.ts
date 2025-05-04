@@ -121,4 +121,4 @@ export const config: EnvConfig = envConfig[deployEnv];
 // Get Value from context
 config.backendImageTag = app.node.tryGetContext("backendImageTag");
 config.appConfig.accessToken = app.node.tryGetContext("storeAccessToken");
-config.executeMigration = app.node.tryGetContext("executeMigration");
+config.executeMigration = app.node.tryGetContext("executeMigration") === "true";
