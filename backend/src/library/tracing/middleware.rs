@@ -6,12 +6,15 @@
 // opentelemetry = { version = "0.19", features = ["rt-tokio"] }
 // opentelemetry-aws = "0.8"
 // tracing-opentelemetry = "0.19"
+// chrono = "0.4"
 // ```
 
 use actix_web::Error;
 use actix_web::HttpMessage;
+use chrono::Utc;
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::Context;
+use std::collections::HashMap;
 use std::time::Instant;
 use tracing::Level;
 
@@ -25,7 +28,9 @@ enum TraceIdError {
     Missing,
 }
 
+// X-Ray trace header constants
 const X_AMZN_TRACE_ID: &str = "X-Amzn-Trace-Id";
+const ROOT_PREFIX: &str = "Root=";
 
 /// Extracts X-Ray trace ID from request headers or OpenTelemetry context
 /// X-Ray trace header format: "Root=1-5f84c596-5c35c1dba9b2147a1cce26b0;Parent=c2c789fe1929327f;Sampled=1"
@@ -34,9 +39,14 @@ fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<Str
     if let Some(xray_header) = request.headers().get(X_AMZN_TRACE_ID) {
         if let Ok(header_str) = xray_header.to_str() {
             // Extract the Root part (1-5f84c596-5c35c1dba9b2147a1cce26b0)
-            if let Some(root_part) = header_str.split(';').next() {
-                if let Some(trace_id) = root_part.strip_prefix("Root=") {
-                    return Ok(trace_id.to_string());
+            for part in header_str.split(';') {
+                if let Some(trace_id) = part.trim().strip_prefix(ROOT_PREFIX) {
+                    // X-Ray trace ID format is "1-[8 hex digits for time]-[24 hex digits for random]"
+                    // The total length should be 35 (including hyphens)
+                    if trace_id.len() >= 35 && trace_id.starts_with("1-") {
+                        // Additional validation could be done here (hex digits, etc.)
+                        return Ok(trace_id.to_string());
+                    }
                 }
             }
         }
@@ -47,10 +57,36 @@ fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<Str
     let span = current_context.span();
     let span_context = span.span_context();
     if span_context.is_valid() {
-        return Ok(span_context.trace_id().to_string());
+        // Convert OpenTelemetry trace ID to X-Ray format
+        // OpenTelemetry uses a 16-byte (32 hex chars) format, while X-Ray uses "1-timestamp-identifier"
+        let otel_trace_id = span_context.trace_id().to_string();
+        if otel_trace_id.len() >= 32 {
+            // Extract timestamp (first 8 chars) and remaining identifier
+            let timestamp = format!("{:08x}", Utc::now().timestamp());
+            let identifier = &otel_trace_id[0..24]; // Use first 24 chars of OTel trace ID
+            let xray_trace_id = format!("1-{}-{}", timestamp, identifier);
+            return Ok(xray_trace_id);
+        }
     }
 
     Err(TraceIdError::Missing)
+}
+
+/// Get a properly formatted trace ID to be included in logs and metrics
+fn format_for_logging(trace_id: &str) -> String {
+    // Ensure the trace ID is in X-Ray format when displayed in logs
+    if trace_id.len() >= 35 && trace_id.starts_with("1-") {
+        // Already in X-Ray format
+        return trace_id.to_string();
+    } else if trace_id.len() >= 32 {
+        // It's an OpenTelemetry trace ID, convert to X-Ray format
+        let timestamp = format!("{:08x}", Utc::now().timestamp());
+        let identifier = &trace_id[0..24]; // Use first 24 chars
+        return format!("1-{}-{}", timestamp, identifier);
+    }
+
+    // Return as is if we can't recognize the format
+    trace_id.to_string()
 }
 
 pub struct CustomRootSpanBuilder;
@@ -59,11 +95,12 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
     fn on_request_start(request: &actix_web::dev::ServiceRequest) -> tracing::Span {
         // Extract X-Ray trace ID from headers if present
         let trace_id = extract_xray_trace_id(request).unwrap_or_else(|_| "unavailable".to_string());
+        let formatted_trace_id = format_for_logging(&trace_id);
 
         // Create a span with standard fields and add X-Ray trace ID
         let span = tracing_actix_web::root_span!(
             request,
-            xray.trace_id = %trace_id,
+            xray.trace_id = %formatted_trace_id,
         );
 
         // Store request start time in the request extensions
@@ -112,6 +149,12 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
             let uri = response.request().uri().to_string();
             let method = response.request().method().to_string();
             let status_text = status.to_string();
+            let headers = response
+                .request()
+                .headers()
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
+                .collect::<HashMap<String, String>>();
 
             match level {
                 Level::WARN => {
@@ -121,6 +164,7 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
                         status_text = %status_text,
                         uri = %uri,
                         method = %method,
+                        headers = ?headers,
                         response_time = %response_time,
                         "Warning: Client error occurred"
                     );
@@ -132,6 +176,7 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
                         status_text = %status_text,
                         uri = %uri,
                         method = %method,
+                        headers = ?headers,
                         response_time = %response_time,
                         "Error: Server error occurred"
                     );
@@ -143,6 +188,7 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
                         status_text = %status_text,
                         uri = %uri,
                         method = %method,
+                        headers = ?headers,
                         response_time = %response_time,
                         "Request successful: Response returned normally"
                     );
