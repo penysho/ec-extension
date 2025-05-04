@@ -100,6 +100,7 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
         // Create a span with standard fields and add X-Ray trace ID
         let span = tracing_actix_web::root_span!(
             request,
+            trace_id = %formatted_trace_id,
             xray.trace_id = %formatted_trace_id,
         );
 
