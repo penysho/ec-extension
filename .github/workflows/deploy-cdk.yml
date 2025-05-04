@@ -121,8 +121,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Set scope to avoid cache conflicts in Matrix builds
+          # https://github.com/moby/buildkit#github-actions-cache-experimental
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
   deploy-cdk:
     name: Deploy CDK
