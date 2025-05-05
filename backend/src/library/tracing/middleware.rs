@@ -12,11 +12,13 @@
 use actix_web::Error;
 use actix_web::HttpMessage;
 use chrono::Utc;
+use opentelemetry::global;
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::Context;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::Level;
+use tracing::Span;
 
 /// Request start time holder for response time measurement
 #[derive(Debug, Clone)]
@@ -35,6 +37,10 @@ const ROOT_PREFIX: &str = "Root=";
 /// Extracts X-Ray trace ID from request headers or OpenTelemetry context
 /// X-Ray trace header format: "Root=1-5f84c596-5c35c1dba9b2147a1cce26b0;Parent=c2c789fe1929327f;Sampled=1"
 fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<String, TraceIdError> {
+    tracing::info!(
+        "Context: {:?}",
+        Context::current().span().span_context().trace_id()
+    );
     // Check for X-Ray trace header
     if let Some(xray_header) = request.headers().get(X_AMZN_TRACE_ID) {
         if let Ok(header_str) = xray_header.to_str() {
@@ -100,7 +106,6 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
         // Create a span with standard fields and add X-Ray trace ID
         let span = tracing_actix_web::root_span!(
             request,
-            trace_id = %formatted_trace_id,
             xray.trace_id = %formatted_trace_id,
         );
 

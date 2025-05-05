@@ -59,7 +59,9 @@ pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
         .with_target(true)
         .with_line_number(true)
         .with_file(true)
-        .json();
+        .json()
+        .with_current_span(true)
+        .with_span_list(true);
 
     let subscriber = Registry::default()
         .with(env_filter)
