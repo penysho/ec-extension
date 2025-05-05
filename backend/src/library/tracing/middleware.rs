@@ -12,13 +12,11 @@
 use actix_web::Error;
 use actix_web::HttpMessage;
 use chrono::Utc;
-use opentelemetry::global;
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::Context;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::Level;
-use tracing::Span;
 
 /// Request start time holder for response time measurement
 #[derive(Debug, Clone)]
