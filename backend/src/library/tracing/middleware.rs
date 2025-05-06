@@ -3,22 +3,21 @@
 // ```
 // [dependencies]
 // # Existing dependencies...
-// opentelemetry = { version = "0.19", features = ["rt-tokio"] }
+// opentelemetry = { version = "0.29", features = ["rt-tokio"] }
 // opentelemetry-aws = "0.8"
-// tracing-opentelemetry = "0.19"
+// tracing-opentelemetry = "0.30.0"
 // chrono = "0.4"
 // ```
 
 use actix_web::Error;
 use actix_web::HttpMessage;
 use chrono::Utc;
-use opentelemetry::trace::TraceContextExt;
-use opentelemetry::Context;
+use opentelemetry::global;
+use opentelemetry::propagation::Extractor;
+use opentelemetry::trace::{TraceContextExt, TraceId};
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::Level;
-use tracing::Span;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// Request start time holder for response time measurement
 #[derive(Debug, Clone)]
@@ -34,29 +33,45 @@ enum TraceIdError {
 const X_AMZN_TRACE_ID: &str = "x-amzn-trace-id";
 const ROOT_PREFIX: &str = "Root=";
 
+/// OpenTelemetryのヘッダーExtractor実装
+struct HeaderExtractor<'a> {
+    headers: &'a actix_web::http::header::HeaderMap,
+}
+
+impl<'a> Extractor for HeaderExtractor<'a> {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.headers.get(key).and_then(|v| v.to_str().ok())
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.headers.keys().map(|k| k.as_str()).collect()
+    }
+}
+
 /// Extracts X-Ray trace ID from request headers or OpenTelemetry context
 /// X-Ray trace header format: "Root=1-5f84c596-5c35c1dba9b2147a1cce26b0;Parent=c2c789fe1929327f;Sampled=1"
 fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<String, TraceIdError> {
-    tracing::info!(
-        "Context: {:?}",
-        Context::current().span().span_context().trace_id()
-    );
-    let span = Span::current();
-    // OpenTelemetry の SpanContext を取得
-    let binding = span.context();
-    let otel_span = binding.span();
-    let sc = otel_span.span_context();
-    tracing::info!("SpanContext: {:?}", sc.trace_id());
-    // Check for X-Ray trace header
+    let extractor = HeaderExtractor {
+        headers: request.headers(),
+    };
+
+    let context = global::get_text_map_propagator(|propagater| propagater.extract(&extractor));
+
+    let binding = context.span();
+    let span_context = binding.span_context();
+
+    // 直接X-Rayヘッダーから抽出を試みる
     if let Some(xray_header) = request.headers().get(X_AMZN_TRACE_ID) {
         if let Ok(header_str) = xray_header.to_str() {
+            tracing::debug!("X-Ray header found: {}", header_str);
             // Extract the Root part (1-5f84c596-5c35c1dba9b2147a1cce26b0)
             for part in header_str.split(';') {
                 if let Some(trace_id) = part.trim().strip_prefix(ROOT_PREFIX) {
                     // X-Ray trace ID format is "1-[8 hex digits for time]-[24 hex digits for random]"
                     // The total length should be 35 (including hyphens)
                     if trace_id.len() >= 35 && trace_id.starts_with("1-") {
-                        // Additional validation could be done here (hex digits, etc.)
+                        // 有効なX-Rayトレースが見つかった場合
+                        tracing::debug!("Valid X-Ray trace ID found: {}", trace_id);
                         return Ok(trace_id.to_string());
                     }
                 }
@@ -64,19 +79,16 @@ fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<Str
         }
     }
 
-    // Get trace ID from OpenTelemetry context
-    let current_context = Context::current();
-    let span = current_context.span();
-    let span_context = span.span_context();
+    // OTelコンテキストからトレースIDを取得
     if span_context.is_valid() {
-        // Convert OpenTelemetry trace ID to X-Ray format
-        // OpenTelemetry uses a 16-byte (32 hex chars) format, while X-Ray uses "1-timestamp-identifier"
-        let otel_trace_id = span_context.trace_id().to_string();
-        if otel_trace_id.len() >= 32 {
-            // Extract timestamp (first 8 chars) and remaining identifier
+        let trace_id = span_context.trace_id();
+        tracing::debug!("OTel trace ID: {}", trace_id);
+        if trace_id != TraceId::INVALID {
+            // X-Ray形式に変換
             let timestamp = format!("{:08x}", Utc::now().timestamp());
-            let identifier = &otel_trace_id[0..24]; // Use first 24 chars of OTel trace ID
+            let identifier = &trace_id.to_string()[0..24]; // 先頭24文字を使用
             let xray_trace_id = format!("1-{}-{}", timestamp, identifier);
+            tracing::debug!("Formatted X-Ray trace ID: {}", xray_trace_id);
             return Ok(xray_trace_id);
         }
     }
@@ -105,7 +117,14 @@ pub struct CustomRootSpanBuilder;
 
 impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
     fn on_request_start(request: &actix_web::dev::ServiceRequest) -> tracing::Span {
-        // Extract X-Ray trace ID from headers if present
+        let extractor = HeaderExtractor {
+            headers: request.headers(),
+        };
+
+        let parent_context =
+            global::get_text_map_propagator(|propagater| propagater.extract(&extractor));
+
+        // X-Ray trace ID from headers if present
         let trace_id = extract_xray_trace_id(request).unwrap_or_else(|_| "unavailable".to_string());
         let formatted_trace_id = format_for_logging(&trace_id);
 
@@ -114,6 +133,8 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
             request,
             xray.trace_id = %formatted_trace_id,
         );
+
+        tracing_opentelemetry::OpenTelemetrySpanExt::set_parent(&span, parent_context);
 
         // Store request start time in the request extensions
         request

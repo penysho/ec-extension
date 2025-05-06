@@ -1,7 +1,10 @@
-use opentelemetry::{global, trace::TracerProvider, KeyValue};
+use opentelemetry::{
+    global, propagation::TextMapCompositePropagator, trace::TracerProvider, KeyValue,
+};
 use opentelemetry_aws::trace::{XrayIdGenerator, XrayPropagator};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
+    propagation::TraceContextPropagator,
     trace::{Sampler, SdkTracerProvider},
     Resource,
 };
@@ -37,7 +40,11 @@ static RESOURCE: LazyLock<Resource> = LazyLock::new(|| {
 ///
 /// This function will return an error if the OTLP exporter fails to be created.
 pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
-    global::set_text_map_propagator(XrayPropagator::new());
+    let propagator = TextMapCompositePropagator::new(vec![
+        Box::new(XrayPropagator::new()),
+        Box::new(TraceContextPropagator::new()),
+    ]);
+    global::set_text_map_propagator(propagator);
 
     let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_http()
