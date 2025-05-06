@@ -12,6 +12,7 @@
 use actix_web::Error;
 use actix_web::HttpMessage;
 use chrono::Utc;
+use opentelemetry::global;
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::Context;
 use std::collections::HashMap;
