@@ -1,7 +1,10 @@
 use opentelemetry::{global, trace::TracerProvider, KeyValue};
 use opentelemetry_aws::trace::{XrayIdGenerator, XrayPropagator};
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{trace::SdkTracerProvider, Resource};
+use opentelemetry_sdk::{
+    trace::{Sampler, SdkTracerProvider},
+    Resource,
+};
 use opentelemetry_semantic_conventions::resource;
 use std::sync::LazyLock;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
@@ -44,7 +47,10 @@ pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
 
     let provider = SdkTracerProvider::builder()
         .with_id_generator(XrayIdGenerator::default())
-        .with_batch_exporter(otlp_exporter)
+        .with_span_processor(
+            opentelemetry_sdk::trace::BatchSpanProcessor::builder(otlp_exporter).build(),
+        )
+        .with_sampler(Sampler::AlwaysOn)
         .with_resource(RESOURCE.clone())
         .build();
     global::set_tracer_provider(provider.clone());
