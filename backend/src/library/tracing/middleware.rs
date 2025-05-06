@@ -17,6 +17,8 @@ use opentelemetry::Context;
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::Level;
+use tracing::Span;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// Request start time holder for response time measurement
 #[derive(Debug, Clone)]
@@ -39,6 +41,12 @@ fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<Str
         "Context: {:?}",
         Context::current().span().span_context().trace_id()
     );
+    let span = Span::current();
+    // OpenTelemetry の SpanContext を取得
+    let binding = span.context();
+    let otel_span = binding.span();
+    let sc = otel_span.span_context();
+    tracing::info!("SpanContext: {:?}", sc.trace_id());
     // Check for X-Ray trace header
     if let Some(xray_header) = request.headers().get(X_AMZN_TRACE_ID) {
         if let Ok(header_str) = xray_header.to_str() {
