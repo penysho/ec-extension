@@ -1,7 +1,7 @@
 use opentelemetry::{global, trace::TracerProvider, KeyValue};
 use opentelemetry_aws::trace::{XrayIdGenerator, XrayPropagator};
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{trace::SdkTracerProvider, Resource};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::SdkTracerProvider, Resource};
 use opentelemetry_semantic_conventions::resource;
 use std::sync::LazyLock;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
@@ -34,7 +34,8 @@ static RESOURCE: LazyLock<Resource> = LazyLock::new(|| {
 ///
 /// This function will return an error if the OTLP exporter fails to be created.
 pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
-    global::set_text_map_propagator(XrayPropagator::new());
+    // global::set_text_map_propagator(XrayPropagator::new());
+    global::set_text_map_propagator(TraceContextPropagator::new());
 
     let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_http()
@@ -43,7 +44,7 @@ pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
         .expect("Failed to create OTLP exporter");
 
     let provider = SdkTracerProvider::builder()
-        .with_id_generator(XrayIdGenerator::default())
+        // .with_id_generator(XrayIdGenerator::default())
         .with_batch_exporter(otlp_exporter)
         .with_resource(RESOURCE.clone())
         .build();
