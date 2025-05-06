@@ -9,6 +9,7 @@
 // chrono = "0.4"
 // ```
 
+use actix_http::header::HeaderMap;
 use actix_web::Error;
 use actix_web::HttpMessage;
 use chrono::Utc;
@@ -18,6 +19,7 @@ use opentelemetry::trace::{TraceContextExt, TraceId};
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::Level;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// Request start time holder for response time measurement
 #[derive(Debug, Clone)]
@@ -33,9 +35,9 @@ enum TraceIdError {
 const X_AMZN_TRACE_ID: &str = "x-amzn-trace-id";
 const ROOT_PREFIX: &str = "Root=";
 
-/// OpenTelemetryのヘッダーExtractor実装
+/// OpenTelemetry header Extractor implementation
 struct HeaderExtractor<'a> {
-    headers: &'a actix_web::http::header::HeaderMap,
+    headers: &'a HeaderMap,
 }
 
 impl<'a> Extractor for HeaderExtractor<'a> {
@@ -56,21 +58,18 @@ fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<Str
     };
 
     let context = global::get_text_map_propagator(|propagater| propagater.extract(&extractor));
-
     let binding = context.span();
     let span_context = binding.span_context();
 
-    // 直接X-Rayヘッダーから抽出を試みる
+    // Try to extract directly from X-Ray header
     if let Some(xray_header) = request.headers().get(X_AMZN_TRACE_ID) {
         if let Ok(header_str) = xray_header.to_str() {
             tracing::debug!("X-Ray header found: {}", header_str);
-            // Extract the Root part (1-5f84c596-5c35c1dba9b2147a1cce26b0)
             for part in header_str.split(';') {
                 if let Some(trace_id) = part.trim().strip_prefix(ROOT_PREFIX) {
                     // X-Ray trace ID format is "1-[8 hex digits for time]-[24 hex digits for random]"
                     // The total length should be 35 (including hyphens)
                     if trace_id.len() >= 35 && trace_id.starts_with("1-") {
-                        // 有効なX-Rayトレースが見つかった場合
                         tracing::debug!("Valid X-Ray trace ID found: {}", trace_id);
                         return Ok(trace_id.to_string());
                     }
@@ -79,14 +78,14 @@ fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<Str
         }
     }
 
-    // OTelコンテキストからトレースIDを取得
+    // Get trace ID from OTel context
     if span_context.is_valid() {
         let trace_id = span_context.trace_id();
         tracing::debug!("OTel trace ID: {}", trace_id);
         if trace_id != TraceId::INVALID {
-            // X-Ray形式に変換
+            // Convert to X-Ray format
             let timestamp = format!("{:08x}", Utc::now().timestamp());
-            let identifier = &trace_id.to_string()[0..24]; // 先頭24文字を使用
+            let identifier = &trace_id.to_string()[0..24]; // Use first 24 characters
             let xray_trace_id = format!("1-{}-{}", timestamp, identifier);
             tracing::debug!("Formatted X-Ray trace ID: {}", xray_trace_id);
             return Ok(xray_trace_id);
@@ -98,7 +97,6 @@ fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<Str
 
 /// Get a properly formatted trace ID to be included in logs and metrics
 fn format_for_logging(trace_id: &str) -> String {
-    // Ensure the trace ID is in X-Ray format when displayed in logs
     if trace_id.len() >= 35 && trace_id.starts_with("1-") {
         // Already in X-Ray format
         return trace_id.to_string();
@@ -109,34 +107,29 @@ fn format_for_logging(trace_id: &str) -> String {
         return format!("1-{}-{}", timestamp, identifier);
     }
 
-    // Return as is if we can't recognize the format
     trace_id.to_string()
 }
 
-pub struct CustomRootSpanBuilder;
+pub struct XRayRootSpanBuilder;
 
-impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
+impl tracing_actix_web::RootSpanBuilder for XRayRootSpanBuilder {
     fn on_request_start(request: &actix_web::dev::ServiceRequest) -> tracing::Span {
-        let extractor = HeaderExtractor {
-            headers: request.headers(),
-        };
-
-        let parent_context =
-            global::get_text_map_propagator(|propagater| propagater.extract(&extractor));
-
-        // X-Ray trace ID from headers if present
         let trace_id = extract_xray_trace_id(request).unwrap_or_else(|_| "unavailable".to_string());
         let formatted_trace_id = format_for_logging(&trace_id);
 
-        // Create a span with standard fields and add X-Ray trace ID
         let span = tracing_actix_web::root_span!(
             request,
             xray.trace_id = %formatted_trace_id,
         );
 
-        tracing_opentelemetry::OpenTelemetrySpanExt::set_parent(&span, parent_context);
+        // Trace IDs set in the previous stage (ELB, etc.) are set as parents so that they can be tied together
+        let extractor = HeaderExtractor {
+            headers: request.headers(),
+        };
+        let parent_context =
+            global::get_text_map_propagator(|propagater| propagater.extract(&extractor));
+        OpenTelemetrySpanExt::set_parent(&span, parent_context);
 
-        // Store request start time in the request extensions
         request
             .extensions_mut()
             .insert(RequestStartTime(Instant::now()));
@@ -148,17 +141,13 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
         span: tracing::Span,
         outcome: &Result<actix_web::dev::ServiceResponse<B>, Error>,
     ) {
-        // Record standard fields when the request finishes
         tracing_actix_web::DefaultRootSpanBuilder::on_request_end(span.clone(), outcome);
 
-        // Record additional information
         if let Ok(response) = outcome {
-            // Record status code
             let status = response.status();
             let status_code = status.as_u16();
             span.record("status_code", &status_code);
 
-            // Calculate response time if available
             let response_time = response
                 .request()
                 .extensions()
@@ -171,14 +160,12 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
                 })
                 .unwrap_or_else(|| "unknown".to_string());
 
-            // Determine log level based on status code
             let level = match status_code {
                 400..=499 => Level::WARN,
                 500..=599 => Level::ERROR,
                 _ => Level::INFO,
             };
 
-            // Record response information
             let uri = response.request().uri().to_string();
             let method = response.request().method().to_string();
             let status_text = status.to_string();
@@ -228,7 +215,6 @@ impl tracing_actix_web::RootSpanBuilder for CustomRootSpanBuilder {
                 }
             }
         } else if let Err(error) = outcome {
-            // Record error information
             let error_message = error.to_string();
             span.record("error", &error_message);
 
