@@ -35,7 +35,7 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
-    library::tracing::opentelemetry::init_telemetry(&app_config);
+    let tracer_provider = library::tracing::opentelemetry::init_telemetry(&app_config);
 
     let connection_provider = web::Data::new(
         SeaOrmConnectionProvider::new(config_provider.database_config().clone())
@@ -99,4 +99,11 @@ async fn main() -> std::io::Result<()> {
     .bind(format!("{}:{}", app_config.address(), app_config.port()))?
     .run()
     .await
+    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    tracer_provider
+        .shutdown()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    Ok(())
 }

@@ -47,6 +47,7 @@ pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
         .with_batch_exporter(otlp_exporter)
         .with_resource(RESOURCE.clone())
         .build();
+    global::set_tracer_provider(provider.clone());
     let tracer = provider.tracer(APP_NAME);
 
     // Filter based on level - trace, debug, info, warn, error
