@@ -1,6 +1,7 @@
 use actix_cors::Cors;
 use actix_web::middleware::{from_fn, Logger};
 use actix_web::{http, web, App, HttpServer};
+use actix_web_opentelemetry::RequestTracing;
 use env_logger::Env;
 use infrastructure::auth::auth_middleware::AuthTransform;
 use infrastructure::auth::cognito::cognito_authenticator::CognitoAuthenticator;
@@ -82,6 +83,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default().exclude("/health"))
             .wrap(cors)
             .wrap(TracingLogger::<CustomRootSpanBuilder>::new())
+            .wrap(RequestTracing::new())
             // Definition of app data
             .app_data(connection_provider.clone())
             .app_data(controller.clone())
