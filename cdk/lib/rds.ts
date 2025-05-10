@@ -2,6 +2,7 @@ import {
   Stack,
   StackProps,
   aws_ec2 as ec2,
+  aws_logs as logs,
   aws_rds as rds,
   aws_secretsmanager as sm,
 } from "aws-cdk-lib";
@@ -87,6 +88,12 @@ export class RdsStack extends Stack {
         version: config.auroraPostgresEngineVersion,
       }),
       description: `${projectName}-${deployEnv} Parameter group for aurora-postgresql.`,
+      parameters: {
+        general_log: "1",
+        slow_query_log: "1",
+        long_query_time: "10",
+        log_output: "FILE",
+      },
     });
     parameterGroup.bindToInstance({});
     const cfnParameterGroup = parameterGroup.node
@@ -128,6 +135,8 @@ export class RdsStack extends Stack {
         publiclyAccessible: true,
         parameterGroup,
       }),
+      cloudwatchLogsExports: ["error", "general", "slowquery"],
+      cloudwatchLogsRetention: logs.RetentionDays.ONE_WEEK,
     });
 
     this.rdsCluster.connections.allowFrom(
