@@ -62,12 +62,11 @@ pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
         .build();
     global::set_tracer_provider(provider.clone());
     let tracer = provider.tracer(APP_NAME);
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     // Filter based on level - trace, debug, info, warn, error
     // Tunable via `RUST_LOG` env variable
     let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("info"));
-    // Create a `tracing` layer using the otlp tracer
-    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_target(true)

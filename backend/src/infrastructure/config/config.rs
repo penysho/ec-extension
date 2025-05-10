@@ -39,6 +39,7 @@ pub struct AppConfig {
     log_level: String,
     cors_allowed_origins: Vec<String>,
     opentelemetry_endpoint: String,
+    health_check_path: String,
 }
 
 impl AppConfig {
@@ -61,6 +62,8 @@ impl AppConfig {
         let cors_allowed_origins = vec!["http://localhost:3000".to_string()];
         let opentelemetry_endpoint = env::var("OPENTELEMETRY_ENDPOINT")
             .unwrap_or_else(|_| "http://otel-collector:4318/v1/traces".to_string());
+        let health_check_path =
+            env::var("HEALTH_CHECK_PATH").unwrap_or_else(|_| "/health".to_string());
 
         Ok(AppConfig {
             address,
@@ -68,6 +71,7 @@ impl AppConfig {
             log_level,
             cors_allowed_origins,
             opentelemetry_endpoint,
+            health_check_path,
         })
     }
 }

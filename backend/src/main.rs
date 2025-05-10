@@ -79,12 +79,13 @@ async fn main() -> std::io::Result<()> {
             .wrap(from_fn(
                 sea_orm_transaction_middleware::sea_orm_transaction_middleware,
             ))
-            .wrap(Logger::default().exclude("/health"))
+            .wrap(Logger::default().exclude(app_config.health_check_path()))
             .wrap(cors)
             .wrap(TracingLogger::<XRayRootSpanBuilder>::new())
             // Definition of app data
             .app_data(connection_provider.clone())
             .app_data(controller.clone())
+            .app_data(web::Data::new(app_config.clone()))
             // Definition of routes
             .configure(
                 actix_router::configure_routes::<

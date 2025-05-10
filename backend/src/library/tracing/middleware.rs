@@ -8,7 +8,6 @@
 // tracing-opentelemetry = "0.30.0"
 // chrono = "0.4"
 // ```
-
 use actix_http::header::HeaderMap;
 use actix_web::Error;
 use actix_web::HttpMessage;
@@ -20,6 +19,8 @@ use std::collections::HashMap;
 use std::time::Instant;
 use tracing::Level;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
+
+use crate::infrastructure::config::config::AppConfig;
 
 /// Request start time holder for response time measurement
 #[derive(Debug, Clone)]
@@ -144,6 +145,17 @@ impl tracing_actix_web::RootSpanBuilder for XRayRootSpanBuilder {
         tracing_actix_web::DefaultRootSpanBuilder::on_request_end(span.clone(), outcome);
 
         if let Ok(response) = outcome {
+            let health_check_path = response
+                .request()
+                .extensions()
+                .get::<AppConfig>()
+                .map(|config| config.health_check_path().clone())
+                .unwrap_or_else(|| "/health".to_string());
+
+            if response.request().path() == health_check_path {
+                return;
+            }
+
             let status = response.status();
             let status_code = status.as_u16();
             span.record("status_code", &status_code);
