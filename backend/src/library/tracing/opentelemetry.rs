@@ -1,6 +1,13 @@
-use opentelemetry::{global, trace::TracerProvider, KeyValue};
+use opentelemetry::{
+    global, propagation::TextMapCompositePropagator, trace::TracerProvider, KeyValue,
+};
+use opentelemetry_aws::trace::{XrayIdGenerator, XrayPropagator};
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::SdkTracerProvider, Resource};
+use opentelemetry_sdk::{
+    propagation::TraceContextPropagator,
+    trace::{Sampler, SdkTracerProvider},
+    Resource,
+};
 use opentelemetry_semantic_conventions::resource;
 use std::sync::LazyLock;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
@@ -33,7 +40,11 @@ static RESOURCE: LazyLock<Resource> = LazyLock::new(|| {
 ///
 /// This function will return an error if the OTLP exporter fails to be created.
 pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
-    global::set_text_map_propagator(TraceContextPropagator::new());
+    let propagator = TextMapCompositePropagator::new(vec![
+        Box::new(XrayPropagator::new()),
+        Box::new(TraceContextPropagator::new()),
+    ]);
+    global::set_text_map_propagator(propagator);
 
     let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_http()
@@ -42,22 +53,28 @@ pub fn init_telemetry(config: &AppConfig) -> SdkTracerProvider {
         .expect("Failed to create OTLP exporter");
 
     let provider = SdkTracerProvider::builder()
-        .with_batch_exporter(otlp_exporter)
+        .with_id_generator(XrayIdGenerator::default())
+        .with_span_processor(
+            opentelemetry_sdk::trace::BatchSpanProcessor::builder(otlp_exporter).build(),
+        )
+        .with_sampler(Sampler::AlwaysOn)
         .with_resource(RESOURCE.clone())
         .build();
+    global::set_tracer_provider(provider.clone());
     let tracer = provider.tracer(APP_NAME);
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     // Filter based on level - trace, debug, info, warn, error
     // Tunable via `RUST_LOG` env variable
     let env_filter = EnvFilter::try_from_default_env().unwrap_or(EnvFilter::new("info"));
-    // Create a `tracing` layer using the otlp tracer
-    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_target(true)
         .with_line_number(true)
         .with_file(true)
-        .json();
+        .json()
+        .with_current_span(true)
+        .with_span_list(true);
 
     let subscriber = Registry::default()
         .with(env_filter)

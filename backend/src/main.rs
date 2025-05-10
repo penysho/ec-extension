@@ -13,7 +13,7 @@ use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interactor_provider_impl::InteractorProviderImpl;
 use infrastructure::router::actix_router;
 use interface::controller::controller::Controller;
-use library::tracing::middleware::CustomRootSpanBuilder;
+use library::tracing::middleware::XRayRootSpanBuilder;
 use sea_orm::{DatabaseConnection, DatabaseTransaction};
 use std::io;
 use std::sync::Arc;
@@ -34,7 +34,7 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::init_from_env(Env::default().default_filter_or(app_config.log_level()));
 
-    library::tracing::opentelemetry::init_telemetry(&app_config);
+    let tracer_provider = library::tracing::opentelemetry::init_telemetry(&app_config);
 
     let connection_provider = web::Data::new(
         SeaOrmConnectionProvider::new(config_provider.database_config().clone())
@@ -79,12 +79,13 @@ async fn main() -> std::io::Result<()> {
             .wrap(from_fn(
                 sea_orm_transaction_middleware::sea_orm_transaction_middleware,
             ))
-            .wrap(Logger::default().exclude("/health"))
+            .wrap(Logger::default().exclude(app_config.health_check_path()))
             .wrap(cors)
-            .wrap(TracingLogger::<CustomRootSpanBuilder>::new())
+            .wrap(TracingLogger::<XRayRootSpanBuilder>::new())
             // Definition of app data
             .app_data(connection_provider.clone())
             .app_data(controller.clone())
+            .app_data(web::Data::new(app_config.clone()))
             // Definition of routes
             .configure(
                 actix_router::configure_routes::<
@@ -97,4 +98,11 @@ async fn main() -> std::io::Result<()> {
     .bind(format!("{}:{}", app_config.address(), app_config.port()))?
     .run()
     .await
+    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    tracer_provider
+        .shutdown()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    Ok(())
 }

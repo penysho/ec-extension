@@ -170,11 +170,15 @@ export class BackendStack extends cdk.Stack {
     this.cluster = new ecs.Cluster(this, "Cluster", {
       vpc,
       clusterName: `${projectName}-${deployEnv}`,
+      containerInsightsV2: config.enableContainerInsights
+        ? ecs.ContainerInsights.ENHANCED
+        : ecs.ContainerInsights.DISABLED,
     });
 
     // Log Group
     const logGroup = new logs.LogGroup(this, "LogGroup", {
       retention: logs.RetentionDays.THREE_MONTHS,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
     const metricFilterForServerError = new logs.CfnMetricFilter(
@@ -197,15 +201,48 @@ export class BackendStack extends cdk.Stack {
       cdk.CfnDeletionPolicy.DELETE;
 
     // Task definition
-    const taskExecutionRole = new iam.Role(this, "TaskExecutionRole", {
+
+    // https://aws-otel.github.io/docs/setup/ecs/create-iam-role
+    const executionRole = new iam.Role(this, "ExecutionRole", {
       assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
       managedPolicies: [
         {
           managedPolicyArn:
             "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
         },
+        {
+          managedPolicyArn: "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+        },
+        {
+          managedPolicyArn: "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
+        },
       ],
     });
+
+    // https://aws-otel.github.io/docs/setup/permissions#create-iam-policy
+    const taskRole = new iam.Role(this, "TaskRole", {
+      assumedBy: new iam.ServicePrincipal("ecs-tasks.amazonaws.com"),
+      managedPolicies: [
+        {
+          managedPolicyArn: "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess",
+        },
+      ],
+    });
+    taskRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "logs:PutLogEvents",
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:DescribeLogStreams",
+          "logs:DescribeLogGroups",
+          "logs:PutRetentionPolicy",
+          "ssm:GetParameters",
+        ],
+        resources: ["*"],
+        effect: iam.Effect.ALLOW,
+      })
+    );
 
     const taskDefinition = new ecs.FargateTaskDefinition(
       this,
@@ -213,7 +250,8 @@ export class BackendStack extends cdk.Stack {
       {
         cpu: config.ecsTaskCpu,
         memoryLimitMiB: config.ecsTaskMemory,
-        executionRole: taskExecutionRole,
+        executionRole,
+        taskRole,
         family: `${projectName}-backend-${deployEnv}`,
       }
     );
@@ -234,6 +272,7 @@ export class BackendStack extends cdk.Stack {
       logging: ecs.LogDrivers.awsLogs({
         logGroup,
         streamPrefix: "ecs",
+        mode: ecs.AwsLogDriverMode.NON_BLOCKING,
       }),
     });
     backendContainer.addEnvironment("RUST_LOG", config.appConfig.rustLog);
@@ -268,6 +307,15 @@ export class BackendStack extends cdk.Stack {
         props.rdsStack.rdsCluster.clusterEndpoint.hostname
       }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
     );
+    // // When using the X-Ray daemon
+    // backendContainer.addEnvironment(
+    //   "AWS_XRAY_DAEMON_ADDRESS",
+    //   "127.0.0.1:2000"
+    // );
+    backendContainer.addEnvironment(
+      "OPENTELEMETRY_ENDPOINT",
+      "http://localhost:4318/v1/traces"
+    );
 
     const migrationContainer = taskDefinition.addContainer("migration", {
       containerName: "migration",
@@ -279,6 +327,7 @@ export class BackendStack extends cdk.Stack {
       logging: ecs.LogDrivers.awsLogs({
         logGroup,
         streamPrefix: "ecs",
+        mode: ecs.AwsLogDriverMode.NON_BLOCKING,
       }),
       command: [
         "/app/target/release/migration",
@@ -295,6 +344,40 @@ export class BackendStack extends cdk.Stack {
         props.rdsStack.rdsCluster.clusterEndpoint.hostname
       }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
     );
+
+    // // https://docs.aws.amazon.com/ja_jp/xray/latest/devguide/xray-daemon-ecs.html#xray-daemon-ecs-image
+    // // When using the X-Ray daemon
+    // const xrayDaemonContainer = taskDefinition.addContainer("xray-daemon", {
+    //   containerName: "xray-daemon",
+    //   image: ecs.ContainerImage.fromRegistry("amazon/aws-xray-daemon"),
+    //   essential: false,
+    //   portMappings: [
+    //     {
+    //       containerPort: 2000,
+    //       hostPort: 2000,
+    //       protocol: ecs.Protocol.UDP,
+    //     },
+    //   ],
+    //   logging: ecs.LogDrivers.awsLogs({
+    //     logGroup,
+    //     streamPrefix: "ecs",
+    //     mode: ecs.AwsLogDriverMode.NON_BLOCKING,
+    //   }),
+    // });
+
+    taskDefinition.addContainer("aws-otel-collector", {
+      containerName: "aws-otel-collector",
+      image: ecs.ContainerImage.fromRegistry(
+        "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.2"
+      ),
+      essential: true,
+      command: ["--config", "/etc/ecs/ecs-cloudwatch-xray.yaml"],
+      logging: ecs.LogDrivers.awsLogs({
+        logGroup,
+        streamPrefix: "ecs",
+        mode: ecs.AwsLogDriverMode.NON_BLOCKING,
+      }),
+    });
 
     // Service
     const service = new ecs.FargateService(this, "Service", {
