@@ -1,8 +1,50 @@
 use aws_config::SdkConfig;
 use derive_getters::Getters;
 use std::env;
+use std::fmt;
+use std::str::FromStr;
 
 use crate::domain::error::error::DomainError;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Env {
+    Local,
+    Dev,
+    Stg,
+    Prd,
+}
+
+impl FromStr for Env {
+    type Err = DomainError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "local" => Ok(Env::Local),
+            "dev" => Ok(Env::Dev),
+            "stg" => Ok(Env::Stg),
+            "prd" => Ok(Env::Prd),
+            _ => {
+                eprintln!(
+                    "An invalid value has been set for ENV.
+                        Set one of local, dev, stg, or prd. ENV= {}",
+                    s
+                );
+                Err(DomainError::InitConfigError)
+            }
+        }
+    }
+}
+
+impl fmt::Display for Env {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Env::Local => write!(f, "local"),
+            Env::Dev => write!(f, "dev"),
+            Env::Stg => write!(f, "stg"),
+            Env::Prd => write!(f, "prd"),
+        }
+    }
+}
 
 #[derive(Getters, Clone)]
 pub struct ConfigProvider {
@@ -11,6 +53,7 @@ pub struct ConfigProvider {
     database_config: DatabaseConfig,
     cognito_config: CognitoConfig,
     aws_sdk_config: SdkConfig,
+    env: Env,
 }
 
 impl ConfigProvider {
@@ -21,12 +64,15 @@ impl ConfigProvider {
         let cognito_config = CognitoConfig::new()?;
         let aws_sdk_config = aws_config::load_from_env().await;
 
+        let env = Env::from_str(&env::var("ENV").unwrap_or_else(|_| "local".to_string()))?;
+
         Ok(ConfigProvider {
             app_config,
             shopify_config,
             cognito_config,
             database_config,
             aws_sdk_config,
+            env,
         })
     }
 }
