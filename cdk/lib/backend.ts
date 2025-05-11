@@ -298,14 +298,8 @@ export class BackendStack extends cdk.Stack {
       `https://cognito-idp.${props.env?.region}.amazonaws.com/${props.cognitoStack.userPool.userPoolId}/.well-known/jwks.json`
     );
     backendContainer.addEnvironment(
-      "DATABASE_URL",
-      `postgres://${props.rdsStack.rdsAdminSecret
-        .secretValueFromJson("username")
-        .unsafeUnwrap()}:${props.rdsStack.rdsAdminSecret
-        .secretValueFromJson("password")
-        .unsafeUnwrap()}@${
-        props.rdsStack.rdsCluster.clusterEndpoint.hostname
-      }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
+      "DATABASE_SECRETS_NAME",
+      props.rdsStack.rdsApplicationSecret.secretName
     );
     // // When using the X-Ray daemon
     // backendContainer.addEnvironment(
@@ -342,7 +336,13 @@ export class BackendStack extends cdk.Stack {
         .secretValueFromJson("password")
         .unsafeUnwrap()}@${
         props.rdsStack.rdsCluster.clusterEndpoint.hostname
-      }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/postgres`
+      }:${props.rdsStack.rdsCluster.clusterEndpoint.port}/ec_extension`
+    );
+    migrationContainer.addEnvironment(
+      "APPLICATION_PASSWORD",
+      props.rdsStack.rdsApplicationSecret
+        .secretValueFromJson("password")
+        .unsafeUnwrap()
     );
 
     // // https://docs.aws.amazon.com/ja_jp/xray/latest/devguide/xray-daemon-ecs.html#xray-daemon-ecs-image

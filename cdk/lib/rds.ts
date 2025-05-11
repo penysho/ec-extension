@@ -29,14 +29,19 @@ export class RdsStack extends Stack {
    */
   public readonly rdsClientSg: ec2.SecurityGroup;
   /**
-   * RDS Secret
+   * RDS Admin User Secret
    */
   public readonly rdsAdminSecret: sm.Secret;
+  /**
+   * RDS Application User Secret
+   */
+  public readonly rdsApplicationSecret: sm.Secret;
 
   constructor(scope: Construct, id: string, props: RdsStackProps) {
     super(scope, id, props);
 
     const EXCLUDE_CHARACTERS = "\"@'%$#&().,{_?<≠^>[:;`+*!]}=~|¥/\\";
+    const DATABASE_NAME = "ec_extension";
 
     const vpc = props.vpcStack.vpc;
     const publicSubnets = vpc.selectSubnets({
@@ -144,5 +149,20 @@ export class RdsStack extends Stack {
       ec2.Port.tcp(5432),
       "Allow access to RDS from the RDS client security group"
     );
+
+    /**
+     * RDS Application User Secret
+     */
+    this.rdsApplicationSecret = new sm.Secret(this, `RdsApplicationSecret`, {
+      secretName: `${projectName}-${deployEnv}/rds/application-secret`,
+      description: `${projectName}-${deployEnv} RDS Admin User Secret.`,
+      generateSecretString: {
+        excludeCharacters: EXCLUDE_CHARACTERS,
+        generateStringKey: "password",
+        passwordLength: 32,
+        requireEachIncludedType: true,
+        secretStringTemplate: `{"engine": "postgres", "username": "application", "host": "${this.rdsCluster.clusterEndpoint.hostname}", "port": "${this.rdsCluster.clusterEndpoint.port}", "dbname": "${DATABASE_NAME}"}`,
+      },
+    });
   }
 }
