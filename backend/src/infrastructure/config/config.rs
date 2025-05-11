@@ -12,6 +12,7 @@ use crate::infrastructure::secret::secrets_manager::SecretsManagerClient;
 pub enum Env {
     Local,
     Dev,
+    Tst,
     Stg,
     Prd,
 }
@@ -23,6 +24,7 @@ impl FromStr for Env {
         match s {
             "local" => Ok(Env::Local),
             "dev" => Ok(Env::Dev),
+            "tst" => Ok(Env::Tst),
             "stg" => Ok(Env::Stg),
             "prd" => Ok(Env::Prd),
             _ => {
@@ -42,6 +44,7 @@ impl fmt::Display for Env {
         match self {
             Env::Local => write!(f, "local"),
             Env::Dev => write!(f, "dev"),
+            Env::Tst => write!(f, "tst"),
             Env::Stg => write!(f, "stg"),
             Env::Prd => write!(f, "prd"),
         }
