@@ -13,6 +13,14 @@ if [ -z "$DB_PORT" ]; then
   DB_PORT=5432
 fi
 
+# Get application user password from environment variable
+if [ -z "$APPLICATION_PASSWORD" ]; then
+  echo "ERROR: Environment variable APPLICATION_PASSWORD is not set"
+  echo "Please specify a password for the application user"
+  exit 1
+fi
+APP_PASSWORD=${APPLICATION_PASSWORD}
+
 # Wait for database server to start
 echo "Waiting for database server to start..."
 until PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c '\q'; do
@@ -27,6 +35,24 @@ else
   echo "Creating database '$DB_NAME'..."
   PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "CREATE DATABASE $DB_NAME;"
   echo "Database '$DB_NAME' has been created."
+fi
+
+# Check if 'application' user exists
+if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "SELECT 1 FROM pg_roles WHERE rolname='application'" | grep -q 1; then
+  echo "Database user 'application' already exists."
+else
+  echo "Creating database user 'application'..."
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "CREATE USER application WITH PASSWORD '$APP_PASSWORD';"
+  echo "Database user 'application' has been created."
+
+  # Grant privileges to the new user
+  echo "Granting privileges to 'application' user on database '$DB_NAME'..."
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO application;"
+
+  # Grant DML privileges on all tables in public schema
+  echo "Granting SELECT, INSERT, UPDATE, DELETE on all tables in schema public to 'application'..."
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO application;"
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO application;"
 fi
 
 # Execute the command specified by the command line arguments (migration)
