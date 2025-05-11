@@ -159,7 +159,8 @@ export class RdsStack extends Stack {
         publiclyAccessible: true,
         parameterGroup,
       }),
-      cloudwatchLogsExports: ["error", "general", "slowquery"],
+      // https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CloudwatchLogsExportConfiguration.html
+      cloudwatchLogsExports: ["postgresql"],
       cloudwatchLogsRetention: logs.RetentionDays.ONE_WEEK,
     });
 
