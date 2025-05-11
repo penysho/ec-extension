@@ -255,6 +255,9 @@ export class BackendStack extends cdk.Stack {
         family: `${projectName}-backend-${deployEnv}`,
       }
     );
+
+    props.rdsStack.rdsApplicationSecret.grantRead(taskDefinition.taskRole);
+
     const backendContainer = taskDefinition.addContainer("backend", {
       containerName: "backend",
       image: ecs.ContainerImage.fromEcrRepository(
