@@ -53,7 +53,10 @@ impl SecretsManagerClient {
             .await
         {
             Ok(s) => Ok(s.secret_string.unwrap()),
-            Err(_) => Err(DomainError::SystemError),
+            Err(e) => {
+                log_error!("Failed to get secret.", "Error" => e);
+                Err(DomainError::SystemError)
+            }
         }
     }
 
