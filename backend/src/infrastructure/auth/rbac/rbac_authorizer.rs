@@ -201,19 +201,22 @@ mod tests {
         },
         infrastructure::{
             auth::{idp_user::IdpUser, rbac::rbac_authorizer::RbacAuthorizer},
-            config::config::DatabaseConfig,
+            config::config::{DatabaseConfig, Env},
             db::{
                 model::{user, user_role},
                 sea_orm::sea_orm_manager::{SeaOrmConnectionProvider, SeaOrmTransactionManager},
                 transaction_manager_interface::TransactionManager,
             },
+            secret::secrets_manager::SecretsManagerClient,
         },
         usecase::auth::authorizer_interface::Authorizer,
     };
 
     async fn transaction_manager() -> SeaOrmTransactionManager {
         let connection_provider = SeaOrmConnectionProvider::new(
-            DatabaseConfig::new().expect("Failed to get database config"),
+            DatabaseConfig::new(&SecretsManagerClient::default(), &Env::Local)
+                .await
+                .expect("Failed to get database config"),
         )
         .await
         .expect("Failed to get connection provider");

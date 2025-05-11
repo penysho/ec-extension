@@ -9,10 +9,25 @@ pub struct SecretsManagerClient {
     client: SecretsManagerCachingClient,
 }
 
+impl Default for SecretsManagerClient {
+    fn default() -> Self {
+        Self {
+            client: tokio::runtime::Runtime::new().unwrap().block_on(async {
+                SecretsManagerCachingClient::default(
+                    NonZeroUsize::new(10).unwrap(),
+                    Duration::from_secs(60),
+                )
+                .await
+                .unwrap()
+            }),
+        }
+    }
+}
+
 impl SecretsManagerClient {
-    pub async fn new(sdk_config: SdkConfig) -> Result<Self, DomainError> {
+    pub async fn new(sdk_config: &SdkConfig) -> Result<Self, DomainError> {
         let client = match SecretsManagerCachingClient::from_builder(
-            aws_sdk_secretsmanager::config::Builder::from(&sdk_config),
+            aws_sdk_secretsmanager::config::Builder::from(sdk_config),
             NonZeroUsize::new(10).unwrap(),
             Duration::from_secs(60),
             false,
