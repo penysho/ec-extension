@@ -275,6 +275,7 @@ export class BackendStack extends cdk.Stack {
         mode: ecs.AwsLogDriverMode.NON_BLOCKING,
       }),
     });
+    backendContainer.addEnvironment("ENV", deployEnv);
     backendContainer.addEnvironment("RUST_LOG", config.appConfig.rustLog);
     backendContainer.addEnvironment("STORE_URL", config.appConfig.storeUrl);
     backendContainer.addEnvironment(
