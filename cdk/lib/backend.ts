@@ -331,6 +331,7 @@ export class BackendStack extends cdk.Stack {
         "/app/target/release/migration",
         config.executeMigration ? "up" : "status",
       ],
+      entryPoint: ["/entrypoint.sh"],
     });
     migrationContainer.addEnvironment(
       "DATABASE_URL",
