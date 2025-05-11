@@ -23,7 +23,7 @@ export class RdsStack extends Stack {
   /**
    * Aurora Cluster
    */
-  public readonly rdsCluster: rds.DatabaseCluster;
+  public readonly rdsCluster: rds.IDatabaseCluster;
   /**
    * Security groups to attach to clients to make RDS accessible.
    */
@@ -119,6 +119,19 @@ export class RdsStack extends Stack {
       clusterIdentifier: `${projectName}-${deployEnv}-cluster`,
       deletionProtection: false,
       iamAuthentication: true,
+      serverlessV2MaxCapacity: 1,
+      serverlessV2MinCapacity: 0,
+      // readers: config.createReaderInstance
+      //   ? [
+      //       rds.ClusterInstance.provisioned(`Reader1`, {
+      //         instanceIdentifier: `${projectName}-${deployEnv}-reader-1`,
+      //         instanceType: config.auroraInstanceType,
+      //         // Make publicly accessible for development environments.
+      //         publiclyAccessible: true,
+      //         parameterGroup,
+      //       }),
+      //     ]
+      //   : undefined,
       readers: config.createReaderInstance
         ? [
             rds.ClusterInstance.provisioned(`Reader1`, {
@@ -133,9 +146,15 @@ export class RdsStack extends Stack {
       storageEncrypted: true,
       subnetGroup,
       vpc,
-      writer: rds.ClusterInstance.provisioned(`Writer`, {
+      // writer: rds.ClusterInstance.provisioned(`Writer`, {
+      //   instanceIdentifier: `${projectName}-${deployEnv}-writer`,
+      //   instanceType: config.auroraInstanceType,
+      //   // Make publicly accessible for development environments.
+      //   publiclyAccessible: true,
+      //   parameterGroup,
+      // }),
+      writer: rds.ClusterInstance.serverlessV2(`Writer`, {
         instanceIdentifier: `${projectName}-${deployEnv}-writer`,
-        instanceType: config.auroraInstanceType,
         // Make publicly accessible for development environments.
         publiclyAccessible: true,
         parameterGroup,
