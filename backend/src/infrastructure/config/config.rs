@@ -213,7 +213,7 @@ struct DatabaseSecrets {
     username: String,
     password: String,
     dbname: String,
-    port: u32,
+    port: String,
 }
 
 impl DatabaseConfig {
