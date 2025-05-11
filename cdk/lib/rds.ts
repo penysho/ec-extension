@@ -93,12 +93,6 @@ export class RdsStack extends Stack {
         version: config.auroraPostgresEngineVersion,
       }),
       description: `${projectName}-${deployEnv} Parameter group for aurora-postgresql.`,
-      parameters: {
-        general_log: "1",
-        slow_query_log: "1",
-        long_query_time: "10",
-        log_output: "FILE",
-      },
     });
     parameterGroup.bindToInstance({});
     const cfnParameterGroup = parameterGroup.node
