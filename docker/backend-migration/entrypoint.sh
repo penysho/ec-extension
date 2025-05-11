@@ -38,22 +38,28 @@ else
 fi
 
 # Check if 'application' user exists
-if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "SELECT 1 FROM pg_roles WHERE rolname='application'" | grep -q 1; then
+USER_EXISTS=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -t -c "SELECT 1 FROM pg_roles WHERE rolname='application'")
+if [ -n "$USER_EXISTS" ]; then
   echo "Database user 'application' already exists."
 else
   echo "Creating database user 'application'..."
-  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "CREATE USER application WITH PASSWORD '$APP_PASSWORD';"
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "CREATE USER application WITH PASSWORD '$APP_PASSWORD' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;"
   echo "Database user 'application' has been created."
-
-  # Grant privileges to the new user
-  echo "Granting privileges to 'application' user on database '$DB_NAME'..."
-  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO application;"
-
-  # Grant DML privileges on all tables in public schema
-  echo "Granting SELECT, INSERT, UPDATE, DELETE on all tables in schema public to 'application'..."
-  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO application;"
-  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO application;"
 fi
+
+# Grant privileges to the application user
+echo "Granting privileges to 'application' user on database '$DB_NAME'..."
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "GRANT CONNECT ON DATABASE $DB_NAME TO application;"
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "GRANT USAGE ON SCHEMA public TO application;"
+
+# Grant DML privileges on all tables in public schema
+echo "Granting SELECT, INSERT, UPDATE, DELETE on all tables in schema public to 'application'..."
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO application;"
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO application;"
+
+# Grant privileges on sequences (if your application needs them)
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO application;"
+PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO application;"
 
 # Execute the command specified by the command line arguments (migration)
 echo "Executing command: $@"
