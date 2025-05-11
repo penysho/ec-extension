@@ -8,6 +8,13 @@ DB_HOST=$(echo $DATABASE_URL | sed 's|^.*@\([^:/]*\).*|\1|')
 DB_PORT=$(echo $DATABASE_URL | sed 's|^.*@[^:]*:\([0-9]*\)/.*|\1|')
 DB_NAME=$(echo $DATABASE_URL | sed 's|^.*/\([^?]*\).*|\1|')
 
+echo "DATABASE_URL: $DATABASE_URL"
+echo "DB_USER: $DB_USER"
+echo "DB_PASSWORD: $DB_PASSWORD"
+echo "DB_HOST: $DB_HOST"
+echo "DB_PORT: $DB_PORT"
+echo "DB_NAME: $DB_NAME"
+
 # Set default port if not specified
 if [ -z "$DB_PORT" ]; then
   DB_PORT=5432
