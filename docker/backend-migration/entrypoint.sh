@@ -2,11 +2,11 @@
 set -e
 
 # Extract database connection information from environment variables
-DB_USER=$(echo $DATABASE_URL | sed -n 's/.*:\/\/\([^:]*\):.*/\1/p')
-DB_PASSWORD=$(echo $DATABASE_URL | sed -n 's/.*:\/\/[^:]*:\([^@]*\).*/\1/p')
-DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^/:]*\).*\/\(.*\)/\1/p')
-DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*@[^/:]*:\([0-9]*\).*\/\(.*\)/\1/p')
-DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
+DB_USER=$(echo $DATABASE_URL | sed 's|^.*://\([^:]*\):.*|\1|')
+DB_PASSWORD=$(echo $DATABASE_URL | sed 's|^.*://[^:]*:\([^@]*\)@.*|\1|')
+DB_HOST=$(echo $DATABASE_URL | sed 's|^.*@\([^:/]*\).*|\1|')
+DB_PORT=$(echo $DATABASE_URL | sed 's|^.*@[^:]*:\([0-9]*\)/.*|\1|')
+DB_NAME=$(echo $DATABASE_URL | sed 's|^.*/\([^?]*\).*|\1|')
 
 # Set default port if not specified
 if [ -z "$DB_PORT" ]; then
