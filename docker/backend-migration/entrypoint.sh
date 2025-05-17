@@ -8,13 +8,6 @@ DB_HOST=$(echo $DATABASE_URL | sed 's|^.*@\([^:/]*\).*|\1|')
 DB_PORT=$(echo $DATABASE_URL | sed 's|^.*@[^:]*:\([0-9]*\)/.*|\1|')
 DB_NAME=$(echo $DATABASE_URL | sed 's|^.*/\([^?]*\).*|\1|')
 
-echo "DATABASE_URL: $DATABASE_URL"
-echo "DB_USER: $DB_USER"
-echo "DB_PASSWORD: $DB_PASSWORD"
-echo "DB_HOST: $DB_HOST"
-echo "DB_PORT: $DB_PORT"
-echo "DB_NAME: $DB_NAME"
-
 # Set default port if not specified
 if [ -z "$DB_PORT" ]; then
   DB_PORT=5432
@@ -29,18 +22,17 @@ fi
 APP_PASSWORD=${APPLICATION_PASSWORD}
 
 # Wait for database server to start
-echo "Waiting for database server to start..."
-until PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c '\q'; do
+until PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c '\q'; do
   echo "Database server is not ready yet. Retrying..."
   sleep 1
 done
 
 # Check if database exists
-if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -lqt | cut -d \| -f 1 | grep -qw $DB_NAME; then
+if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -lqt | cut -d \| -f 1 | grep -qw $DB_NAME; then
   echo "Database '$DB_NAME' already exists."
 else
   echo "Creating database '$DB_NAME'..."
-  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -c "CREATE DATABASE $DB_NAME;"
+  PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "CREATE DATABASE $DB_NAME;"
   echo "Database '$DB_NAME' has been created."
 fi
 
