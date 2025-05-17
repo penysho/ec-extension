@@ -213,8 +213,11 @@ mod tests {
     };
 
     async fn transaction_manager() -> SeaOrmTransactionManager {
+        let aws_sdk_config = aws_config::load_from_env().await;
+        let secrets_client = SecretsManagerClient::new(&aws_sdk_config).await.unwrap();
+
         let connection_provider = SeaOrmConnectionProvider::new(
-            DatabaseConfig::new(&SecretsManagerClient::default(), &Env::Local)
+            DatabaseConfig::new(&secrets_client, &Env::Local)
                 .await
                 .expect("Failed to get database config"),
         )
