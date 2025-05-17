@@ -37,7 +37,7 @@ services:
     tty: true
     stdin_open: true
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@backend-db:5432/ec_extension
+      - DATABASE_URL=postgres://postgres:postgres@backend-db:5432/postgres
       - APPLICATION_PASSWORD=application
     depends_on:
       - backend-db
