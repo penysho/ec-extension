@@ -5,11 +5,14 @@ use std::time::Duration;
 
 use crate::domain::error::error::DomainError;
 use crate::log_error;
+
+/// SecretsManagerClient is a client for the AWS Secrets Manager.
 pub struct SecretsManagerClient {
     client: SecretsManagerCachingClient,
 }
 
 impl SecretsManagerClient {
+    /// new creates a new SecretsManagerClient.
     pub async fn new(sdk_config: &SdkConfig) -> Result<Self, DomainError> {
         let client = match SecretsManagerCachingClient::from_builder(
             aws_sdk_secretsmanager::config::Builder::from(sdk_config),
@@ -27,6 +30,7 @@ impl SecretsManagerClient {
 }
 
 impl SecretsManagerClient {
+    /// get_secret gets a secret from the AWS Secrets Manager.
     pub async fn get_secret(
         &self,
         secret_name: &str,
@@ -45,6 +49,7 @@ impl SecretsManagerClient {
         }
     }
 
+    /// get_secret_json gets a secret from the AWS Secrets Manager and parses it as a JSON object.
     pub async fn get_secret_json(
         &self,
         secret_name: &str,
