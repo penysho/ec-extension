@@ -350,6 +350,12 @@ export class BackendStack extends cdk.Stack {
         .unsafeUnwrap()
     );
 
+    // Wait for migration to complete before starting the backend
+    backendContainer.addContainerDependencies({
+      container: migrationContainer,
+      condition: ecs.ContainerDependencyCondition.SUCCESS,
+    });
+
     // // https://docs.aws.amazon.com/ja_jp/xray/latest/devguide/xray-daemon-ecs.html#xray-daemon-ecs-image
     // // When using the X-Ray daemon
     // const xrayDaemonContainer = taskDefinition.addContainer("xray-daemon", {
