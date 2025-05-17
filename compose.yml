@@ -32,11 +32,14 @@ services:
       dockerfile: ./docker/backend-migration/Dockerfile
     container_name: ec-extension_backend-migration
     working_dir: /app/backend/migration
+    entrypoint: ["/entrypoint.sh"]
+    command: ["/app/target/release/migration", "up"]
     tty: true
     stdin_open: true
-    command: ["/app/target/release/migration", "up"]
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@backend-db/postgres
+      # Specify the DB name to be used in the application so that it can be used in SeaORM migration.
+      - DATABASE_URL=postgres://postgres:postgres@backend-db:5432/ec_extension
+      - APPLICATION_PASSWORD=application
     depends_on:
       - backend-db
 
