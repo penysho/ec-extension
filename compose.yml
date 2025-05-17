@@ -37,7 +37,8 @@ services:
     tty: true
     stdin_open: true
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@backend-db:5432/postgres
+      # Specify the DB name to be used in the application so that it can be used in SeaORM migration.
+      - DATABASE_URL=postgres://postgres:postgres@backend-db:5432/ec_extension
       - APPLICATION_PASSWORD=application
     depends_on:
       - backend-db
