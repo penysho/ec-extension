@@ -213,21 +213,21 @@ export class BackendStack extends cdk.Stack {
       }
     );
 
-    const topic = new sns.Topic(this, "BackendTopic", {
+    const alertsTopic = new sns.Topic(this, "AlertsTopic", {
       topicName: `${projectName}-${deployEnv}-backend-alerts`,
       displayName: `${projectName}-${deployEnv}-backend-alerts`,
     });
 
-    new chatbot.SlackChannelConfiguration(this, "BackendSlackChannel", {
+    new chatbot.SlackChannelConfiguration(this, "AlertsSlackChannel", {
       slackChannelConfigurationName: `${projectName}-${deployEnv}-backend-alerts`,
       slackWorkspaceId: config.slackWorkspaceId,
       slackChannelId: config.backendAlertsChannelId,
       logRetention: logs.RetentionDays.THREE_MONTHS,
-      notificationTopics: [topic],
+      notificationTopics: [alertsTopic],
     });
 
     applicationErrorAlarm.addAlarmAction(
-      new cdk.aws_cloudwatch_actions.SnsAction(topic)
+      new cdk.aws_cloudwatch_actions.SnsAction(alertsTopic)
     );
 
     // Task definition
@@ -438,6 +438,33 @@ export class BackendStack extends cdk.Stack {
         subnets: vpc.publicSubnets,
       },
     });
+    service
+      .metricCpuUtilization({
+        period: cdk.Duration.minutes(5),
+      })
+      .createAlarm(this, "CpuUtilizationAlarm", {
+        alarmName: `${projectName}-${deployEnv}-cpu-utilization-alarm`,
+        alarmDescription: `${projectName}-${deployEnv} cpu utilization alarm`,
+        comparisonOperator:
+          cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        threshold: 80,
+        evaluationPeriods: 1,
+      })
+      .addAlarmAction(new cdk.aws_cloudwatch_actions.SnsAction(alertsTopic));
+    service
+      .metricMemoryUtilization({
+        period: cdk.Duration.minutes(5),
+      })
+      .createAlarm(this, "MemoryUtilizationAlarm", {
+        alarmName: `${projectName}-${deployEnv}-memory-utilization-alarm`,
+        alarmDescription: `${projectName}-${deployEnv} memory utilization alarm`,
+        comparisonOperator:
+          cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        threshold: 80,
+        evaluationPeriods: 1,
+      })
+      .addAlarmAction(new cdk.aws_cloudwatch_actions.SnsAction(alertsTopic));
+
     this.service = service;
 
     // Register the service with the blue target group
