@@ -229,11 +229,9 @@ export class BackendStack extends cdk.Stack {
       notificationTopics: [topic],
     });
 
-    applicationErrorAlarm.addAlarmAction({
-      bind() {
-        return { alarmActionArn: topic.topicArn };
-      },
-    });
+    applicationErrorAlarm.addAlarmAction(
+      new cdk.aws_cloudwatch_actions.SnsAction(topic)
+    );
 
     // Task definition
 
