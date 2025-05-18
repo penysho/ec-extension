@@ -1,8 +1,11 @@
 import * as cdk from "aws-cdk-lib";
+import * as chatbot from "aws-cdk-lib/aws-chatbot";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elasticloadbalancingv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as sns from "aws-cdk-lib/aws-sns";
 import { config, deployEnv, projectName } from "../config/config";
 import { CognitoStack } from "./cognito";
 import { EcrStack } from "./ecr";
@@ -181,24 +184,56 @@ export class BackendStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
-    const metricFilterForServerError = new logs.CfnMetricFilter(
+    const applicationErrorFilter = new logs.MetricFilter(
       this,
-      "MetricFilterForServerError",
+      "ApplicationErrorFilter",
       {
-        filterName: "server-error",
-        filterPattern: "?ERROR ?error ?Error",
-        logGroupName: logGroup.logGroupName,
-        metricTransformations: [
-          {
-            metricValue: "1",
-            metricNamespace: `${projectName}-${deployEnv}`,
-            metricName: `${projectName}-${deployEnv}-server-error`,
-          },
-        ],
+        logGroup,
+        metricNamespace: `${projectName}-${deployEnv}-backend`,
+        metricName: `${projectName}-${deployEnv}-application-error`,
+        filterPattern: logs.FilterPattern.any(
+          logs.FilterPattern.stringValue("$.level", "=", "error"),
+          logs.FilterPattern.stringValue("$.level", "=", "ERROR")
+        ),
+        metricValue: "1",
+        dimensions: {
+          service: "application",
+        },
       }
     );
-    metricFilterForServerError.cfnOptions.deletionPolicy =
-      cdk.CfnDeletionPolicy.DELETE;
+
+    const applicationErrorAlarm = new cloudwatch.Alarm(
+      this,
+      "ApplicationErrorAlarm",
+      {
+        metric: applicationErrorFilter.metric(),
+        alarmName: `${projectName}-${deployEnv}-application-error-alarm`,
+        alarmDescription: `${projectName}-${deployEnv} application error alarm`,
+        comparisonOperator:
+          cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        threshold: 1,
+        evaluationPeriods: 1,
+      }
+    );
+
+    const topic = new sns.Topic(this, "BackendTopic", {
+      topicName: `${projectName}-${deployEnv}-backend-alerts`,
+      displayName: `${projectName}-${deployEnv}-backend-alerts`,
+    });
+
+    new chatbot.SlackChannelConfiguration(this, "BackendSlackChannel", {
+      slackChannelConfigurationName: `${projectName}-${deployEnv}-backend-alerts`,
+      slackWorkspaceId: config.slackWorkspaceId,
+      slackChannelId: config.backendAlertsChannelId,
+      logRetention: logs.RetentionDays.THREE_MONTHS,
+      notificationTopics: [topic],
+    });
+
+    applicationErrorAlarm.addAlarmAction({
+      bind() {
+        return { alarmActionArn: topic.topicArn };
+      },
+    });
 
     // Task definition
 

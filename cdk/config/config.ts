@@ -37,6 +37,8 @@ export interface EnvConfig {
   createReaderInstance: boolean;
   executeMigration: boolean;
   enableContainerInsights: boolean;
+  slackWorkspaceId: string;
+  backendAlertsChannelId: string;
   appConfig: {
     rustLog: string;
     storeUrl: string;
@@ -62,6 +64,8 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     createReaderInstance: false,
     executeMigration: false,
     enableContainerInsights: true,
+    slackWorkspaceId: "penysho.slack.com",
+    backendAlertsChannelId: "C08SLR5P7GB",
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -87,6 +91,8 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     createReaderInstance: false,
     executeMigration: false,
     enableContainerInsights: true,
+    slackWorkspaceId: "penysho.slack.com",
+    backendAlertsChannelId: "C08SLR5P7GB",
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -111,6 +117,8 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     createReaderInstance: true,
     executeMigration: false,
     enableContainerInsights: true,
+    slackWorkspaceId: "penysho.slack.com",
+    backendAlertsChannelId: "C08SLR5P7GB",
     appConfig: {
       rustLog: "debug",
       storeUrl:
