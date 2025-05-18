@@ -1,8 +1,55 @@
 use aws_config::SdkConfig;
 use derive_getters::Getters;
+use serde::Deserialize;
 use std::env;
+use std::fmt;
+use std::str::FromStr;
 
 use crate::domain::error::error::DomainError;
+use crate::infrastructure::secret::secrets_manager::SecretsManagerClient;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Env {
+    Local,
+    Dev,
+    Tst,
+    Stg,
+    Prd,
+}
+
+impl FromStr for Env {
+    type Err = DomainError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "local" => Ok(Env::Local),
+            "dev" => Ok(Env::Dev),
+            "tst" => Ok(Env::Tst),
+            "stg" => Ok(Env::Stg),
+            "prd" => Ok(Env::Prd),
+            _ => {
+                eprintln!(
+                    "An invalid value has been set for ENV.
+                        Set one of local, dev, stg, or prd. ENV= {}",
+                    s
+                );
+                Err(DomainError::InitConfigError)
+            }
+        }
+    }
+}
+
+impl fmt::Display for Env {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Env::Local => write!(f, "local"),
+            Env::Dev => write!(f, "dev"),
+            Env::Tst => write!(f, "tst"),
+            Env::Stg => write!(f, "stg"),
+            Env::Prd => write!(f, "prd"),
+        }
+    }
+}
 
 #[derive(Getters, Clone)]
 pub struct ConfigProvider {
@@ -15,11 +62,15 @@ pub struct ConfigProvider {
 
 impl ConfigProvider {
     pub async fn new() -> Result<Self, DomainError> {
+        let env = Env::from_str(&env::var("ENV").unwrap_or_else(|_| "local".to_string()))?;
+
+        let aws_sdk_config = aws_config::load_from_env().await;
+        let secrets_client = SecretsManagerClient::new(&aws_sdk_config).await?;
+
         let app_config = AppConfig::new()?;
         let shopify_config = ShopifyConfig::new()?;
-        let database_config = DatabaseConfig::new()?;
+        let database_config = DatabaseConfig::new(&secrets_client, &env).await?;
         let cognito_config = CognitoConfig::new()?;
-        let aws_sdk_config = aws_config::load_from_env().await;
 
         Ok(ConfigProvider {
             app_config,
@@ -155,13 +206,30 @@ pub struct DatabaseConfig {
     /// Set the maximum lifetime of individual connections.
     max_lifetime: u64,
 }
+#[derive(Deserialize)]
+struct DatabaseSecrets {
+    engine: String,
+    host: String,
+    username: String,
+    password: String,
+    dbname: String,
+    port: String,
+}
 
 impl DatabaseConfig {
-    pub fn new() -> Result<Self, DomainError> {
-        let url = env::var("DATABASE_URL").map_err(|_| {
-            eprintln!("DATABASE_URL is not set as an environment variable");
-            DomainError::InitConfigError
-        })?;
+    pub async fn new(
+        secrets_client: &SecretsManagerClient,
+        env: &Env,
+    ) -> Result<Self, DomainError> {
+        let url = if env == &Env::Local {
+            env::var("DATABASE_URL").map_err(|_| {
+                eprintln!("DATABASE_URL is not set as an environment variable");
+                DomainError::InitConfigError
+            })?
+        } else {
+            Self::get_database_url_from_secrets(secrets_client).await?
+        };
+
         let max_connections = env::var("DATABASE_MAX_CONNECTIONS")
             .map(|s| s.parse::<u32>().unwrap_or(10))
             .unwrap_or(10);
@@ -190,5 +258,28 @@ impl DatabaseConfig {
             idle_timeout,
             max_lifetime,
         })
+    }
+
+    async fn get_database_url_from_secrets(
+        secrets_client: &SecretsManagerClient,
+    ) -> Result<String, DomainError> {
+        let database_secrets_name = env::var("DATABASE_SECRETS_NAME").map_err(|_| {
+            eprintln!("DATABASE_SECRETS_NAME is not set as an environment variable");
+            DomainError::InitConfigError
+        })?;
+
+        let secrets_json = secrets_client
+            .get_secret_json(&database_secrets_name, true)
+            .await?;
+
+        let url = serde_json::from_value::<DatabaseSecrets>(secrets_json).map_err(|e| {
+            eprintln!("Failed to parse secrets json: {}", e);
+            DomainError::InitConfigError
+        })?;
+
+        Ok(format!(
+            "{}://{}:{}@{}:{}/{}",
+            url.engine, url.username, url.password, url.host, url.port, url.dbname
+        ))
     }
 }

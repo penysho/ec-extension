@@ -2,6 +2,7 @@ import {
   Stack,
   StackProps,
   aws_ec2 as ec2,
+  aws_logs as logs,
   aws_rds as rds,
   aws_secretsmanager as sm,
 } from "aws-cdk-lib";
@@ -22,20 +23,25 @@ export class RdsStack extends Stack {
   /**
    * Aurora Cluster
    */
-  public readonly rdsCluster: rds.DatabaseCluster;
+  public readonly rdsCluster: rds.IDatabaseCluster;
   /**
    * Security groups to attach to clients to make RDS accessible.
    */
   public readonly rdsClientSg: ec2.SecurityGroup;
   /**
-   * RDS Secret
+   * RDS Admin User Secret
    */
   public readonly rdsAdminSecret: sm.Secret;
+  /**
+   * RDS Application User Secret
+   */
+  public readonly rdsApplicationSecret: sm.Secret;
 
   constructor(scope: Construct, id: string, props: RdsStackProps) {
     super(scope, id, props);
 
     const EXCLUDE_CHARACTERS = "\"@'%$#&().,{_?<≠^>[:;`+*!]}=~|¥/\\";
+    const DATABASE_NAME = "ec_extension";
 
     const vpc = props.vpcStack.vpc;
     const publicSubnets = vpc.selectSubnets({
@@ -107,6 +113,19 @@ export class RdsStack extends Stack {
       clusterIdentifier: `${projectName}-${deployEnv}-cluster`,
       deletionProtection: false,
       iamAuthentication: true,
+      serverlessV2MaxCapacity: 1,
+      serverlessV2MinCapacity: 0,
+      // readers: config.createReaderInstance
+      //   ? [
+      //       rds.ClusterInstance.provisioned(`Reader1`, {
+      //         instanceIdentifier: `${projectName}-${deployEnv}-reader-1`,
+      //         instanceType: config.auroraInstanceType,
+      //         // Make publicly accessible for development environments.
+      //         publiclyAccessible: true,
+      //         parameterGroup,
+      //       }),
+      //     ]
+      //   : undefined,
       readers: config.createReaderInstance
         ? [
             rds.ClusterInstance.provisioned(`Reader1`, {
@@ -121,13 +140,22 @@ export class RdsStack extends Stack {
       storageEncrypted: true,
       subnetGroup,
       vpc,
-      writer: rds.ClusterInstance.provisioned(`Writer`, {
+      // writer: rds.ClusterInstance.provisioned(`Writer`, {
+      //   instanceIdentifier: `${projectName}-${deployEnv}-writer`,
+      //   instanceType: config.auroraInstanceType,
+      //   // Make publicly accessible for development environments.
+      //   publiclyAccessible: true,
+      //   parameterGroup,
+      // }),
+      writer: rds.ClusterInstance.serverlessV2(`Writer`, {
         instanceIdentifier: `${projectName}-${deployEnv}-writer`,
-        instanceType: config.auroraInstanceType,
         // Make publicly accessible for development environments.
         publiclyAccessible: true,
         parameterGroup,
       }),
+      // https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CloudwatchLogsExportConfiguration.html
+      cloudwatchLogsExports: ["postgresql"],
+      cloudwatchLogsRetention: logs.RetentionDays.ONE_WEEK,
     });
 
     this.rdsCluster.connections.allowFrom(
@@ -135,5 +163,20 @@ export class RdsStack extends Stack {
       ec2.Port.tcp(5432),
       "Allow access to RDS from the RDS client security group"
     );
+
+    /**
+     * RDS Application User Secret
+     */
+    this.rdsApplicationSecret = new sm.Secret(this, `RdsApplicationSecret`, {
+      secretName: `${projectName}-${deployEnv}/rds/application-secret`,
+      description: `${projectName}-${deployEnv} RDS Admin User Secret.`,
+      generateSecretString: {
+        excludeCharacters: EXCLUDE_CHARACTERS,
+        generateStringKey: "password",
+        passwordLength: 32,
+        requireEachIncludedType: true,
+        secretStringTemplate: `{"engine": "postgres", "username": "application", "host": "${this.rdsCluster.clusterEndpoint.hostname}", "port": "${this.rdsCluster.clusterEndpoint.port}", "dbname": "${DATABASE_NAME}"}`,
+      },
+    });
   }
 }
