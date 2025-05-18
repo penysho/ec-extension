@@ -13,7 +13,7 @@ use infrastructure::db::sea_orm::sea_orm_transaction_middleware;
 use infrastructure::module::interactor_provider_impl::InteractorProviderImpl;
 use infrastructure::router::actix_router;
 use interface::controller::controller::Controller;
-use library::tracing::middleware::XRayRootSpanBuilder;
+use library::tracing::middleware::{set_trace_id_middleware, XRayRootSpanBuilder};
 use sea_orm::{DatabaseConnection, DatabaseTransaction};
 use std::io;
 use std::sync::Arc;
@@ -81,6 +81,7 @@ async fn main() -> std::io::Result<()> {
             ))
             .wrap(Logger::default().exclude(app_config.health_check_path()))
             .wrap(cors)
+            .wrap(from_fn(set_trace_id_middleware))
             .wrap(TracingLogger::<XRayRootSpanBuilder>::new())
             // Definition of app data
             .app_data(connection_provider.clone())

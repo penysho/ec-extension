@@ -9,6 +9,12 @@
 // chrono = "0.4"
 // ```
 use actix_http::header::HeaderMap;
+use actix_http::header::HeaderName;
+use actix_http::header::HeaderValue;
+use actix_web::body::MessageBody;
+use actix_web::dev::ServiceRequest;
+use actix_web::dev::ServiceResponse;
+use actix_web::middleware::Next;
 use actix_web::Error;
 use actix_web::HttpMessage;
 use chrono::Utc;
@@ -53,17 +59,15 @@ impl<'a> Extractor for HeaderExtractor<'a> {
 
 /// Extracts X-Ray trace ID from request headers or OpenTelemetry context
 /// X-Ray trace header format: "Root=1-5f84c596-5c35c1dba9b2147a1cce26b0;Parent=c2c789fe1929327f;Sampled=1"
-fn extract_xray_trace_id(request: &actix_web::dev::ServiceRequest) -> Result<String, TraceIdError> {
-    let extractor = HeaderExtractor {
-        headers: request.headers(),
-    };
+fn extract_xray_trace_id(headers: &HeaderMap) -> Result<String, TraceIdError> {
+    let extractor = HeaderExtractor { headers };
 
     let context = global::get_text_map_propagator(|propagater| propagater.extract(&extractor));
     let binding = context.span();
     let span_context = binding.span_context();
 
     // Try to extract directly from X-Ray header
-    if let Some(xray_header) = request.headers().get(X_AMZN_TRACE_ID) {
+    if let Some(xray_header) = headers.get(X_AMZN_TRACE_ID) {
         if let Ok(header_str) = xray_header.to_str() {
             tracing::debug!("X-Ray header found: {}", header_str);
             for part in header_str.split(';') {
@@ -115,7 +119,8 @@ pub struct XRayRootSpanBuilder;
 
 impl tracing_actix_web::RootSpanBuilder for XRayRootSpanBuilder {
     fn on_request_start(request: &actix_web::dev::ServiceRequest) -> tracing::Span {
-        let trace_id = extract_xray_trace_id(request).unwrap_or_else(|_| "unavailable".to_string());
+        let trace_id =
+            extract_xray_trace_id(request.headers()).unwrap_or_else(|_| "unavailable".to_string());
         let formatted_trace_id = format_for_logging(&trace_id);
 
         let span = tracing_actix_web::root_span!(
@@ -134,6 +139,7 @@ impl tracing_actix_web::RootSpanBuilder for XRayRootSpanBuilder {
         request
             .extensions_mut()
             .insert(RequestStartTime(Instant::now()));
+        request.extensions_mut().insert(trace_id);
 
         span
     }
@@ -237,4 +243,29 @@ impl tracing_actix_web::RootSpanBuilder for XRayRootSpanBuilder {
             );
         }
     }
+}
+
+const TRACE_ID_HEADER_NAME: &str = "x-trace-id";
+
+/// Sets the trace ID in the response headers
+pub async fn set_trace_id_middleware(
+    req: ServiceRequest,
+    next: Next<impl MessageBody>,
+) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    let mut response = next.call(req).await?;
+
+    let trace_id = response
+        .request()
+        .extensions()
+        .get::<String>()
+        .cloned()
+        .unwrap_or_else(|| "unavailable".to_string());
+    let formatted_trace_id = format_for_logging(&trace_id);
+
+    response.response_mut().headers_mut().insert(
+        HeaderName::from_static(TRACE_ID_HEADER_NAME),
+        HeaderValue::from_str(&formatted_trace_id).unwrap_or(HeaderValue::from_static("")),
+    );
+
+    Ok(response)
 }
