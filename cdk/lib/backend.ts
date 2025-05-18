@@ -196,9 +196,6 @@ export class BackendStack extends cdk.Stack {
           logs.FilterPattern.stringValue("$.level", "=", "ERROR")
         ),
         metricValue: "1",
-        dimensions: {
-          service: "application",
-        },
       }
     );
 
