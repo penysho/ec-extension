@@ -419,6 +419,32 @@ export class BackendStack extends cdk.Stack {
       }),
     });
 
+    const deploymentAlarm = new cloudwatch.Alarm(this, "DeploymentAlarm", {
+      metric: applicationErrorFilter.metric(),
+      alarmName: `${projectName}-${deployEnv}-application-deployment-alarm`,
+      alarmDescription: `${projectName}-${deployEnv} application deployment alarm`,
+      comparisonOperator:
+        cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      threshold: 1,
+      evaluationPeriods: 1,
+    });
+
+    const deploymentTopic = new sns.Topic(this, "DeploymentTopic", {
+      displayName: `${projectName}-${deployEnv}-deployment`,
+    });
+
+    new chatbot.SlackChannelConfiguration(this, "DeploymentSlackChannel", {
+      slackChannelConfigurationName: `${projectName}-${deployEnv}-deployment`,
+      slackWorkspaceId: config.slackWorkspaceId,
+      slackChannelId: config.deploymentChannelId,
+      logRetention: logs.RetentionDays.THREE_MONTHS,
+      notificationTopics: [deploymentTopic],
+    });
+
+    deploymentAlarm.addAlarmAction(
+      new cdk.aws_cloudwatch_actions.SnsAction(deploymentTopic)
+    );
+
     // Service
     const service = new ecs.FargateService(this, "Service", {
       cluster: this.cluster,
@@ -435,6 +461,10 @@ export class BackendStack extends cdk.Stack {
       vpcSubnets: {
         // To retrieve images from ECR
         subnets: vpc.publicSubnets,
+      },
+      deploymentAlarms: {
+        alarmNames: [deploymentAlarm.alarmName],
+        behavior: ecs.AlarmBehavior.ROLLBACK_ON_ALARM,
       },
     });
     service

@@ -39,6 +39,7 @@ export interface EnvConfig {
   enableContainerInsights: boolean;
   slackWorkspaceId: string;
   backendAlertsChannelId: string;
+  deploymentChannelId: string;
   appConfig: {
     rustLog: string;
     storeUrl: string;
@@ -66,6 +67,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     enableContainerInsights: true,
     slackWorkspaceId: "T08TK5GJELQ",
     backendAlertsChannelId: "C08SLR5P7GB",
+    deploymentChannelId: "C08SVHTCMM3",
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -93,6 +95,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     enableContainerInsights: true,
     slackWorkspaceId: "T08TK5GJELQ",
     backendAlertsChannelId: "C08SLR5P7GB",
+    deploymentChannelId: "C08SVHTCMM3",
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -119,6 +122,7 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     enableContainerInsights: true,
     slackWorkspaceId: "T08TK5GJELQ",
     backendAlertsChannelId: "C08SLR5P7GB",
+    deploymentChannelId: "C08SVHTCMM3",
     appConfig: {
       rustLog: "debug",
       storeUrl:
