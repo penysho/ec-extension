@@ -214,7 +214,6 @@ export class BackendStack extends cdk.Stack {
     );
 
     const alertsTopic = new sns.Topic(this, "AlertsTopic", {
-      topicName: `${projectName}-${deployEnv}-backend-alerts`,
       displayName: `${projectName}-${deployEnv}-backend-alerts`,
     });
 
