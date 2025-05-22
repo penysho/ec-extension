@@ -1,0 +1,53 @@
+name: Check CDK Diff
+
+on:
+  pull_request:
+    paths:
+      - "cdk/**"
+      - ".github/workflows/check-cdk-diff.yml"
+
+jobs:
+  check-cdk-diff:
+    name: Check CDK Diff
+    runs-on: ubuntu-latest
+    environment: tst
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-1
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 22.8
+
+      - name: Cache CDK Dependency
+        uses: actions/cache@v4
+        id: cache-cdk-dependency
+        env:
+          cache-name: cache-cdk-dependency
+        with:
+          path: cdk/node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('cdk/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-
+
+      - name: Install CDK Dependency
+        if: ${{ steps.cache-cdk-dependency.outputs.cache-hit != 'true' }}
+        run: |
+          cd cdk
+          npm install
+
+      - name: CDK Diff Check
+        run: |
+          cd cdk
+          npx cdk diff
