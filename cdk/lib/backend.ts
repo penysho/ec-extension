@@ -214,11 +214,10 @@ export class BackendStack extends cdk.Stack {
     );
 
     const alertsTopic = new sns.Topic(this, "AlertsTopic", {
-      topicName: `${projectName}-${deployEnv}-backend-alerts`,
       displayName: `${projectName}-${deployEnv}-backend-alerts`,
     });
 
-    new chatbot.SlackChannelConfiguration(this, "AlertsSlackChannel", {
+    new chatbot.SlackChannelConfiguration(this, "BackendSlackChannel", {
       slackChannelConfigurationName: `${projectName}-${deployEnv}-backend-alerts`,
       slackWorkspaceId: config.slackWorkspaceId,
       slackChannelId: config.backendAlertsChannelId,
