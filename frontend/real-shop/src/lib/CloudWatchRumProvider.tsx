@@ -1,11 +1,23 @@
+"use client"
+
 import { AwsRum, AwsRumConfig } from "aws-rum-web"
 
-const CloudWatchRumProvider = ({ children }: { children: React.ReactNode }) => {
+const CloudWatchRumProvider = () => {
   try {
     const config: AwsRumConfig = {
       sessionSampleRate: 1,
       endpoint: "https://dataplane.rum.ap-northeast-1.amazonaws.com",
-      telemetries: ["performance", "errors", "http"],
+      telemetries: [
+        "performance",
+        "errors",
+        [
+          "http",
+          {
+            // https://github.com/aws-observability/aws-rum-web/blob/main/docs/configuration.md#http
+            addXRayTraceIdHeader: true,
+          },
+        ],
+      ],
       allowCookies: true,
       enableXRay: true,
       signing: true, // If you have a public resource policy and wish to send unsigned requests please set this to false
@@ -21,7 +33,7 @@ const CloudWatchRumProvider = ({ children }: { children: React.ReactNode }) => {
     console.error(error)
   }
 
-  return <>{children}</>
+  return <></>
 }
 
 export default CloudWatchRumProvider

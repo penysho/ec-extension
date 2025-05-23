@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"
 
 import { Footer } from "@/components/layout/footer"
 import { Header } from "@/components/layout/header"
+import CloudWatchRumProvider from "@/lib/CloudWatchRumProvider"
 import MswProvider from "@/lib/MswProvider"
 import ReactQueryProvider from "@/lib/ReactQueryProvider"
 
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${inter.className} flex min-h-screen flex-col`}>
+        <CloudWatchRumProvider />
         <MswProvider>
           <ReactQueryProvider>
             <StateProvider>
