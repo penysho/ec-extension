@@ -188,7 +188,7 @@ jobs:
       - name: CDK Deploy
         run: |
           cd cdk
-          npx cdk deploy --all --require-approval never -c deployEnv=${{ inputs.environment }} -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c storeAccessToken=${{ secrets.STORE_ACCESS_TOKEN }} -c executeMigration=${{ inputs.execute_migration }}
+          npx cdk deploy --all --require-approval never -c deployEnv=${{ inputs.environment }} -c backendImageTag=${{ env.BACKEND_IMAGE_TAG }} -c storeAccessToken=${{ secrets.STORE_ACCESS_TOKEN }} -c executeMigration=${{ inputs.execute_migration }} -c githubToken=${{ secrets.AMPLIFY_GITHUB_TOKEN }}
 
   deploy-application:
     name: Deploy Application

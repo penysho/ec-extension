@@ -40,6 +40,8 @@ export interface EnvConfig {
   slackWorkspaceId: string;
   backendAlertsChannelId: string;
   deploymentChannelId: string;
+  frontendDomain: string;
+  githubToken: string;
   appConfig: {
     rustLog: string;
     storeUrl: string;
@@ -68,6 +70,8 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     slackWorkspaceId: "T08TK5GJELQ",
     backendAlertsChannelId: "C08SLR5P7GB",
     deploymentChannelId: "C08SVHTCMM3",
+    frontendDomain: "pesh-igpjt.com",
+    githubToken: "",
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -96,6 +100,8 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     slackWorkspaceId: "T08TK5GJELQ",
     backendAlertsChannelId: "C08SLR5P7GB",
     deploymentChannelId: "C08SVHTCMM3",
+    frontendDomain: "pesh-igpjt.com",
+    githubToken: "",
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -123,6 +129,8 @@ export const envConfig: Record<EnvCode, EnvConfig> = {
     slackWorkspaceId: "T08TK5GJELQ",
     backendAlertsChannelId: "C08SLR5P7GB",
     deploymentChannelId: "C08SVHTCMM3",
+    frontendDomain: "pesh-igpjt.com",
+    githubToken: "",
     appConfig: {
       rustLog: "debug",
       storeUrl:
@@ -138,3 +146,4 @@ export const config: EnvConfig = envConfig[deployEnv];
 config.backendImageTag = app.node.tryGetContext("backendImageTag");
 config.appConfig.accessToken = app.node.tryGetContext("storeAccessToken");
 config.executeMigration = app.node.tryGetContext("executeMigration") === "true";
+config.githubToken = app.node.tryGetContext("githubToken");
