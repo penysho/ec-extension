@@ -1,12 +1,16 @@
 import * as cdk from "aws-cdk-lib";
 import { CfnApp, CfnBranch, CfnDomain } from "aws-cdk-lib/aws-amplify";
 import { BuildSpec } from "aws-cdk-lib/aws-codebuild";
+import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as rum from "aws-cdk-lib/aws-rum";
 import { config, deployEnv, projectName } from "../config/config";
+import { CognitoStack } from "./cognito";
 import { ElbStack } from "./elb";
 
 interface FrontendStackProps extends cdk.StackProps {
   readonly elbStack: ElbStack;
+  readonly cognitoStack: CognitoStack;
 }
 
 /**
@@ -21,6 +25,14 @@ export class FrontendStack extends cdk.Stack {
    * Green Amplify
    */
   public readonly greenAmplify: CfnApp;
+  /**
+   * CloudWatch RUM App Monitor
+   */
+  public readonly rumAppMonitor: rum.CfnAppMonitor;
+  /**
+   * CloudWatch RUM Green App Monitor
+   */
+  public readonly rumGreenAppMonitor: rum.CfnAppMonitor;
 
   constructor(scope: cdk.App, id: string, props: FrontendStackProps) {
     super(scope, id, props);
@@ -41,6 +53,91 @@ export class FrontendStack extends cdk.Stack {
       })
     );
 
+    // Cognito Identity Pool for CloudWatch RUM authentication
+    const identityPool = new cognito.CfnIdentityPool(this, "RumIdentityPool", {
+      identityPoolName: `${projectName}-${deployEnv}-rum-identity-pool`,
+      allowUnauthenticatedIdentities: true,
+    });
+
+    // IAM role for unauthenticated users to publish RUM data
+    const unauthenticatedRole = new iam.Role(this, "RumUnauthenticatedRole", {
+      assumedBy: new iam.FederatedPrincipal(
+        "cognito-identity.amazonaws.com",
+        {
+          StringEquals: {
+            "cognito-identity.amazonaws.com:aud": identityPool.ref,
+          },
+          "ForAnyValue:StringLike": {
+            "cognito-identity.amazonaws.com:amr": "unauthenticated",
+          },
+        },
+        "sts:AssumeRoleWithWebIdentity"
+      ),
+      inlinePolicies: {
+        RumPolicy: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: ["rum:PutRumEvents"],
+              resources: ["*"],
+            }),
+          ],
+        }),
+      },
+    });
+
+    // Attach role to identity pool
+    new cognito.CfnIdentityPoolRoleAttachment(
+      this,
+      "RumIdentityPoolRoleAttachment",
+      {
+        identityPoolId: identityPool.ref,
+        roles: {
+          unauthenticated: unauthenticatedRole.roleArn,
+        },
+      }
+    );
+
+    // CloudWatch RUM App Monitor for main app
+    this.rumAppMonitor = new rum.CfnAppMonitor(this, "RumAppMonitor", {
+      name: `${projectName}-${deployEnv}-realshop-rum`,
+      domain: `${projectName}-${deployEnv}-realshop.${config.frontendDomain}`,
+      cwLogEnabled: true,
+      appMonitorConfiguration: {
+        allowCookies: true,
+        enableXRay: true,
+        excludedPages: ["/admin/*", "/api/*"],
+        favoritePages: ["/", "/products", "/cart", "/checkout"],
+        guestRoleArn: unauthenticatedRole.roleArn,
+        identityPoolId: identityPool.ref,
+        includedPages: ["*"],
+        sessionSampleRate: 1.0,
+        telemetries: ["errors", "performance", "http"],
+      },
+    });
+
+    // CloudWatch RUM App Monitor for green deployment
+    this.rumGreenAppMonitor = new rum.CfnAppMonitor(
+      this,
+      "RumGreenAppMonitor",
+      {
+        name: `${projectName}-${deployEnv}-realshop-green-rum`,
+        domain: `${projectName}-${deployEnv}-realshop-green.${config.frontendDomain}`,
+        cwLogEnabled: true,
+        appMonitorConfiguration: {
+          allowCookies: true,
+          enableXRay: true,
+          excludedPages: ["/admin/*", "/api/*"],
+          favoritePages: ["/", "/products", "/cart", "/checkout"],
+          guestRoleArn: unauthenticatedRole.roleArn,
+          identityPoolId: identityPool.ref,
+          includedPages: ["*"],
+          sessionSampleRate: 1.0,
+          telemetries: ["errors", "performance", "http"],
+        },
+      }
+    );
+
     this.amplify = new CfnApp(this, "Amplify", {
       name: "realshop",
       accessToken: config.githubToken,
@@ -54,6 +151,30 @@ export class FrontendStack extends cdk.Stack {
         {
           name: "NEXT_PUBLIC_BACKEND_ENDPOINT",
           value: `https://${projectName}-${deployEnv}-api.${config.apiDomain}`,
+        },
+        {
+          name: "NEXT_PUBLIC_AUTH_USER_POOL_ID",
+          value: props.cognitoStack.userPool.userPoolId,
+        },
+        {
+          name: "NEXT_PUBLIC_AUTH_USER_POOL_CLIENT_ID",
+          value: props.cognitoStack.userPoolClient.userPoolClientId,
+        },
+        {
+          name: "NEXT_PUBLIC_RUM_APP_MONITOR_ID",
+          value: this.rumAppMonitor.attrId,
+        },
+        {
+          name: "NEXT_PUBLIC_RUM_GUEST_ROLE_ARN",
+          value: unauthenticatedRole.roleArn,
+        },
+        {
+          name: "NEXT_PUBLIC_RUM_IDENTITY_POOL_ID",
+          value: identityPool.ref,
+        },
+        {
+          name: "NEXT_PUBLIC_RUM_REGION",
+          value: this.region,
         },
       ],
       buildSpec: BuildSpec.fromObjectToYaml({
@@ -124,6 +245,30 @@ export class FrontendStack extends cdk.Stack {
         {
           name: "NEXT_PUBLIC_BACKEND_ENDPOINT",
           value: `https://${projectName}-${deployEnv}-api.${config.apiDomain}:10443`,
+        },
+        {
+          name: "NEXT_PUBLIC_AUTH_USER_POOL_ID",
+          value: props.cognitoStack.userPool.userPoolId,
+        },
+        {
+          name: "NEXT_PUBLIC_AUTH_USER_POOL_CLIENT_ID",
+          value: props.cognitoStack.userPoolClient.userPoolClientId,
+        },
+        {
+          name: "NEXT_PUBLIC_RUM_APP_MONITOR_ID",
+          value: this.rumGreenAppMonitor.attrId,
+        },
+        {
+          name: "NEXT_PUBLIC_RUM_GUEST_ROLE_ARN",
+          value: unauthenticatedRole.roleArn,
+        },
+        {
+          name: "NEXT_PUBLIC_RUM_IDENTITY_POOL_ID",
+          value: identityPool.ref,
+        },
+        {
+          name: "NEXT_PUBLIC_RUM_REGION",
+          value: this.region,
         },
       ],
       buildSpec: BuildSpec.fromObjectToYaml({
