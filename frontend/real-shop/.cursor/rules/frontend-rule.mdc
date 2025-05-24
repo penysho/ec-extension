@@ -1,0 +1,553 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Frontend Next.js Development Rules
+
+*Activated when working in: frontend/, *.tsx, *.ts, *.jsx, *.js files*
+
+## Next.js 15 Best Practices
+
+### App Router Architecture
+```typescript
+// app/layout.tsx - Root layout with providers
+import type { Metadata } from 'next'
+import { QueryProvider } from '@/components/providers/query-provider'
+import { JotaiProvider } from '@/components/providers/jotai-provider'
+
+export const metadata: Metadata = {
+  title: 'EC Extension',
+  description: 'Modern e-commerce platform',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="ja">
+      <body>
+        <QueryProvider>
+          <JotaiProvider>
+            {children}
+          </JotaiProvider>
+        </QueryProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+### Server Components Pattern
+```typescript
+// app/users/[id]/page.tsx - Server component for data fetching
+interface UserPageProps {
+  params: { id: string }
+}
+
+/// Server component that fetches data directly
+export default async function UserPage({ params }: UserPageProps) {
+  // Direct data fetching in server component
+  const user = await getUserById(params.id)
+
+  if (!user) {
+    notFound()
+  }
+
+  return (
+    <div>
+      <UserProfile user={user} />
+      <UserSettingsClient userId={params.id} />
+    </div>
+  )
+}
+
+/// Generate static paths for optimization
+export async function generateStaticParams() {
+  const users = await getUsers()
+  return users.map((user) => ({ id: user.id }))
+}
+```
+
+### Client Components (Minimal Usage)
+```typescript
+'use client'
+
+/// Client component only when necessary
+function UserSettingsClient({ userId }: { userId: string }) {
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['user', userId, 'settings'],
+    queryFn: () => fetchUserSettings(userId),
+  })
+
+  if (isLoading) return <SettingsSkeleton />
+
+  return <UserSettingsForm settings={settings} />
+}
+```
+
+## State Management
+
+### Jotai Global State
+```typescript
+// lib/atoms/user.ts
+import { atom } from 'jotai'
+import type { User } from '@/types/user'
+
+/// User state atom
+export const userAtom = atom<User | null>(null)
+
+/// Derived atom for user preferences
+export const userPreferencesAtom = atom(
+  (get) => get(userAtom)?.preferences,
+  (get, set, preferences: UserPreferences) => {
+    const user = get(userAtom)
+    if (user) {
+      set(userAtom, { ...user, preferences })
+    }
+  }
+)
+```
+
+### TanStack Query Integration
+```typescript
+// hooks/use-user.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { userApi } from '@/lib/api/user'
+
+/// Custom hook for user data
+export function useUser(userId: string) {
+  return useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => userApi.getUser(userId),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+/// Mutation hook with optimistic updates
+export function useUpdateUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: userApi.updateUser,
+    onMutate: async (updatedUser) => {
+      // Cancel ongoing queries
+      await queryClient.cancelQueries({ queryKey: ['user', updatedUser.id] })
+
+      // Snapshot previous value
+      const previousUser = queryClient.getQueryData(['user', updatedUser.id])
+
+      // Optimistically update
+      queryClient.setQueryData(['user', updatedUser.id], updatedUser)
+
+      return { previousUser }
+    },
+    onError: (err, updatedUser, context) => {
+      // Rollback on error
+      queryClient.setQueryData(['user', updatedUser.id], context?.previousUser)
+    },
+    onSettled: (data, error, updatedUser) => {
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['user', updatedUser.id] })
+    },
+  })
+}
+```
+
+### Form State with React Hook Form
+```typescript
+// components/forms/user-form.tsx
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { userSchema, type UserFormData } from '@/lib/schemas/user'
+
+/// Form component with validation
+function UserForm({ user }: { user?: User }) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<UserFormData>({
+    resolver: zodResolver(userSchema),
+    defaultValues: user,
+  })
+
+  const updateUserMutation = useUpdateUser()
+
+  /// Submit handler with proper error handling
+  const onSubmit = async (data: UserFormData) => {
+    try {
+      await updateUserMutation.mutateAsync(data)
+      reset(data)
+    } catch (error) {
+      console.error('Failed to update user:', error)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div>
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          {...register('email')}
+          className={errors.email ? 'border-red-500' : ''}
+        />
+        {errors.email && (
+          <p className="text-red-500 text-sm">{errors.email.message}</p>
+        )}
+      </div>
+
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Saving...' : 'Save'}
+      </Button>
+    </form>
+  )
+}
+```
+
+## UI Component Patterns
+
+### shadcn/ui Integration
+```typescript
+// components/ui/data-table.tsx
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+
+/// Generic data table component
+interface DataTableProps<T> {
+  data: T[]
+  columns: Array<{
+    key: keyof T
+    label: string
+    render?: (value: T[keyof T], item: T) => React.ReactNode
+  }>
+  onRowClick?: (item: T) => void
+}
+
+function DataTable<T extends Record<string, any>>({
+  data,
+  columns,
+  onRowClick,
+}: DataTableProps<T>) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {columns.map((column) => (
+            <TableHead key={String(column.key)}>{column.label}</TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map((item, index) => (
+          <TableRow
+            key={index}
+            onClick={() => onRowClick?.(item)}
+            className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
+          >
+            {columns.map((column) => (
+              <TableCell key={String(column.key)}>
+                {column.render
+                  ? column.render(item[column.key], item)
+                  : String(item[column.key])}
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  )
+}
+```
+
+### Responsive Design with Tailwind
+```typescript
+// components/layout/header.tsx
+/// Responsive header component
+function Header() {
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center">
+        {/* Mobile menu button */}
+        <Sheet>
+          <SheetTrigger asChild className="md:hidden">
+            <Button variant="ghost" size="icon">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left">
+            <MobileNav />
+          </SheetContent>
+        </Sheet>
+
+        {/* Desktop navigation */}
+        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+          <NavigationMenu>
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <Link href="/dashboard">Dashboard</Link>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </nav>
+
+        {/* User menu */}
+        <div className="ml-auto">
+          <UserMenu />
+        </div>
+      </div>
+    </header>
+  )
+}
+```
+
+## Type Safety
+
+### Zod Schema Validation
+```typescript
+// lib/schemas/user.ts
+import { z } from 'zod'
+
+/// User schema with validation
+export const userSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email('Invalid email format'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(50),
+  role: z.enum(['admin', 'user', 'moderator']),
+  preferences: z.object({
+    theme: z.enum(['light', 'dark', 'system']),
+    notifications: z.boolean(),
+  }),
+})
+
+export type User = z.infer<typeof userSchema>
+export type UserFormData = Omit<User, 'id'>
+```
+
+### API Type Generation with Orval
+```typescript
+// orval.config.ts - API type generation
+export default {
+  api: {
+    output: {
+      target: 'src/generated/api.ts',
+      schemas: 'src/generated/schemas',
+      client: 'react-query',
+      mode: 'tags-split',
+    },
+    input: {
+      target: '../backend/apidef/openapi.yaml',
+    },
+  },
+}
+```
+
+## Performance Optimization
+
+### Code Splitting
+```typescript
+// Lazy loading for non-critical components
+import { lazy, Suspense } from 'react'
+
+const UserAnalytics = lazy(() => import('@/components/user-analytics'))
+
+/// Component with lazy loading
+function UserDashboard() {
+  return (
+    <div>
+      <UserProfile />
+
+      <Suspense fallback={<AnalyticsSkeleton />}>
+        <UserAnalytics />
+      </Suspense>
+    </div>
+  )
+}
+```
+
+### Image Optimization
+```typescript
+import Image from 'next/image'
+
+/// Optimized image component
+function UserAvatar({ user }: { user: User }) {
+  return (
+    <Image
+      src={user.avatarUrl || '/default-avatar.png'}
+      alt={`${user.name}'s avatar`}
+      width={48}
+      height={48}
+      className="rounded-full"
+      priority={false}
+      placeholder="blur"
+      blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ..."
+    />
+  )
+}
+```
+
+### Bundle Analysis
+```typescript
+// next.config.ts
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  experimental: {
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+  },
+  images: {
+    formats: ['image/webp', 'image/avif'],
+  },
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Bundle analyzer in development
+    if (!dev && !isServer) {
+      config.plugins.push(
+        new webpack.BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          openAnalyzer: false,
+        })
+      )
+    }
+    return config
+  },
+}
+
+export default nextConfig
+```
+
+## Testing Patterns
+
+### Component Testing
+```typescript
+// __tests__/components/user-form.test.tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { UserForm } from '@/components/forms/user-form'
+
+/// Component test with providers
+describe('UserForm', () => {
+  const setup = () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    const user = userEvent.setup()
+
+    const utils = render(
+      <QueryClientProvider client={queryClient}>
+        <UserForm />
+      </QueryClientProvider>
+    )
+
+    return { user, ...utils }
+  }
+
+  it('validates email field', async () => {
+    const { user } = setup()
+
+    const emailInput = screen.getByLabelText(/email/i)
+    await user.type(emailInput, 'invalid-email')
+
+    const submitButton = screen.getByRole('button', { name: /save/i })
+    await user.click(submitButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid email format/i)).toBeInTheDocument()
+    })
+  })
+})
+```
+
+### MSW API Mocking
+```typescript
+// mocks/handlers.ts
+import { http, HttpResponse } from 'msw'
+import type { User } from '@/types/user'
+
+export const handlers = [
+  /// Mock user API
+  http.get('/api/users/:id', ({ params }) => {
+    const { id } = params
+
+    const mockUser: User = {
+      id: id as string,
+      email: 'user@example.com',
+      name: 'Test User',
+      role: 'user',
+      preferences: {
+        theme: 'light',
+        notifications: true,
+      },
+    }
+
+    return HttpResponse.json(mockUser)
+  }),
+]
+```
+
+## Code Quality Standards
+
+### ESLint Configuration
+```typescript
+// eslint.config.mjs
+import { defineConfig } from 'eslint'
+
+export default defineConfig([
+  {
+    rules: {
+      // Prefer function declarations for components
+      'react/function-component-definition': [
+        'error',
+        { namedComponents: 'function-declaration' },
+      ],
+
+      // Enforce consistent imports
+      'import/order': [
+        'error',
+        {
+          groups: ['builtin', 'external', 'internal', 'parent', 'sibling'],
+          'newlines-between': 'always',
+        },
+      ],
+
+      // Remove unused imports
+      'unused-imports/no-unused-imports': 'error',
+
+      // Prefer interface over type
+      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
+    },
+  },
+])
+```
+
+### File Naming Conventions
+- Components: `PascalCase.tsx` (e.g., `UserProfile.tsx`)
+- Hooks: `use-kebab-case.ts` (e.g., `use-user-data.ts`)
+- Utilities: `kebab-case.ts` (e.g., `format-date.ts`)
+- Types: `kebab-case.ts` (e.g., `user-types.ts`)
+- Pages: `kebab-case/page.tsx` (App Router)
+
+### Performance Monitoring
+```typescript
+// lib/analytics.ts
+import { Analytics } from 'aws-rum-web'
+
+/// Initialize AWS RUM for monitoring
+export const analytics = new Analytics({
+  config: {
+    allowCookies: true,
+    enableXRay: true,
+    sessionSampleRate: 1,
+    guestRoleArn: process.env.NEXT_PUBLIC_RUM_GUEST_ROLE_ARN,
+    identityPoolId: process.env.NEXT_PUBLIC_RUM_IDENTITY_POOL_ID,
+    endpoint: process.env.NEXT_PUBLIC_RUM_ENDPOINT,
+    telemetries: ['performance', 'errors', 'http'],
+  },
+})
+```

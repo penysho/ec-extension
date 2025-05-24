@@ -1,48 +1,208 @@
 ---
-description: 
-globs: 
+description:
+globs:
+alwaysApply: true
 ---
-  TypeScript、Node.js、Next.js App Router、React、Shadcn UI、Radix UI、Tailwindのエキスパート。
+# EC Extension Project Rules
 
-  コードのスタイルと構造
-  - 正確な例を用いて、簡潔で技術的な TypeScript コードを書きます。
-  - 関数型と宣言型のプログラミングパターンを使用し、クラスは避ける。
-  - コードの重複よりも反復とモジュール化を優先する。
-  - 補助動詞(isLoading, hasErrorなど)を用いた説明的な変数名を使用する。
-  - 構造ファイル：エクスポートされたコンポーネント、サブコンポーネント、ヘルパー、静的コンテンツ、型。
-  - コード中に不要なコメントは必要ない、必要な場合は英語で明確に記述する。
+**言語設定**: コード内のコメント・ドキュメント = English、会話 = 日本語
 
-  命名規則
-  - ディレクトリにはダッシュ付きの小文字を使用する（例：components/auth-wizard）。
-  - コンポーネントには名前付きエクスポートを使用する。
+## 全体方針
 
-  TypeScriptの使用法
-  - すべてのコードにTypeScriptを使用する。
-  - 列挙型は避け、代わりにマップを使う。
-  - TypeScriptのインタフェースを持つ関数型コンポーネントを使用する。
+### 開発哲学
+- Domain-Driven Design (DDD) を中心とした設計
+- 最新のベストプラクティスに従い、公式ドキュメントを参照する
+- 堅牢性と効率性を重視したコード実装
+- クラス・メソッド・関数には積極的なドキュメントコメント
+- インラインコメントは最小限に抑制
 
-  構文と書式
-  - 純粋な関数には 「function」キーワードを使用する。
-  - 単純なステートメントには簡潔な構文を使用する。
-  - 宣言的なJSXを使用する。
+### アーキテクチャ
+- マイクロサービス構成: Backend (Rust) + Frontend (Next.js)
+- AWS統合: Cognito認証、Secrets Manager、可観測性
+- DDD レイヤー構造: domain → usecase → infrastructure → interface
 
-  UIとスタイリング
-  - コンポーネントとスタイリングには、Shadcn UI、Radix、Tailwindを使用。
-  - Tailwind CSSでレスポンシブデザインを実装し、モバイルファーストアプローチを使用します。
+## Backend (Rust + Actix-web)
 
-  パフォーマンスの最適化
-  - 「use client」、「useEffect」、「setState」を最小限にし、React Server Components (RSC) を使用します。
-  - クライアントコンポーネントをフォールバック付きのサスペンスでラップする。
-  - クリティカルでないコンポーネントにはダイナミックローディングを使用する。
-  - 画像の最適化：WebPフォーマットを使用する、サイズデータを含める、遅延ローディングを実装する。
+### 構造とレイヤー
+```
+src/
+├── domain/          # ビジネスロジック・エンティティ
+├── usecase/         # アプリケーションサービス
+├── infrastructure/  # 永続化・外部システム
+└── interface/       # API・コントローラー
+```
 
-  主な規約
-  - URL検索パラメータの状態管理には'nuqs'を使用する。
-  - ウェブバイタル（LCP、CLS、FID）を最適化する。
-  - use client'を制限する：
-    - サーバーコンポーネントとNext.js SSRを優先する。
-    - 小さなコンポーネントのWeb APIアクセスにのみ使用する。
-    - データ取得や状態管理は避ける。
+### Rustコーディング規約
+- **Error Handling**: `Result<T, E>` と `?` 演算子を活用
+- **Async Programming**: `tokio` + `async/await` パターン
+- **Dependency Injection**: `Arc<dyn Trait>` でテスタブル設計
+- **Documentation**: すべてのpublic要素に `///` ドキュメント
+- **Testing**: `mockall` でモック、unit + integration tests
 
-  データ取得、レンダリング、ルーティングについてはNext.jsのドキュメントに従ってください。
+### DDD実装パターン
+```rust
+/// Domain entity representing a business concept
+pub struct User {
+    id: UserId,
+    email: Email,
+    // domain logic only
+}
 
+/// Use case orchestrating business operations
+pub struct UserService {
+    user_repo: Arc<dyn UserRepository>,
+}
+
+impl UserService {
+    /// Creates a new user following business rules
+    pub async fn create_user(&self, command: CreateUserCommand) -> Result<User, UserError> {
+        // business logic here
+    }
+}
+```
+
+### Actix-web パターン
+- **Handler Functions**: シンプルで焦点を絞った責務
+- **Middleware**: 認証・ロギング・CORS設定
+- **Error Response**: 統一されたエラーハンドリング
+- **JSON Serialization**: `serde` + 適切な derive マクロ
+
+### 依存関係管理
+- **Sea-ORM**: エンティティとマイグレーション
+- **AWS SDK**: 非同期クライアント設定
+- **Tracing**: 構造化ログとメトリクス
+- **Testing**: 統合テスト用のtest containers
+
+## Frontend (Next.js 15 + React 18)
+
+### アーキテクチャ構造
+```
+src/
+├── app/             # App Router (Next.js 15)
+├── components/      # UI コンポーネント
+├── hooks/           # カスタムフック
+├── lib/             # ユーティリティ・設定
+├── types/           # TypeScript型定義
+└── generated/       # API自動生成コード
+```
+
+### React / Next.js規約
+- **Server Components優先**: RSCでパフォーマンス最適化
+- **"use client"制限**: 必要最小限のクライアントコンポーネント
+- **Function Components**: アロー関数よりfunction宣言
+- **Named Exports**: デフォルトエクスポート回避
+
+### 状態管理パターン
+- **Jotai**: グローバル状態管理
+- **TanStack Query**: サーバー状態とキャッシュ
+- **React Hook Form**: フォーム状態管理
+- **URL State**: nuqs での検索パラメータ管理
+
+### UI/UX実装
+- **shadcn/ui + Radix**: アクセシブルなコンポーネント
+- **Tailwind CSS**: モバイルファーストのレスポンシブ
+- **TypeScript**: 厳密な型安全性
+- **Testing**: Jest + Testing Library
+
+### データフェッチング
+```typescript
+/// Server component で直接データ取得
+async function UserProfile({ userId }: { userId: string }) {
+  const user = await getUserById(userId);
+  return <div>{user.name}</div>;
+}
+
+/// クライアント側はTanStack Queryで
+function UserSettings() {
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['user', 'settings'],
+    queryFn: fetchUserSettings,
+  });
+}
+```
+
+## 共通開発規約
+
+### TypeScript使用規則
+- **Strict Mode**: `strict: true` 設定
+- **Enum回避**: const assertions か union types
+- **Type-only imports**: `import type` の活用
+- **Generic Constraints**: 適切な型制約
+
+### Git/開発フロー
+- **Conventional Commits**: セマンティックコミット
+- **Feature Branches**: feat/, fix/, chore/ プレフィックス
+- **Pre-commit Hooks**: lint + format + type check
+- **PR Templates**: 変更理由と影響範囲の記載
+
+### テスト戦略
+- **Unit Tests**: ビジネスロジックの網羅
+- **Integration Tests**: API エンドポイント
+- **E2E Tests**: 主要ユーザーフロー
+- **Coverage**: 80%以上を目標
+
+### パフォーマンス考慮
+- **Backend**: 非同期処理とコネクションプール
+- **Frontend**: バンドルサイズとCore Web Vitals
+- **Database**: インデックス最適化とクエリパフォーマンス
+- **Caching**: Redis/CDN戦略
+
+### セキュリティ
+- **Authentication**: AWS Cognito統合
+- **Authorization**: RBAC実装
+- **Input Validation**: server/client双方で検証
+- **HTTPS**: 本番環境での強制
+
+## API設計
+
+### RESTful原則
+- **Resource-based URLs**: `/api/users/{id}/orders`
+- **HTTP Methods**: GET, POST, PUT, DELETE の適切な使用
+- **Status Codes**: 2xx, 4xx, 5xx の正確な返却
+- **Content-Type**: `application/json` 統一
+
+### OpenAPI仕様
+- **orval**: 自動コード生成でtype safe
+- **Documentation**: 包括的なAPI仕様書
+- **Validation**: リクエスト/レスポンス検証
+
+## 可観測性・監視
+
+### ログ管理
+- **Structured Logging**: JSON形式での出力
+- **Trace ID**: リクエスト追跡可能な識別子
+- **Log Levels**: ERROR, WARN, INFO, DEBUG の使い分け
+- **Sensitive Data**: 機密情報のマスキング
+
+### メトリクス・トレーシング
+- **OpenTelemetry**: 分散トレーシング実装
+- **AWS CloudWatch**: メトリクス収集
+- **Performance Monitoring**: レスポンス時間とスループット
+- **Error Tracking**: エラー率と原因分析
+
+## 開発環境
+
+### Docker構成
+- **Multi-stage builds**: 本番用軽量イメージ
+- **Dev Containers**: 統一開発環境
+- **docker-compose**: ローカル開発スタック
+- **Health checks**: サービス可用性確認
+
+### CI/CD
+- **GitHub Actions**: 自動ビルド・テスト・デプロイ
+- **AWS CDK**: Infrastructure as Code
+- **Blue-Green Deployment**: ダウンタイム最小化
+- **Rollback Strategy**: 障害時の迅速な復旧
+
+## 優先調査項目
+
+実装前に以下の公式ドキュメントを参照:
+1. **Rust**: The Book, Actix-web guide, Sea-ORM docs
+2. **Next.js**: App Router, Server Components, Performance
+3. **AWS**: Cognito, Lambda, CDK v2 best practices
+4. **DDD**: Eric Evans patterns, Clean Architecture
+5. **Security**: OWASP Top 10, AWS Security best practices
+
+---
+
+**重要**: 不明点があれば実装を開始する前に最新の公式ドキュメントを確認し、ベストプラクティスに従って実装してください。

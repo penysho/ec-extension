@@ -1,0 +1,308 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Backend Rust Development Rules
+
+*Activated when working in: backend/, *.rs files*
+
+## Rust Language Conventions
+
+### Code Organization
+```rust
+// File structure following DDD patterns
+mod domain;
+mod usecase;
+mod infrastructure;
+mod interface;
+
+// Re-exports for clean public API
+pub use domain::*;
+pub use usecase::*;
+```
+
+### Error Handling Best Practices
+```rust
+/// Application-specific error types
+#[derive(Debug, thiserror::Error)]
+pub enum UserError {
+    #[error("User not found: {id}")]
+    NotFound { id: String },
+    #[error("Validation failed: {field}")]
+    ValidationError { field: String },
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] sea_orm::DbErr),
+}
+
+/// Use Result<T, E> consistently
+pub type Result<T> = std::result::Result<T, UserError>;
+```
+
+### Async Programming Patterns
+```rust
+/// Service with dependency injection
+pub struct UserService {
+    user_repo: Arc<dyn UserRepository>,
+    event_bus: Arc<dyn EventBus>,
+}
+
+impl UserService {
+    /// Create user with proper error handling
+    pub async fn create_user(&self, cmd: CreateUserCommand) -> Result<User> {
+        // Validate command
+        cmd.validate()?;
+
+        // Business logic
+        let user = User::new(cmd.email, cmd.name)?;
+
+        // Persist and publish event
+        let saved_user = self.user_repo.save(user).await?;
+        self.event_bus.publish(UserCreated::new(&saved_user)).await?;
+
+        Ok(saved_user)
+    }
+}
+```
+
+### Testing Patterns
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mockall::predicate::*;
+
+    #[tokio::test]
+    async fn test_create_user_success() {
+        // Arrange
+        let mut mock_repo = MockUserRepository::new();
+        mock_repo
+            .expect_save()
+            .times(1)
+            .returning(|user| Ok(user));
+
+        let service = UserService::new(Arc::new(mock_repo));
+
+        // Act
+        let result = service.create_user(valid_command()).await;
+
+        // Assert
+        assert!(result.is_ok());
+    }
+}
+```
+
+## Actix-web Specific Patterns
+
+### Handler Functions
+```rust
+/// RESTful endpoint handler
+#[actix_web::get("/users/{id}")]
+pub async fn get_user(
+    path: web::Path<String>,
+    user_service: web::Data<UserService>,
+) -> impl Responder {
+    let user_id = path.into_inner();
+
+    match user_service.get_user(&user_id).await {
+        Ok(user) => HttpResponse::Ok().json(user),
+        Err(UserError::NotFound { .. }) => HttpResponse::NotFound().json("User not found"),
+        Err(e) => {
+            log::error!("Failed to get user: {}", e);
+            HttpResponse::InternalServerError().json("Internal server error")
+        }
+    }
+}
+```
+
+### Middleware Configuration
+```rust
+/// Application configuration
+pub fn configure_app(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/api/v1")
+            .wrap(TracingLogger::default())
+            .wrap(Cors::permissive())
+            .wrap(auth_middleware())
+            .service(get_user)
+            .service(create_user)
+    );
+}
+```
+
+## Domain-Driven Design
+
+### Entity Design
+```rust
+/// Domain entity with invariants
+#[derive(Debug, Clone, PartialEq)]
+pub struct User {
+    id: UserId,
+    email: Email,
+    name: UserName,
+    created_at: DateTime<Utc>,
+}
+
+impl User {
+    /// Constructor enforcing business rules
+    pub fn new(email: String, name: String) -> Result<Self> {
+        Ok(Self {
+            id: UserId::generate(),
+            email: Email::try_from(email)?,
+            name: UserName::try_from(name)?,
+            created_at: Utc::now(),
+        })
+    }
+
+    /// Domain method
+    pub fn change_email(&mut self, new_email: String) -> Result<()> {
+        self.email = Email::try_from(new_email)?;
+        Ok(())
+    }
+}
+```
+
+### Value Objects
+```rust
+/// Value object with validation
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Email(String);
+
+impl TryFrom<String> for Email {
+    type Error = UserError;
+
+    fn try_from(value: String) -> Result<Self> {
+        if value.contains('@') && value.len() > 3 {
+            Ok(Email(value))
+        } else {
+            Err(UserError::ValidationError {
+                field: "email".to_string(),
+            })
+        }
+    }
+}
+```
+
+### Repository Pattern
+```rust
+/// Repository trait for testing
+#[async_trait]
+pub trait UserRepository: Send + Sync {
+    async fn find_by_id(&self, id: &UserId) -> Result<Option<User>>;
+    async fn save(&self, user: User) -> Result<User>;
+    async fn delete(&self, id: &UserId) -> Result<()>;
+}
+
+/// Sea-ORM implementation
+pub struct SeaOrmUserRepository {
+    db: DatabaseConnection,
+}
+
+#[async_trait]
+impl UserRepository for SeaOrmUserRepository {
+    async fn find_by_id(&self, id: &UserId) -> Result<Option<User>> {
+        let user_entity = user::Entity::find_by_id(id.as_str())
+            .one(&self.db)
+            .await?;
+
+        Ok(user_entity.map(|e| e.try_into()).transpose()?)
+    }
+}
+```
+
+## Performance & Observability
+
+### Tracing Integration
+```rust
+use tracing::{info, warn, error, instrument};
+
+impl UserService {
+    /// Instrumented method for observability
+    #[instrument(skip(self), fields(user_id = %user_id))]
+    pub async fn get_user(&self, user_id: &str) -> Result<User> {
+        info!("Fetching user");
+
+        let user = self.user_repo.find_by_id(user_id).await?
+            .ok_or_else(|| UserError::NotFound { id: user_id.to_string() })?;
+
+        info!("User fetched successfully");
+        Ok(user)
+    }
+}
+```
+
+### Database Optimization
+```rust
+/// Efficient batch operations
+impl UserService {
+    pub async fn get_users_batch(&self, ids: Vec<UserId>) -> Result<Vec<User>> {
+        // Use single query instead of N+1
+        let users = user::Entity::find()
+            .filter(user::Column::Id.is_in(ids.iter().map(|id| id.as_str())))
+            .all(&self.db)
+            .await?;
+
+        users.into_iter()
+            .map(|entity| entity.try_into())
+            .collect()
+    }
+}
+```
+
+## Security Considerations
+
+### Input Validation
+```rust
+/// Command with validation
+#[derive(Debug, serde::Deserialize)]
+pub struct CreateUserCommand {
+    pub email: String,
+    pub name: String,
+}
+
+impl CreateUserCommand {
+    pub fn validate(&self) -> Result<()> {
+        if self.email.is_empty() {
+            return Err(UserError::ValidationError {
+                field: "email".to_string(),
+            });
+        }
+
+        if self.name.len() < 2 || self.name.len() > 50 {
+            return Err(UserError::ValidationError {
+                field: "name".to_string(),
+            });
+        }
+
+        Ok(())
+    }
+}
+```
+
+### Authentication Middleware
+```rust
+/// JWT authentication
+pub fn auth_middleware() -> DefaultHeaders {
+    DefaultHeaders::new()
+        .add(("Authorization", "Bearer"))
+}
+```
+
+## Code Quality Rules
+
+### Documentation Standards
+- Every public function/struct must have `///` documentation
+- Include examples in documentation when helpful
+- Document error conditions and panics
+
+### Performance Guidelines
+- Use `Arc<T>` for shared immutable data
+- Prefer `String` over `&str` for owned data in structs
+- Use `tokio::spawn` for CPU-intensive operations
+- Implement `Clone` efficiently with `Arc` for large structures
+
+### Dependency Management
+- Keep external dependencies minimal and well-justified
+- Pin major versions in Cargo.toml
+- Use feature flags to reduce compilation time
+- Prefer async versions of crates when available
