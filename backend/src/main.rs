@@ -64,7 +64,11 @@ async fn main() -> std::io::Result<()> {
         }
         let cors = cors
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
-            .allowed_headers(vec![http::header::CONTENT_TYPE, http::header::ACCEPT])
+            .allowed_headers(vec![
+                http::header::CONTENT_TYPE,
+                http::header::ACCEPT,
+                http::header::HeaderName::from_static("x-amzn-trace-id"),
+            ])
             .supports_credentials()
             .max_age(0);
 

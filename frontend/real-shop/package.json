@@ -33,6 +33,7 @@
     "@tanstack/react-query-devtools": "^5.61.5",
     "@types/js-cookie": "^3.0.6",
     "aws-amplify": "^6.10.3",
+    "aws-rum-web": "^1.23.0",
     "axios": "^1.7.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
