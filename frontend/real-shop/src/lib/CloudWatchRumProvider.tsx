@@ -3,9 +3,14 @@
 import { AwsRum, AwsRumConfig } from "aws-rum-web"
 
 const CloudWatchRumProvider = () => {
+  if (typeof window === "undefined") {
+    return <></>
+  }
+
   try {
     const config: AwsRumConfig = {
       sessionSampleRate: 1,
+      identityPoolId: process.env.NEXT_PUBLIC_CLOUDWATCH_RUM_IDENTITY_POOL_ID!,
       endpoint: "https://dataplane.rum.ap-northeast-1.amazonaws.com",
       telemetries: [
         "performance",
@@ -23,9 +28,9 @@ const CloudWatchRumProvider = () => {
       signing: true, // If you have a public resource policy and wish to send unsigned requests please set this to false
     }
 
-    const APPLICATION_ID: string = process.env.CLOUDWATCH_RUM_APPLICATION_ID!
-    const APPLICATION_VERSION: string = process.env.CLOUDWATCH_RUM_VERSION!
-    const APPLICATION_REGION: string = process.env.CLOUDWATCH_RUM_REGION!
+    const APPLICATION_ID: string = process.env.NEXT_PUBLIC_CLOUDWATCH_RUM_APPLICATION_ID!
+    const APPLICATION_VERSION: string = process.env.NEXT_PUBLIC_CLOUDWATCH_RUM_VERSION!
+    const APPLICATION_REGION: string = process.env.NEXT_PUBLIC_CLOUDWATCH_RUM_REGION!
 
     new AwsRum(APPLICATION_ID, APPLICATION_VERSION, APPLICATION_REGION, config)
   } catch (error) {
