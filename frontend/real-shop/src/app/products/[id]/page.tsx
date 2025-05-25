@@ -4,7 +4,7 @@ import { notFound, useParams } from "next/navigation"
 
 import ErrorPage from "@/app/error"
 import { ProductGallery } from "@/components/layout/product"
-import { RelatedProducts } from "@/components/product/RelatedProducts"
+import { RelatedProducts } from "@/components/layout/product/RelatedProducts"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
