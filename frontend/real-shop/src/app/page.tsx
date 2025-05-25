@@ -5,7 +5,7 @@ import Link from "next/link"
 import { ProductCard } from "@/components/layout/top"
 import { Button } from "@/components/ui/button"
 
-// 仮のデータ
+// Mock data
 const newProducts = [
   {
     id: "1",
@@ -49,9 +49,9 @@ const categories = [
 export default function Home() {
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* ヒーローセクション */}
+      {/* Hero section */}
       <section className="relative mb-12 h-[70vh]">
-        <Image src="https://placehold.jp/1000x1000.png" alt="新作コレクション" fill className="object-cover" />
+        <Image src="https://placehold.jp/1000x1000.png" alt="New Collection" fill className="object-cover" />
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-40 text-white">
           <h1 className="mb-4 text-4xl font-bold md:text-6xl">新作コレクション</h1>
           <p className="mb-8 text-xl">最新のトレンドをチェック</p>
@@ -61,7 +61,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 人気カテゴリー */}
+      {/* Popular categories */}
       <section className="mb-12">
         <h2 className="mb-6 text-3xl font-bold">人気カテゴリー</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -85,7 +85,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 新着商品 */}
+      {/* New arrivals */}
       <section className="mb-12">
         <h2 className="mb-6 text-3xl font-bold">新着商品</h2>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
@@ -95,7 +95,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* セール情報 */}
+      {/* Sale information */}
       <section className="mb-12 rounded-lg bg-red-600 px-6 py-12 text-white">
         <div className="text-center">
           <h2 className="mb-4 text-3xl font-bold">サマーセール開催中！</h2>
@@ -106,7 +106,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ブランドストーリー */}
+      {/* Brand story */}
       <section className="mb-12 flex flex-col items-center gap-8 md:flex-row">
         <div className="md:w-1/2">
           <h2 className="mb-4 text-3xl font-bold">ブランドストーリー</h2>

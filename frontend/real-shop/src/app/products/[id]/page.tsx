@@ -49,7 +49,7 @@ export default function Page() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
-        {/* 商品画像ギャラリー */}
+        {/* Product image gallery */}
         <ProductGallery
           images={product.media.map((m) => ({
             src: m.content?.image?.src || "/no-image.svg",
@@ -57,14 +57,14 @@ export default function Page() {
           }))}
         />
 
-        {/* 商品情報 */}
+        {/* Product information */}
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
             <p className="mt-2 text-lg font-semibold text-gray-900">¥{product.variants[0]?.price.toLocaleString()}</p>
           </div>
 
-          {/* サイズ選択 */}
+          {/* Size selection */}
           <div className="space-y-2">
             <Label>サイズ</Label>
             <RadioGroup defaultValue="M" className="grid grid-cols-5 gap-2">
@@ -80,7 +80,7 @@ export default function Page() {
             </RadioGroup>
           </div>
 
-          {/* カラー選択 */}
+          {/* Color selection */}
           <div className="space-y-2">
             <Label htmlFor="color">カラー</Label>
             <Select defaultValue="black" name="color">
@@ -95,7 +95,7 @@ export default function Page() {
             </Select>
           </div>
 
-          {/* 数量選択 */}
+          {/* Quantity selection */}
           <div className="space-y-2">
             <Label htmlFor="quantity">数量</Label>
             <Select defaultValue="1" name="quantity">
@@ -112,7 +112,7 @@ export default function Page() {
             </Select>
           </div>
 
-          {/* アクションボタン */}
+          {/* Action buttons */}
           <div className="flex gap-4">
             <Button className="flex-1">カートに追加</Button>
             <Button variant="outline" size="icon">
@@ -123,7 +123,7 @@ export default function Page() {
             </Button>
           </div>
 
-          {/* 配送・保証情報 */}
+          {/* Shipping and warranty information */}
           <div className="grid grid-cols-2 gap-4 border-t pt-6">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Truck className="h-5 w-5" />
@@ -139,7 +139,7 @@ export default function Page() {
             </div>
           </div>
 
-          {/* 商品詳細タブ */}
+          {/* Product details tabs */}
           <Tabs defaultValue="description" className="pt-8">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="description">商品説明</TabsTrigger>
@@ -194,7 +194,7 @@ export default function Page() {
         </div>
       </div>
 
-      {/* 関連商品セクション */}
+      {/* Related products section */}
       {relatedProductsData?.products && relatedProductsData.products.length > 0 && (
         <RelatedProducts products={relatedProductsData.products} />
       )}

@@ -11,7 +11,7 @@ interface OrderHistoryProps {
   userId: string
 }
 
-// 仮のデータ
+// Mock data
 const mockOrders: Order[] = [
   { id: "1", date: "2023-06-01", total: 15000, status: "配送済み" },
   { id: "2", date: "2023-05-15", total: 8000, status: "処理中" },

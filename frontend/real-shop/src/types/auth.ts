@@ -1,6 +1,6 @@
 export const USER_ID_COOKIE_NAME = "USER_ID"
 
-// 認証関連の型定義
+// Authentication-related type definitions
 
 export type SignUpParameters = {
   email: string
