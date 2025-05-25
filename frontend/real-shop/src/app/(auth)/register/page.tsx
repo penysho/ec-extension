@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { pendingVerificationEmailAtom } from "@/lib/stores"
 import { SignUpParameters } from "@/types/auth"
 
-// フォームバリデーションスキーマ
+// Form validation schema
 const formSchema = z
   .object({
     email: z.string().email({

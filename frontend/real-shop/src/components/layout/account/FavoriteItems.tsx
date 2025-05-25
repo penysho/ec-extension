@@ -13,7 +13,7 @@ interface FavoriteItemsProps {
   userId: string
 }
 
-// 仮のデータ
+// Mock data
 const mockFavorites: FavoriteItem[] = [
   {
     id: "1",

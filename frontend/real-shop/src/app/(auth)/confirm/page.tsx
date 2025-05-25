@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { pendingVerificationEmailAtom } from "@/lib/stores"
 
-// フォームバリデーションスキーマ
+// Form validation schema
 const formSchema = z.object({
   code: z.string().min(6, {
     message: "確認コードは6文字以上で入力してください",

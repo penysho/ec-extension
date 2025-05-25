@@ -18,7 +18,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    // ここで検索ロジックを実装
+    // Implement search logic here
     console.log("Searching for:", searchQuery)
     onClose()
   }

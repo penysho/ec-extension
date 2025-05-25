@@ -31,7 +31,7 @@ export function UserProfile({ user, handleSignOut }: UserProfileProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // ここでユーザー情報の更新処理を行う
+    // Handle user information update here
     console.log("Updated user info:", formData)
     setIsEditing(false)
   }

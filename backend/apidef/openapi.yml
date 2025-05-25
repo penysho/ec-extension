@@ -71,6 +71,33 @@ paths:
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
 
+  /ec-extension/products/related/{id}:
+    get:
+      summary: Get related products
+      description: Get a list of products related to the specified product
+      operationId: getRelatedProducts
+      tags:
+        - products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID
+          example: 000PRODUCTID001
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/GetRelatedProductsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
   /ec-extension/customers:
     get:
       summary: Get a list of customers
@@ -459,6 +486,43 @@ components:
           description: The phone number associated with the address.
           example: "+1234567890"
 
+    ProductSummary:
+      type: object
+      required:
+        - id
+        - name
+        - handle
+        - vendor
+        - price
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the product.
+          example: "prod_12345"
+        name:
+          type: string
+          description: The name of the product.
+          example: "Wireless Earbuds"
+        handle:
+          type: string
+          description: The handle of the product.
+          example: "wireless-earbuds"
+        vendor:
+          type: string
+          description: The vendor of the product.
+          example: "TechBrand"
+        price:
+          type: number
+          format: float
+          description: The price of the product.
+          example: 99.99
+        featured_media_url:
+          type: string
+          nullable: true
+          format: uri
+          description: The URL of the featured media for the product.
+          example: "https://example.com/images/wireless-earbuds.jpg"
+
     DomainError:
       type: object
       description: Common Error Responses
@@ -530,6 +594,21 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/Customer"
+
+    GetRelatedProductsResponse:
+      description: Get related products response
+      content:
+        application/json:
+          schema:
+            type: object
+            description: Get related products response
+            required:
+              - products
+            properties:
+              products:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductSummary"
 
     BadRequest:
       description: Bad request
