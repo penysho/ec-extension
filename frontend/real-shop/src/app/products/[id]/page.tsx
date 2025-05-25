@@ -4,12 +4,13 @@ import { notFound, useParams } from "next/navigation"
 
 import ErrorPage from "@/app/error"
 import { ProductGallery } from "@/components/layout/product"
+import { RelatedProducts } from "@/components/product/RelatedProducts"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useGetProduct } from "@/generated/backend"
+import { useGetProduct, useGetRelatedProducts } from "@/generated/backend"
 
 import Loading from "./loading"
 
@@ -22,6 +23,12 @@ export default function Page() {
 
   const { isFetching, error, data } = useGetProduct(id)
   const product = data?.product
+
+  const { data: relatedProductsData } = useGetRelatedProducts(id, {
+    query: {
+      enabled: !!product,
+    },
+  })
 
   if (isFetching) {
     return <Loading />
@@ -186,6 +193,11 @@ export default function Page() {
           </Tabs>
         </div>
       </div>
+
+      {/* 関連商品セクション */}
+      {relatedProductsData?.products && relatedProductsData.products.length > 0 && (
+        <RelatedProducts products={relatedProductsData.products} />
+      )}
     </div>
   )
 }

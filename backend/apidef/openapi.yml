@@ -71,7 +71,7 @@ paths:
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
 
-  /ec-extension/products/{id}/related:
+  /ec-extension/products/related/{id}:
     get:
       summary: Get related products
       description: Get a list of products related to the specified product

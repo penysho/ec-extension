@@ -267,6 +267,24 @@ export interface Address {
   phone?: string | null
 }
 
+export interface ProductSummary {
+  /** The unique identifier for the product. */
+  id: string
+  /** The name of the product. */
+  name: string
+  /** The handle of the product. */
+  handle: string
+  /** The vendor of the product. */
+  vendor: string
+  /** The price of the product. */
+  price: number
+  /**
+   * The URL of the featured media for the product.
+   * @nullable
+   */
+  featured_media_url?: string | null
+}
+
 /**
  * Common Error Responses
  */
@@ -293,6 +311,13 @@ export type GetProductsResponseResponse = {
  */
 export type GetCustomersResponseResponse = {
   customers: Customer[]
+}
+
+/**
+ * Get related products response
+ */
+export type GetRelatedProductsResponseResponse = {
+  products: ProductSummary[]
 }
 
 /**
@@ -608,6 +633,144 @@ export const prefetchGetProducts = async <
   },
 ): Promise<QueryClient> => {
   const queryOptions = getGetProductsQueryOptions(params, options)
+
+  await queryClient.prefetchQuery(queryOptions)
+
+  return queryClient
+}
+
+/**
+ * Get a list of products related to the specified product
+ * @summary Get related products
+ */
+export const getRelatedProducts = (
+  id: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal,
+) => {
+  return customInstance<GetRelatedProductsResponseResponse>(
+    { url: `/ec-extension/products/related/${id}`, method: "GET", signal },
+    options,
+  )
+}
+
+export const getGetRelatedProductsQueryKey = (id: string) => {
+  return [`/ec-extension/products/related/${id}`] as const
+}
+
+export const getGetRelatedProductsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRelatedProducts>>,
+  TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
+>(
+  id: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelatedProducts>>, TError, TData>>
+    request?: SecondParameter<typeof customInstance>
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {}
+
+  const queryKey = queryOptions?.queryKey ?? getGetRelatedProductsQueryKey(id)
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRelatedProducts>>> = ({ signal }) =>
+    getRelatedProducts(id, requestOptions, signal)
+
+  return { queryKey, queryFn, enabled: !!id, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRelatedProducts>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData> }
+}
+
+export type GetRelatedProductsQueryResult = NonNullable<Awaited<ReturnType<typeof getRelatedProducts>>>
+export type GetRelatedProductsQueryError = ErrorType<
+  BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse
+>
+
+export function useGetRelatedProducts<
+  TData = Awaited<ReturnType<typeof getRelatedProducts>>,
+  TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
+>(
+  id: string,
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelatedProducts>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRelatedProducts>>,
+          TError,
+          Awaited<ReturnType<typeof getRelatedProducts>>
+        >,
+        "initialData"
+      >
+    request?: SecondParameter<typeof customInstance>
+  },
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetRelatedProducts<
+  TData = Awaited<ReturnType<typeof getRelatedProducts>>,
+  TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
+>(
+  id: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelatedProducts>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getRelatedProducts>>,
+          TError,
+          Awaited<ReturnType<typeof getRelatedProducts>>
+        >,
+        "initialData"
+      >
+    request?: SecondParameter<typeof customInstance>
+  },
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+export function useGetRelatedProducts<
+  TData = Awaited<ReturnType<typeof getRelatedProducts>>,
+  TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
+>(
+  id: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelatedProducts>>, TError, TData>>
+    request?: SecondParameter<typeof customInstance>
+  },
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+/**
+ * @summary Get related products
+ */
+
+export function useGetRelatedProducts<
+  TData = Awaited<ReturnType<typeof getRelatedProducts>>,
+  TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
+>(
+  id: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelatedProducts>>, TError, TData>>
+    request?: SecondParameter<typeof customInstance>
+  },
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+  const queryOptions = getGetRelatedProductsQueryOptions(id, options)
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> }
+
+  query.queryKey = queryOptions.queryKey
+
+  return query
+}
+
+/**
+ * @summary Get related products
+ */
+export const prefetchGetRelatedProducts = async <
+  TData = Awaited<ReturnType<typeof getRelatedProducts>>,
+  TError = ErrorType<BadRequestResponse | NotFoundResponse | InternalServerErrorResponse | ServiceUnavailableResponse>,
+>(
+  queryClient: QueryClient,
+  id: string,
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getRelatedProducts>>, TError, TData>>
+    request?: SecondParameter<typeof customInstance>
+  },
+): Promise<QueryClient> => {
+  const queryOptions = getGetRelatedProductsQueryOptions(id, options)
 
   await queryClient.prefetchQuery(queryOptions)
 
@@ -944,6 +1107,23 @@ export const getGetProductsResponseMock = (
   ...overrideResponse,
 })
 
+export const getGetRelatedProductsResponseMock = (
+  overrideResponse: Partial<GetRelatedProductsResponseResponse> = {},
+): GetRelatedProductsResponseResponse => ({
+  products: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({
+    id: faker.string.alpha(20),
+    name: faker.string.alpha(20),
+    handle: faker.string.alpha(20),
+    vendor: faker.string.alpha(20),
+    price: faker.number.float(),
+    featured_media_url: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([faker.internet.url(), null]),
+      undefined,
+    ]),
+  })),
+  ...overrideResponse,
+})
+
 export const getGetCustomersResponseMock = (
   overrideResponse: Partial<GetCustomersResponseResponse> = {},
 ): GetCustomersResponseResponse => ({
@@ -1044,6 +1224,29 @@ export const getGetProductsMockHandler = (
   })
 }
 
+export const getGetRelatedProductsMockHandler = (
+  overrideResponse?:
+    | GetRelatedProductsResponseResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<GetRelatedProductsResponseResponse> | GetRelatedProductsResponseResponse),
+) => {
+  return http.get("*/ec-extension/products/related/:id", async (info) => {
+    await delay(1000)
+
+    return new HttpResponse(
+      JSON.stringify(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetRelatedProductsResponseMock(),
+      ),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )
+  })
+}
+
 export const getGetCustomersMockHandler = (
   overrideResponse?:
     | GetCustomersResponseResponse
@@ -1081,6 +1284,7 @@ export const getPostSignInMockHandler = (
 export const getEcExtensionBackendMock = () => [
   getGetProductMockHandler(),
   getGetProductsMockHandler(),
+  getGetRelatedProductsMockHandler(),
   getGetCustomersMockHandler(),
   getPostSignInMockHandler(),
 ]
