@@ -49,15 +49,9 @@ jobs:
         run: |
           npm run build
 
-      - name: Run tests with coverage
-        run: |
-          npm run test:coverage
-
       - name: Comment coverage report on PR
         uses: ArtiomTr/jest-coverage-report-action@v2
         if: github.event_name == 'pull_request'
         with:
-          skip-step: all
-          coverage-file: frontend/real-shop/coverage/lcov.info
-          base-coverage-file: frontend/real-shop/coverage/lcov.info
+          skip-step: install
           working-directory: frontend/real-shop
