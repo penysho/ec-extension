@@ -46,6 +46,5 @@ jobs:
 
       - uses: ArtiomTr/jest-coverage-report-action@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           skip-step: install
           working-directory: frontend/real-shop
