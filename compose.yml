@@ -54,7 +54,7 @@ services:
       - 4318:4318 # OTLP http receiver
       - 55679:55679 # zpages extension
     volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./docker/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
 
 volumes:
   postgres_data:
