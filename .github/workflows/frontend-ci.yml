@@ -21,6 +21,7 @@ jobs:
 
     permissions:
       checks: write
+      pull-requests: write
 
     steps:
       - name: Checkout
