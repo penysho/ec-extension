@@ -19,6 +19,9 @@ jobs:
       run:
         working-directory: frontend/real-shop
 
+    permissions:
+      checks: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,4 +46,6 @@ jobs:
 
       - uses: ArtiomTr/jest-coverage-report-action@v2
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          skip-step: install
           working-directory: frontend/real-shop
