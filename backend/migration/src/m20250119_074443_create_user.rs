@@ -22,13 +22,29 @@ impl MigrationTrait for Migration {
             .execute_unprepared(
                 r#"
             INSERT INTO "user" (id, name)
-            VALUES ('test_admin_user', 'test_admin_user_name');
+            VALUES ('test_admin_user_1', 'test_admin_user_name_1');
             INSERT INTO "user" (id, name)
-            VALUES ('test_operator_user', 'test_operator_user_name');
+            VALUES ('test_operator_user_1', 'test_operator_user_name_1');
             INSERT INTO "user" (id, name)
-            VALUES ('test_customer_user', 'test_customer_user_name');
+            VALUES ('test_customer_user_1', 'test_customer_user_name_1');
             INSERT INTO "user" (id, name)
-            VALUES ('test_not_login_user', 'test_not_login_user_name');
+            VALUES ('test_not_login_user_1', 'test_not_login_user_name_1');
+            INSERT INTO "user" (id, name)
+            VALUES ('test_admin_user_2', 'test_admin_user_name_2');
+            INSERT INTO "user" (id, name)
+            VALUES ('test_operator_user_2', 'test_operator_user_name_2');
+            INSERT INTO "user" (id, name)
+            VALUES ('test_customer_user_2', 'test_customer_user_name_2');
+            INSERT INTO "user" (id, name)
+            VALUES ('test_not_login_user_2', 'test_not_login_user_name_2');
+            INSERT INTO "user" (id, name)
+            VALUES ('test_admin_user_3', 'test_admin_user_name_3');
+            INSERT INTO "user" (id, name)
+            VALUES ('test_operator_user_3', 'test_operator_user_name_3');
+            INSERT INTO "user" (id, name)
+            VALUES ('test_customer_user_3', 'test_customer_user_name_3');
+            INSERT INTO "user" (id, name)
+            VALUES ('test_not_login_user_3', 'test_not_login_user_name_3');
             "#,
             )
             .await?;

@@ -41,13 +41,13 @@ impl MigrationTrait for Migration {
             .execute_unprepared(
                 r#"
         INSERT INTO "user_role" (user_id, role_id)
-        VALUES ('test_admin_user', 1);
+        VALUES ('test_admin_user_1', 1);
         INSERT INTO "user_role" (user_id, role_id)
-        VALUES ('test_operator_user', 2);
+        VALUES ('test_operator_user_1', 2);
         INSERT INTO "user_role" (user_id, role_id)
-        VALUES ('test_customer_user', 3);
+        VALUES ('test_customer_user_1', 3);
         INSERT INTO "user_role" (user_id, role_id)
-        VALUES ('test_not_login_user', 4);
+        VALUES ('test_not_login_user_1', 4);
         "#,
             )
             .await?;
