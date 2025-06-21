@@ -22,7 +22,10 @@ where
     C: Send + Sync + 'static,
 {
     /// Provide Interactor for products.
-    async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor>;
+    async fn provide_product_interactor(
+        &self,
+        transaction_manager: Arc<dyn TransactionManager<T, C>>,
+    ) -> Box<dyn ProductInteractor>;
     /// Provide Interactor for media.
     async fn provide_media_interactor(&self) -> Box<dyn MediaInteractor>;
     /// Provide Interactor for inventory.

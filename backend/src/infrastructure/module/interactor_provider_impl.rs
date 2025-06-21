@@ -65,7 +65,12 @@ impl InteractorProviderImpl {
 
 #[async_trait]
 impl InteractorProvider<DatabaseTransaction, Arc<DatabaseConnection>> for InteractorProviderImpl {
-    async fn provide_product_interactor(&self) -> Box<dyn ProductInteractor> {
+    async fn provide_product_interactor(
+        &self,
+        transaction_manager: Arc<
+            dyn TransactionManager<DatabaseTransaction, Arc<DatabaseConnection>>,
+        >,
+    ) -> Box<dyn ProductInteractor> {
         Box::new(ProductInteractorImpl::new(
             Box::new(ProductRepositoryImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
@@ -76,6 +81,7 @@ impl InteractorProvider<DatabaseTransaction, Arc<DatabaseConnection>> for Intera
             Box::new(ProductQueryServiceImpl::new(ShopifyGQLClient::new(
                 self.shopify_config.clone(),
             ))),
+            Arc::new(RbacAuthorizer::new(Arc::clone(&transaction_manager))),
         ))
     }
 

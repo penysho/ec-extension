@@ -1,9 +1,11 @@
 use crate::domain::error::error::DomainError;
 use crate::domain::media::media::Media;
 use crate::domain::product::product::{Id as ProductId, Product};
+use crate::domain::user::user::UserInterface;
 use crate::usecase::query_service::dto::product::ProductDTO;
 use async_trait::async_trait;
 use mockall::automock;
+use std::sync::Arc;
 
 /// Interactor interface for products.
 #[automock]
@@ -24,6 +26,7 @@ pub trait ProductInteractor {
     /// * Returns a domain error if the product or media repository fails.
     async fn get_product_with_media(
         &self,
+        user: Arc<dyn UserInterface>,
         id: &ProductId,
     ) -> Result<(Product, Vec<Media>), DomainError>;
 
@@ -43,6 +46,7 @@ pub trait ProductInteractor {
     /// * Returns a domain error if the product or media repository fails.
     async fn get_products_with_media(
         &self,
+        user: Arc<dyn UserInterface>,
         limit: &Option<u32>,
         offset: &Option<u32>,
     ) -> Result<(Vec<Product>, Vec<Media>), DomainError>;
@@ -58,5 +62,9 @@ pub trait ProductInteractor {
     /// # Errors
     ///
     /// * Returns a domain error if the query service fails.
-    async fn get_related_products(&self, id: &ProductId) -> Result<Vec<ProductDTO>, DomainError>;
+    async fn get_related_products(
+        &self,
+        user: Arc<dyn UserInterface>,
+        id: &ProductId,
+    ) -> Result<Vec<ProductDTO>, DomainError>;
 }
