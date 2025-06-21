@@ -1,5 +1,7 @@
 use sea_orm_migration::{prelude::*, schema::*};
 
+use crate::{m20250119_075309_create_role::Role, m20250621_055742_create_user_group::UserGroup};
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -12,8 +14,24 @@ impl MigrationTrait for Migration {
                     .table(UserGroupRole::Table)
                     .if_not_exists()
                     .col(pk_auto(UserGroupRole::Id))
-                    .col(string(UserGroupRole::UserGroupId))
-                    .col(string(UserGroupRole::RoleId))
+                    .col(integer(UserGroupRole::UserGroupId))
+                    .col(integer(UserGroupRole::RoleId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_user_group_role_user_group_id")
+                            .from(UserGroupRole::Table, UserGroupRole::UserGroupId)
+                            .to(UserGroup::Table, UserGroup::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_user_group_role_role_id")
+                            .from(UserGroupRole::Table, UserGroupRole::RoleId)
+                            .to(Role::Table, Role::Id)
+                            .on_delete(ForeignKeyAction::Cascade)
+                            .on_update(ForeignKeyAction::Cascade),
+                    )
                     .to_owned(),
             )
             .await?;

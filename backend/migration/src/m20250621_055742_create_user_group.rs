@@ -44,7 +44,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum UserGroup {
+pub(crate) enum UserGroup {
     Table,
     Id,
     Name,
