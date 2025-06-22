@@ -1,7 +1,12 @@
 use derive_getters::Getters;
 
 use crate::{
-    domain::{error::error::DomainError, product::variant::variant::Variant},
+    domain::{
+        authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+        error::error::DomainError,
+        product::variant::variant::Variant,
+        user::user::Id as UserId,
+    },
     log_error,
 };
 
@@ -87,6 +92,16 @@ impl Product {
     pub fn add_variant(&mut self, variant: Variant) -> Result<(), DomainError> {
         self.variants.push(variant);
         Ok(())
+    }
+}
+
+impl AuthorizedResource for Product {
+    fn resource_type(&self) -> ResourceType {
+        ResourceType::Product
+    }
+
+    fn owner_user_id(&self) -> Option<UserId> {
+        None
     }
 }
 

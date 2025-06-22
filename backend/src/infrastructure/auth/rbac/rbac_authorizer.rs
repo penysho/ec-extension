@@ -4,7 +4,10 @@ use std::{
 };
 
 use async_trait::async_trait;
-use sea_orm::{ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter};
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, FromQueryResult,
+    QueryFilter, Statement,
+};
 
 use crate::{
     domain::{
@@ -17,8 +20,8 @@ use crate::{
     infrastructure::{
         db::{
             model::{
-                prelude::{Permission, RoleResourcePermission, UserRole},
-                role_resource_permission, user_role,
+                prelude::{Permission, RoleResourcePermission},
+                role_resource_permission,
             },
             transaction_manager_interface::TransactionManager,
         },
@@ -27,6 +30,12 @@ use crate::{
     log_error,
     usecase::auth::authorizer_interface::Authorizer,
 };
+
+/// Result structure for combined role query
+#[derive(Debug, FromQueryResult)]
+struct RoleIdResult {
+    role_id: i32,
+}
 
 /// Authorization by RBAC.
 #[derive(Clone)]
@@ -46,11 +55,27 @@ impl RbacAuthorizer {
         }
     }
 
-    /// Get the role ids of the user.
-    async fn get_user_role_ids(&self, user_id: &str) -> Result<Vec<i32>, DomainError> {
-        let role_query = UserRole::find().filter(user_role::Column::UserId.eq(user_id));
-        let roles = if self.transaction_manager.is_transaction_started().await {
-            role_query
+    /// Get all role ids for a user (both direct roles and group roles) in a single query.
+    /// This method combines user_role and user_group_role queries using UNION for efficiency.
+    async fn get_all_user_role_ids(&self, user_id: &str) -> Result<Vec<i32>, DomainError> {
+        // Build the raw SQL query using UNION to combine direct user roles and group roles
+        let sql = r#"
+            SELECT role_id FROM user_role WHERE user_id = $1
+            UNION
+            SELECT ugr.role_id
+            FROM user_group_role ugr
+            INNER JOIN user_user_group uug ON ugr.user_group_id = uug.user_group_id
+            WHERE uug.user_id = $1
+        "#;
+
+        let stmt = Statement::from_sql_and_values(
+            sea_orm::DatabaseBackend::Postgres,
+            sql,
+            vec![user_id.into()],
+        );
+
+        let role_results = if self.transaction_manager.is_transaction_started().await {
+            RoleIdResult::find_by_statement(stmt)
                 .all(
                     self.transaction_manager
                         .get_transaction()
@@ -60,7 +85,7 @@ impl RbacAuthorizer {
                 )
                 .await
         } else {
-            role_query
+            RoleIdResult::find_by_statement(stmt)
                 .all(self.transaction_manager.get_connection().await?.as_ref())
                 .await
         }
@@ -68,7 +93,8 @@ impl RbacAuthorizer {
             log_error!("Failed to get user roles.", "user_id" => user_id, "error" => e);
             InfrastructureErrorMapper::to_domain(InfrastructureError::DatabaseError(e))
         })?;
-        Ok(roles.iter().map(|role| role.role_id).collect())
+
+        Ok(role_results.into_iter().map(|r| r.role_id).collect())
     }
 
     /// Get the permissions of the user.
@@ -119,14 +145,19 @@ impl RbacAuthorizer {
         &self,
         user_id: &str,
     ) -> Result<(Vec<Role>, HashMap<ResourceType, HashSet<UserAction>>), DomainError> {
-        let role_ids = self.get_user_role_ids(user_id).await?;
+        let role_ids = self.get_all_user_role_ids(user_id).await?;
 
-        let roles = role_ids
+        // Convert to HashSet to remove duplicates (UNION should already handle this, but being safe)
+        let unique_role_ids: HashSet<i32> = role_ids.into_iter().collect();
+
+        let roles = unique_role_ids
             .iter()
             .map(|role_id| Role::try_from(*role_id))
             .collect::<Result<Vec<Role>, DomainError>>()?;
 
-        let permissions = self.get_user_permissions(role_ids.clone()).await?;
+        let permissions = self
+            .get_user_permissions(unique_role_ids.into_iter().collect())
+            .await?;
 
         Ok((roles, permissions))
     }
@@ -257,6 +288,50 @@ mod tests {
             role_id: Set(role.clone() as i32),
         };
         user_role.insert(transaction).await?;
+
+        Ok(user_id)
+    }
+
+    /// Insert a user into the database via group membership.
+    async fn insert_user_via_group(
+        transaction: &DatabaseTransaction,
+        role: &Role,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        use crate::infrastructure::db::model::{user_group, user_group_role, user_user_group};
+
+        let mut rng = rand::thread_rng();
+        let user_id = Alphanumeric.sample_string(&mut rng, 10);
+        let group_id = rng.gen_range(1000..10000);
+
+        // Create user
+        let user = user::ActiveModel {
+            id: Set(user_id.to_string()),
+            name: Set("group_user".to_string()),
+        };
+        user.insert(transaction).await?;
+
+        // Create user group
+        let user_group = user_group::ActiveModel {
+            id: Set(group_id),
+            name: Set(format!("test_group_{}", group_id)),
+        };
+        user_group.insert(transaction).await?;
+
+        // Assign role to group
+        let user_group_role = user_group_role::ActiveModel {
+            id: Set(rng.gen_range(1000..10000)),
+            user_group_id: Set(group_id),
+            role_id: Set(role.clone() as i32),
+        };
+        user_group_role.insert(transaction).await?;
+
+        // Add user to group
+        let user_user_group = user_user_group::ActiveModel {
+            id: Set(rng.gen_range(1000..10000)),
+            user_id: Set(user_id.to_string()),
+            user_group_id: Set(group_id),
+        };
+        user_user_group.insert(transaction).await?;
 
         Ok(user_id)
     }
@@ -557,5 +632,206 @@ mod tests {
         } else {
             panic!("Expected DomainError::AuthorizationError, but got something else");
         }
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_group_admin_user_success() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let user_id = insert_user_via_group(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            &Role::Admin,
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let resource = vec![&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource];
+        let action = ResourceAction::Read;
+
+        let result = authorizer
+            .authorize(
+                user_interface(&authorizer, &user_id).await,
+                resource,
+                &action,
+            )
+            .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_group_operator_user_success() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let user_id = insert_user_via_group(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            &Role::Operator,
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let user = user_interface(&authorizer, &user_id).await;
+        let resource = vec![&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource];
+        let action = ResourceAction::Read;
+
+        let result = authorizer.authorize(user, resource, &action).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_group_owner_user_id_success() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let user_id = insert_user_via_group(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            &Role::Operator,
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let user = user_interface(&authorizer, &user_id).await;
+        let binding = MockProduct {
+            owner_user_id: Some(user_id.to_string()),
+        };
+        let resource = vec![&binding as &dyn AuthorizedResource];
+        let action = ResourceAction::Delete;
+
+        let result = authorizer.authorize(user, resource, &action).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_group_customer_no_permission() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let user_id = insert_user_via_group(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            &Role::Customer,
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let resource = vec![&MockProduct {
+            owner_user_id: None,
+        } as &dyn AuthorizedResource];
+        let action = ResourceAction::Delete; // The action is not allowed.
+
+        let result = authorizer
+            .authorize(
+                user_interface(&authorizer, &user_id).await,
+                resource,
+                &action,
+            )
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::AuthorizationError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::AuthorizationError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_authorize_with_group_different_owner_user_id() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let user_id = insert_user_via_group(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            &Role::Customer,
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        let binding = MockOrder {
+            owner_user_id: Some("another_user_id".to_string()), // The owner is different.
+        };
+        let resource = vec![&binding as &dyn AuthorizedResource];
+        let action = ResourceAction::Delete;
+
+        let result = authorizer
+            .authorize(
+                user_interface(&authorizer, &user_id).await,
+                resource,
+                &action,
+            )
+            .await;
+
+        assert!(result.is_err());
+        if let Err(DomainError::AuthorizationError) = result {
+            // Test passed
+        } else {
+            panic!("Expected DomainError::AuthorizationError, but got something else");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_user_authorization_with_group_role() {
+        let transaction_manager = transaction_manager().await;
+        let authorizer = RbacAuthorizer::new(Arc::new(transaction_manager.clone()));
+
+        let user_id = insert_user_via_group(
+            transaction_manager
+                .clone()
+                .get_transaction()
+                .await
+                .unwrap()
+                .as_ref()
+                .unwrap(),
+            &Role::Admin,
+        )
+        .await
+        .expect("Failed to insert test data");
+
+        // Test that get_user_authorization correctly retrieves group roles
+        let (roles, _permissions) = authorizer
+            .get_user_authorization(&user_id)
+            .await
+            .expect("Failed to get user authorization");
+
+        // Should contain the Admin role from group membership
+        assert!(roles.contains(&Role::Admin));
+        assert_eq!(roles.len(), 1);
     }
 }

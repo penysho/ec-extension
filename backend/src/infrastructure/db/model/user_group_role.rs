@@ -3,11 +3,11 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user_role")]
+#[sea_orm(table_name = "user_group_role")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub user_id: String,
+    pub user_group_id: i32,
     pub role_id: i32,
 }
 
@@ -22,13 +22,13 @@ pub enum Relation {
     )]
     Role,
     #[sea_orm(
-        belongs_to = "super::user::Entity",
-        from = "Column::UserId",
-        to = "super::user::Column::Id",
+        belongs_to = "super::user_group::Entity",
+        from = "Column::UserGroupId",
+        to = "super::user_group::Column::Id",
         on_update = "Cascade",
         on_delete = "Cascade"
     )]
-    User,
+    UserGroup,
 }
 
 impl Related<super::role::Entity> for Entity {
@@ -37,9 +37,9 @@ impl Related<super::role::Entity> for Entity {
     }
 }
 
-impl Related<super::user::Entity> for Entity {
+impl Related<super::user_group::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::User.def()
+        Relation::UserGroup.def()
     }
 }
 
