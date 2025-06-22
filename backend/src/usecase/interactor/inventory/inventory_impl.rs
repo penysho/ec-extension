@@ -1,9 +1,13 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 
 use crate::{
     domain::{
+        authorized_resource::authorized_resource::{
+            AuthorizedResource, Resource, ResourceAction, ResourceType,
+        },
         error::error::DomainError,
         inventory_item::inventory_item::{Id as InventoryItemId, InventoryItem},
         inventory_level::{
@@ -16,9 +20,11 @@ use crate::{
         },
         location::location::Id as LocationId,
         product::variant::sku::sku::Sku,
+        user::user::UserInterface,
     },
     log_error,
     usecase::{
+        auth::authorizer_interface::Authorizer,
         interactor::inventory_interactor_interface::{GetInventoriesQuery, InventoryInteractor},
         repository::{
             inventory_item_repository_interface::InventoryItemRepository,
@@ -31,16 +37,19 @@ use crate::{
 pub struct InventoryInteractorImpl {
     inventory_item_repository: Box<dyn InventoryItemRepository>,
     inventory_level_repository: Box<dyn InventoryLevelRepository>,
+    authorizer: Arc<dyn Authorizer>,
 }
 
 impl InventoryInteractorImpl {
     pub fn new(
         inventory_item_repository: Box<dyn InventoryItemRepository>,
         inventory_level_repository: Box<dyn InventoryLevelRepository>,
+        authorizer: Arc<dyn Authorizer>,
     ) -> Self {
         Self {
             inventory_item_repository: inventory_item_repository,
             inventory_level_repository: inventory_level_repository,
+            authorizer: authorizer,
         }
     }
 }
@@ -49,6 +58,7 @@ impl InventoryInteractorImpl {
 impl InventoryInteractor for InventoryInteractorImpl {
     async fn get_inventories_from_all_locations(
         &self,
+        user: Arc<dyn UserInterface>,
         query: &GetInventoriesQuery,
     ) -> Result<
         (
@@ -63,6 +73,15 @@ impl InventoryInteractor for InventoryInteractorImpl {
                 let inventory_items = self
                     .inventory_item_repository
                     .find_inventory_item_by_sku(sku)
+                    .await?;
+
+                // Check authorization for inventory read access
+                self.authorizer
+                    .authorize(
+                        user.clone(),
+                        vec![&inventory_items as &dyn AuthorizedResource],
+                        &ResourceAction::Read,
+                    )
                     .await?;
 
                 let inventory_levels = self
@@ -81,6 +100,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
 
     async fn allocate_inventory_by_sku_with_location(
         &self,
+        user: Arc<dyn UserInterface>,
         sku: &Sku,
         name: &InventoryType,
         reason: &InventoryChangeReason,
@@ -100,6 +120,15 @@ impl InventoryInteractor for InventoryInteractorImpl {
                 );
                 DomainError::NotFound
             })?;
+
+        // Check authorization for inventory write access
+        self.authorizer
+            .authorize(
+                user.clone(),
+                vec![&inventory_level as &dyn AuthorizedResource],
+                &ResourceAction::Write,
+            )
+            .await?;
 
         let inventory_change =
             inventory_level.create_inventory_change(name, reason, delta, ledger_document_uri)?;

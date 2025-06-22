@@ -1,4 +1,9 @@
-use crate::domain::{error::error::DomainError, product::variant::variant::Id as VariantId};
+use crate::domain::{
+    authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+    error::error::DomainError,
+    product::variant::variant::Id as VariantId,
+    user::user::Id as UserId,
+};
 use crate::log_error;
 use chrono::{DateTime, Utc};
 use derive_getters::Getters;
@@ -52,6 +57,16 @@ impl InventoryItem {
             created_at,
             updated_at,
         })
+    }
+}
+
+impl AuthorizedResource for InventoryItem {
+    fn resource_type(&self) -> ResourceType {
+        ResourceType::Product
+    }
+
+    fn owner_user_id(&self) -> Option<UserId> {
+        None
     }
 }
 
