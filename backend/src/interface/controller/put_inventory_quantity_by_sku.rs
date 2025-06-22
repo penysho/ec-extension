@@ -92,10 +92,11 @@ where
             .transpose()?;
 
         let user = self.get_user(&request)?;
+        let transaction_manager = self.get_transaction_manager(&request)?;
 
         let interactor = self
             .interactor_provider
-            .provide_inventory_interactor()
+            .provide_inventory_interactor(transaction_manager)
             .await;
 
         let result = interactor
@@ -148,7 +149,7 @@ mod tests {
             MockInteractorProvider::<DatabaseTransaction, Arc<DatabaseConnection>>::new();
         interactor_provider
             .expect_provide_inventory_interactor()
-            .return_once(move || Box::new(interactor) as Box<dyn InventoryInteractor>);
+            .return_once(move |_| Box::new(interactor) as Box<dyn InventoryInteractor>);
 
         let controller = web::Data::new(Controller::new(interactor_provider));
 
