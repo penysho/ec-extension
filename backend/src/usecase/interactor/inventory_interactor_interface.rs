@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use mockall::automock;
+use std::sync::Arc;
 
 use crate::domain::error::error::DomainError;
+use crate::domain::user::user::UserInterface;
 use crate::domain::inventory_item::inventory_item::{Id as InventoryItemId, InventoryItem};
 use crate::domain::inventory_level::inventory_level::InventoryLevel;
 use crate::domain::inventory_level::quantity::quantity::InventoryType;
@@ -27,6 +29,7 @@ pub trait InventoryInteractor {
     ///
     /// # Arguments
     ///
+    /// * `user` - The user interface for authorization.
     /// * `query` - get inventories query
     ///
     /// # Returns
@@ -38,6 +41,7 @@ pub trait InventoryInteractor {
     /// * Returns a domain error if the media repository fails.
     async fn get_inventories_from_all_locations(
         &self,
+        user: Arc<dyn UserInterface>,
         query: &GetInventoriesQuery,
     ) -> Result<
         (
@@ -51,6 +55,7 @@ pub trait InventoryInteractor {
     ///
     /// # Arguments
     ///
+    /// * `user` - The user interface for authorization.
     /// * `sku` - sku
     /// * `name` - inventory type
     /// * `reason` - inventory change reason
@@ -67,6 +72,7 @@ pub trait InventoryInteractor {
     /// * Returns a domain error if the media repository fails.
     async fn allocate_inventory_by_sku_with_location(
         &self,
+        user: Arc<dyn UserInterface>,
         sku: &Sku,
         name: &InventoryType,
         reason: &InventoryChangeReason,

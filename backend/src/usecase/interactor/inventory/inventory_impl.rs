@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 
@@ -16,6 +17,7 @@ use crate::{
         },
         location::location::Id as LocationId,
         product::variant::sku::sku::Sku,
+        user::user::UserInterface,
     },
     log_error,
     usecase::{
@@ -49,6 +51,7 @@ impl InventoryInteractorImpl {
 impl InventoryInteractor for InventoryInteractorImpl {
     async fn get_inventories_from_all_locations(
         &self,
+        user: Arc<dyn UserInterface>,
         query: &GetInventoriesQuery,
     ) -> Result<
         (
@@ -81,6 +84,7 @@ impl InventoryInteractor for InventoryInteractorImpl {
 
     async fn allocate_inventory_by_sku_with_location(
         &self,
+        user: Arc<dyn UserInterface>,
         sku: &Sku,
         name: &InventoryType,
         reason: &InventoryChangeReason,
