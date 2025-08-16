@@ -29,7 +29,10 @@ where
     /// Provide Interactor for media.
     async fn provide_media_interactor(&self) -> Box<dyn MediaInteractor>;
     /// Provide Interactor for inventory.
-    async fn provide_inventory_interactor(&self) -> Box<dyn InventoryInteractor>;
+    async fn provide_inventory_interactor(
+        &self,
+        transaction_manager: Arc<dyn TransactionManager<T, C>>,
+    ) -> Box<dyn InventoryInteractor>;
     /// Provide Interactor for draft order.
     async fn provide_draft_order_interactor(
         &self,

@@ -55,8 +55,9 @@ where
                 "/inventories",
                 web::get().to(
                     |controller: web::Data<Controller<I, T, C>>,
+                     request: actix_web::HttpRequest,
                      params: web::Query<GetInventoriesQueryParams>| async move {
-                        controller.get_inventories(params).await
+                        controller.get_inventories(request, params).await
                     },
                 ),
             )
@@ -64,9 +65,12 @@ where
                 "/inventories/quantities/sku/{sku}",
                 web::put().to(
                     |controller: web::Data<Controller<I, T, C>>,
+                     request: actix_web::HttpRequest,
                      path: web::Path<(String,)>,
                      body: web::Json<PutInventoryQuantityBySkuRequest>| async move {
-                        controller.put_inventory_quantity_by_sku(path, body).await
+                        controller
+                            .put_inventory_quantity_by_sku(request, path, body)
+                            .await
                     },
                 ),
             )

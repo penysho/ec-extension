@@ -1,7 +1,10 @@
 use crate::{
     domain::{
-        error::error::DomainError, inventory_item::inventory_item::Id as InventoryItemId,
+        authorized_resource::authorized_resource::{AuthorizedResource, ResourceType},
+        error::error::DomainError,
+        inventory_item::inventory_item::Id as InventoryItemId,
         location::location::Id as LocationId,
+        user::user::Id as UserId,
     },
     log_error,
 };
@@ -72,6 +75,16 @@ impl InventoryLevel {
         )?;
 
         InventoryChange::new(name.to_owned(), reason.to_owned(), vec![change])
+    }
+}
+
+impl AuthorizedResource for InventoryLevel {
+    fn resource_type(&self) -> ResourceType {
+        ResourceType::Product
+    }
+
+    fn owner_user_id(&self) -> Option<UserId> {
+        None
     }
 }
 
